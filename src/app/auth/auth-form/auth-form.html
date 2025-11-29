@@ -1,0 +1,148 @@
+<div class="space-y-4 w-full max-w-sm mx-auto border border-surface m-4 p-4 pb-8 rounded-2xl">
+  <form
+    [formGroup]="authForm"
+    (ngSubmit)="submit()"
+    aria-labelledby="auth-form-label"
+    class="space-y-4"
+  >
+    <h2 id="auth-form-label" class="text-center text-2xl font-bold text-color">
+      Sign {{ formType.suffix }}
+    </h2>
+    @if (authForm.errors?.['global']; as _globalError) {
+    <p class="text-red-700 text-sm block">
+      {{ _globalError }}
+    </p>
+    }
+    <div class="space-y-4 *:flex *:flex-col *:gap-1">
+      <ng-container
+        [ngTemplateOutlet]="authField"
+        [ngTemplateOutletContext]="{
+          control: authForm.controls.username,
+          label: 'Username',
+          id: 'username',
+          type: 'text',
+        }"
+      />
+      <ng-container
+        [ngTemplateOutlet]="authField"
+        [ngTemplateOutletContext]="{
+          control: authForm.controls.password,
+          hidden: passwordHidden(),
+          label: 'Password',
+          type: 'password',
+          id: 'password',
+        }"
+      />
+      @if (authForm.controls.confirm) {
+      <ng-container
+        [ngTemplateOutlet]="authField"
+        [ngTemplateOutletContext]="{
+          control: authForm.controls.confirm,
+          label: 'Password Confirmation',
+          hidden: confirmHidden(),
+          type: 'password',
+          id: 'confirm',
+        }"
+      />
+      } @if (authForm.controls.fullname) {
+      <ng-container
+        [ngTemplateOutlet]="authField"
+        [ngTemplateOutletContext]="{
+          control: authForm.controls.fullname,
+          label: 'Fullname',
+          id: 'fullname',
+          type: 'text',
+        }"
+      />
+      } @if (authForm.controls.bio) {
+      <ng-container
+        [ngTemplateOutlet]="authField"
+        [ngTemplateOutletContext]="{
+          control: authForm.controls.bio,
+          type: 'textarea',
+          label: 'Bio',
+          id: 'bio',
+        }"
+      />
+      }
+    </div>
+    @let _disabled = authForm.disabled;
+    <div>
+      <button type="submit" [disabled]="_disabled" class="appearance-auto border">
+        <span>Sign {{ formType.suffix }}</span>
+      </button>
+    </div>
+  </form>
+  <div class="text-center *:align-middle *:odd:inline-block *:odd:w-1/3 *:even:mx-2">
+    <hr />
+    <span>Or</span>
+    <hr />
+  </div>
+  <div>
+    <button
+      type="button"
+      [disabled]="_disabled"
+      (click)="changeForm()"
+      class="appearance-auto border"
+    >
+      <span>Sign {{ formType.oppositeSuffix }}</span>
+    </button>
+  </div>
+</div>
+
+<!-- 
+  Use a template fragment instead of a separate component, to avoid browser issues
+  that arises when bounding the id of an input-tag to a dynamic component input
+-->
+<ng-template
+  #authField
+  let-fieldId="id"
+  let-fieldLabel="label"
+  let-fieldType="type"
+  let-fieldControl="control"
+  let-fieldHidden="hidden"
+>
+  @let _invalid = fieldControl.invalid && fieldControl.dirty;
+  <div>
+    <label [for]="fieldId">{{ fieldLabel }}</label>
+    <div class="relative">
+      @if (fieldType === 'textarea') {
+      <textarea
+        [id]="fieldId"
+        [formControl]="fieldControl"
+        [aria-invalid]="_invalid"
+        class="appearance-auto border"
+      ></textarea>
+      } @else {
+      <input
+        [id]="fieldId"
+        [formControl]="fieldControl"
+        [aria-invalid]="_invalid"
+        [type]="fieldHidden === false ? 'text' : fieldType"
+        autocomplete="off"
+        class="appearance-auto border"
+      />
+      @if (fieldType === 'password') {
+      <button
+        type="button"
+        (click)="fieldId === 'confirm' ? toggleConfirmVisibility() : togglePasswordVisibility()"
+        class="appearance-auto border absolute top-0 right-0 bg-transparent"
+      >
+        <span>{{`${fieldHidden === false ? 'Hide' : 'Show'} ${fieldLabel.toLowerCase()}`}}</span>
+      </button>
+      } }
+    </div>
+  </div>
+  <!-- prettier-ignore -->
+  @if (_invalid) {
+  <p class="text-red-700 text-sm">
+    @if (fieldControl.getError('required')) {
+    <span
+      >{{ `${fieldLabel[0].toUpperCase()}${fieldLabel.slice(1).toLowerCase()}` }} is required.</span
+    >
+    }@else if (fieldControl.getError('validation'); as _validationError) {
+    <span>{{ _validationError }}</span>
+    }
+  </p>
+  }
+</ng-template>
