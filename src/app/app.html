@@ -3,6 +3,12 @@
 </nav>
 @if (navigating()) {
 <p class="absolute top-1/2 left-1/2 -translate-1/2 -z-50">Loading...</p>
+} @else if (navErrMsg(); as _navErrMsg) {
+<p class="text-red-700 text-sm max-w-lg text-center mx-auto **:inline-block **:m-1">
+  <span>{{ _navErrMsg }}</span>
+  <br />
+  <button type="button" (click)="retryNavigation()" class="appearance-auto border">Retry</button>
+</p>
 } @else {
 <div class="text-center space-y-4">
   <p>
