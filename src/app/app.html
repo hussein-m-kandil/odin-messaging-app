@@ -9,6 +9,9 @@
     A web app that lets users send messages to each other, built as part of studying The Odin
     Project's Node.js course.
   </p>
+  @if (authenticated()) {
+  <button type="button" (click)="signOut()" class="appearance-auto border">Sign Out</button>
+  }
 </div>
 <router-outlet />
 }
