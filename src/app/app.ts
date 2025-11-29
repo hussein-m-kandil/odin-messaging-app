@@ -1,5 +1,6 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
+import { Component, computed, inject } from '@angular/core';
+import { environment } from '../environments';
 
 @Component({
   selector: 'app-root',
@@ -8,5 +9,9 @@ import { RouterOutlet } from '@angular/router';
   styles: ``,
 })
 export class App {
-  protected readonly title = signal('odin-messaging-app');
+  private readonly _router = inject(Router);
+
+  protected readonly navigating = computed(() => !!this._router.currentNavigation());
+
+  protected readonly title = environment.title;
 }
