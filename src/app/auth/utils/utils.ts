@@ -1,5 +1,4 @@
 import { NavigationBehaviorOptions, UrlSegment } from '@angular/router';
-import { HttpErrorResponse } from '@angular/common/http';
 import { AuthData } from '../auth.types';
 
 export const authNavOpts: NavigationBehaviorOptions = {
@@ -33,9 +32,4 @@ export const isAuthData = (data: unknown): data is AuthData => {
     'id' in data.user.profile &&
     typeof data.user.profile.id === 'string'
   );
-};
-
-export const getValidAuthDataOrThrowServerError = (data: unknown) => {
-  if (isAuthData(data)) return data;
-  throw new HttpErrorResponse({ status: 500, statusText: 'malformed server response' });
 };

@@ -1,8 +1,8 @@
-import { computed, signal, untracked, effect, inject, Injectable } from '@angular/core';
-import { authNavOpts, getValidAuthDataOrThrowServerError } from './utils';
+import { computed, signal, inject, Injectable, effect, untracked } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { catchError, of, map, Observable, switchMap } from 'rxjs';
 import { SigninData, SignupData, AuthData } from './auth.types';
+import { authNavOpts, isAuthData, isAuthUrl } from './utils';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../environments';
 import { AppStorage } from '../app-storage';
@@ -24,21 +24,6 @@ export class Auth {
 
   private readonly _authData = signal<AuthData | null>(null);
 
-  constructor() {
-    let initialized = false;
-    effect(() => {
-      const navigating = untracked(this._navigating);
-      const authData = this._authData();
-      if (initialized && !navigating) {
-        const redirectUrl = this._router.routerState.snapshot.root.queryParamMap?.get('url');
-        const url = authData ? redirectUrl || '/' : '/signin';
-        this._router.navigateByUrl(url, authNavOpts);
-      } else {
-        initialized = true;
-      }
-    });
-  }
-
   private readonly _setAuthData = (authData: AuthData | null) => {
     this._authData.set(authData);
     if (authData) this._storage.setItem(AUTH_KEY, authData.token);
@@ -46,9 +31,11 @@ export class Auth {
   };
 
   private readonly _saveValidAuthDataAndGetUserOrThrow = (authRes: AuthData) => {
-    const authData = getValidAuthDataOrThrowServerError(authRes);
-    this._setAuthData(authData);
-    return authData.user;
+    if (!isAuthData(authRes)) {
+      throw new HttpErrorResponse({ status: 500, statusText: 'malformed server response' });
+    }
+    this._setAuthData(authRes);
+    return authRes.user;
   };
 
   private _verify = (): Observable<boolean> => {
@@ -59,7 +46,7 @@ export class Auth {
       .pipe(
         catchError((error: unknown) => {
           if (error instanceof HttpErrorResponse && error.status === 401) {
-            this.signOut();
+            this._storage.removeItem(AUTH_KEY);
             return of(null);
           }
           throw error;
@@ -82,6 +69,26 @@ export class Auth {
   readonly authenticated$: Observable<boolean> = toObservable(this._authData).pipe(
     switchMap((authData) => (authData ? of(true) : this._verify()))
   );
+
+  constructor() {
+    let initialized = false;
+    effect(() => {
+      const navigating = untracked(this._navigating);
+      const authData = this._authData();
+      if (initialized && !navigating) {
+        const authenticating = isAuthUrl(this._router.routerState.snapshot.url);
+        const authenticated = !!authData;
+        if (authenticating && authenticated) {
+          const url = this._router.routerState.snapshot.root.queryParams['url'] || '/';
+          this._router.navigateByUrl(url, authNavOpts);
+        } else if (!authenticating && !authenticated) {
+          this._router.navigateByUrl('/signin', authNavOpts);
+        }
+      } else {
+        initialized = true;
+      }
+    });
+  }
 
   signIn(data: SigninData) {
     return this._http

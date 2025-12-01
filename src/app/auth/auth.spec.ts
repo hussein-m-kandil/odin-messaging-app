@@ -1,5 +1,6 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { provideRouter, Router } from '@angular/router';
 import { SigninData, SignupData } from './auth.types';
 import { environment } from '../../environments';
@@ -15,7 +16,7 @@ const navigationSpy = vi.spyOn(Router.prototype, 'navigateByUrl');
 @Component({ template: '<h1>Dummy</h1>' })
 class Dummy {}
 
-const setup = () => {
+const setup = async (initialRoute?: string) => {
   TestBed.configureTestingModule({
     providers: [
       provideHttpClient(),
@@ -27,8 +28,13 @@ const setup = () => {
   const storage = TestBed.inject(AppStorage) as unknown as typeof appStorageMock;
   const httpTesting = TestBed.inject(HttpTestingController);
   const service = TestBed.inject(Auth);
+  const routerHarness = await RouterTestingHarness.create();
+  if (initialRoute) {
+    await routerHarness.navigateByUrl(initialRoute);
+    navigationSpy.mockClear();
+  }
   TestBed.tick(); // This necessary because of the `toObservable` usage
-  return { service, storage, httpTesting };
+  return { service, storage, httpTesting, routerHarness };
 };
 
 const { apiUrl } = environment;
@@ -68,7 +74,7 @@ describe('Auth', () => {
 
   for (const { path, methodName, reqData, resData, suffix } of testData) {
     it(`should sign ${suffix}`, async () => {
-      const { service, httpTesting, storage } = setup();
+      const { service, httpTesting, storage } = await setup('/signin');
       const user$ = service[methodName](reqData);
       let result: unknown, error: unknown;
       user$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
@@ -90,9 +96,9 @@ describe('Auth', () => {
       });
     });
 
-    it(`should handle malformed sign-${suffix} response`, () => {
+    it(`should handle malformed sign-${suffix} response`, async () => {
       const reqProps = { method: 'POST', url: `${apiUrl}${path}` };
-      const { service, httpTesting, storage } = setup();
+      const { service, httpTesting, storage } = await setup();
       const malformedResponses = [
         { user },
         { token },
@@ -120,9 +126,9 @@ describe('Auth', () => {
       }
     });
 
-    it('should throw backend errors', () => {
+    it('should throw backend errors', async () => {
       const reqProps = { method: 'POST', url: `${apiUrl}${path}` };
-      const { service, httpTesting, storage } = setup();
+      const { service, httpTesting, storage } = await setup();
       const backendErrors = [
         { status: 500, statusText: 'Server error' },
         { status: 400, statusText: 'Client error' },
@@ -144,9 +150,9 @@ describe('Auth', () => {
       }
     });
 
-    it('should throw backend errors', () => {
+    it('should throw backend errors', async () => {
       const reqProps = { method: 'POST', url: `${apiUrl}${path}` };
-      const { service, httpTesting, storage } = setup();
+      const { service, httpTesting, storage } = await setup();
       const user$ = service[methodName](reqData);
       let result, error;
       user$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
@@ -164,16 +170,16 @@ describe('Auth', () => {
     });
   }
 
-  it('should not be authenticated, and not try to verify a non-existent token', () => {
-    const { service, httpTesting } = setup();
+  it('should not be authenticated, and not try to verify a non-existent token', async () => {
+    const { service, httpTesting } = await setup();
     service.authenticated$.subscribe((authenticated) => {
       expect(authenticated).toBe(false);
       httpTesting.verify();
     });
   });
 
-  it('should be authenticated after a successful verification', () => {
-    const { service, httpTesting, storage } = setup();
+  it('should be authenticated after a successful verification', async () => {
+    const { service, httpTesting, storage } = await setup('/signin');
     storage.getItem.mockImplementation(() => token);
     let result: unknown, error: unknown;
     service.authenticated$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
@@ -193,8 +199,8 @@ describe('Auth', () => {
     httpTesting.verify();
   });
 
-  it('should not be authenticated after an unsuccessful verification', () => {
-    const { service, httpTesting, storage } = setup();
+  it('should not be authenticated after an unsuccessful verification', async () => {
+    const { service, httpTesting, storage } = await setup();
     storage.getItem.mockImplementationOnce(() => token);
     let result: unknown, error: unknown;
     service.authenticated$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
@@ -211,8 +217,8 @@ describe('Auth', () => {
     httpTesting.verify();
   });
 
-  it('should not be authenticated after an errored verification', () => {
-    const { service, httpTesting, storage } = setup();
+  it('should not be authenticated after an errored verification', async () => {
+    const { service, httpTesting, storage } = await setup();
     storage.getItem.mockImplementationOnce(() => token);
     let result: unknown, error: unknown;
     service.authenticated$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
@@ -232,9 +238,9 @@ describe('Auth', () => {
     httpTesting.verify();
   });
 
-  it('should sign out', () => {
+  it('should sign out', async () => {
     let testToken: string | null = 'test_token';
-    const { service, httpTesting, storage } = setup();
+    const { service, httpTesting, storage } = await setup();
     storage.getItem.mockImplementation(() => testToken);
     storage.removeItem.mockImplementation(() => (testToken = null));
     let result: unknown, error: unknown;
