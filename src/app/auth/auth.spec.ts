@@ -88,6 +88,7 @@ describe('Auth', () => {
         expect(navigationSpy.mock.calls[0][0]).toBe('/');
         expect(storage.setItem).toHaveBeenCalledOnce();
         expect(req.request.body).toStrictEqual(reqData);
+        expect(service.token()).toStrictEqual(token);
         expect(service.user()).toStrictEqual(user);
         expect(result).toStrictEqual(resData);
         expect(authenticated).toBe(true);
@@ -117,6 +118,7 @@ describe('Auth', () => {
         req.flush(malResData);
         expect(req.request.body).toStrictEqual(reqData);
         expect(service.user()).toStrictEqual(null);
+        expect(service.token()).toStrictEqual('');
         expect(result).toBeUndefined();
         expect(error).toBeInstanceOf(HttpErrorResponse);
         expect(error).toHaveProperty('status', 500);
@@ -141,6 +143,7 @@ describe('Auth', () => {
         req.flush(null, resError);
         expect(req.request.body).toStrictEqual(reqData);
         expect(service.user()).toStrictEqual(null);
+        expect(service.token()).toStrictEqual('');
         expect(result).toBeUndefined();
         expect(error).toBeInstanceOf(HttpErrorResponse);
         expect(error).toHaveProperty('status', resError.status);
@@ -161,6 +164,7 @@ describe('Auth', () => {
       req.error(networkError);
       expect(req.request.body).toStrictEqual(reqData);
       expect(service.user()).toStrictEqual(null);
+      expect(service.token()).toStrictEqual('');
       expect(result).toBeUndefined();
       expect(error).toBeInstanceOf(HttpErrorResponse);
       expect(error).toHaveProperty('status', 0);
@@ -187,12 +191,13 @@ describe('Auth', () => {
     const req = httpTesting.expectOne(reqProps, `Request to verify user auth-token`);
     req.flush(user);
     TestBed.tick();
+    expect(req.request.body).toStrictEqual(null);
     expect(navigationSpy).toHaveBeenCalledOnce();
-    expect(navigationSpy.mock.calls[0][0]).toBe('/');
-    expect(req.request.headers.get('Authorization')).toBe(token);
     expect(storage.getItem).toHaveBeenCalledOnce();
     expect(storage.setItem).toHaveBeenCalledOnce();
-    expect(req.request.body).toStrictEqual(null);
+    expect(navigationSpy.mock.calls[0][0]).toBe('/');
+    expect(req.request.headers.get('Authorization')).toBe(token);
+    expect(service.token()).toStrictEqual(token);
     expect(service.user()).toStrictEqual(user);
     expect(error).toBeUndefined();
     expect(result).toBe(true);
@@ -212,6 +217,7 @@ describe('Auth', () => {
     expect(storage.getItem).toHaveBeenCalledOnce();
     expect(req.request.body).toStrictEqual(null);
     expect(service.user()).toStrictEqual(null);
+    expect(service.token()).toStrictEqual('');
     expect(error).toBeUndefined();
     expect(result).toBe(false);
     httpTesting.verify();
@@ -231,6 +237,7 @@ describe('Auth', () => {
     expect(storage.getItem).toHaveBeenCalledOnce();
     expect(req.request.body).toStrictEqual(null);
     expect(service.user()).toStrictEqual(null);
+    expect(service.token()).toStrictEqual('');
     expect(result).toBeUndefined();
     expect(error).toBeInstanceOf(HttpErrorResponse);
     expect(error).toHaveProperty('error', networkError);

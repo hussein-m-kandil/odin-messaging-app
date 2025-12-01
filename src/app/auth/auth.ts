@@ -8,9 +8,9 @@ import { environment } from '../../environments';
 import { AppStorage } from '../app-storage';
 import { Router } from '@angular/router';
 
-const { apiUrl } = environment;
-
 const AUTH_KEY = 'auth';
+
+const { apiUrl } = environment;
 
 @Injectable({
   providedIn: 'root',
@@ -65,6 +65,8 @@ export class Auth {
     const authData = this._authData();
     return authData ? JSON.parse(JSON.stringify(authData.user)) : null;
   });
+
+  readonly token = computed<string>(() => this._authData()?.token || '');
 
   readonly authenticated$: Observable<boolean> = toObservable(this._authData).pipe(
     switchMap((authData) => (authData ? of(true) : this._verify()))
