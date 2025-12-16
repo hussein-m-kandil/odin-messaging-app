@@ -81,7 +81,7 @@ export class Auth {
         const authenticating = isAuthUrl(this._router.routerState.snapshot.url);
         const authenticated = !!authData;
         if (authenticating && authenticated) {
-          const url = this._router.routerState.snapshot.root.queryParams['url'] || '/';
+          const url = this._router.routerState.snapshot.root.queryParams['url'] || '/chats';
           this._router.navigateByUrl(url, authNavOpts);
         } else if (!authenticating && !authenticated) {
           this._router.navigateByUrl('/signin', authNavOpts);

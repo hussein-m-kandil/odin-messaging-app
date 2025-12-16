@@ -66,7 +66,7 @@ describe('authGuard', () => {
         executeGuard(...guardParameters) as Observable<RedirectCommand>
       );
       expect(result).toBeInstanceOf(RedirectCommand);
-      expect(result.redirectTo.toString()).toBe('/');
+      expect(result.redirectTo.toString()).toBe('/chats');
       expect(result.redirectTo.queryParams).toStrictEqual({});
     }
     mockAuthService.mockReset();
