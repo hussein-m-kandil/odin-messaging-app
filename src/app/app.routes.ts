@@ -1,24 +1,38 @@
+import { ProfileList } from './profiles/profile-list';
+import { userResolver } from './auth/user-resolver';
 import { environment } from '../environments';
 import { authGuard } from './auth/auth-guard';
+import { ChatRoom } from './chats/chat-room';
+import { ChatList } from './chats/chat-list';
 import { AuthForm } from './auth/auth-form';
 import { Routes } from '@angular/router';
-
-import { Component } from '@angular/core';
 
 const { title } = environment;
 const titleize = (s: string) => `${s} | ${title}`;
 
-@Component({ template: '<h1 class="text-center my-4 italic">Temporary Home Page</h1>' })
-class TEMP_HOME {}
-
 export const routes: Routes = [
-  { path: '', component: TEMP_HOME, canActivate: [authGuard] },
+  { path: 'signin', canActivate: [authGuard], component: AuthForm, title: titleize('Sing In') },
+  { path: 'signup', canActivate: [authGuard], component: AuthForm, title: titleize('Sing Up') },
   {
     path: '',
-    canActivateChild: [authGuard],
+    canActivate: [authGuard],
+    resolve: { user: userResolver },
     children: [
-      { path: 'signin', component: AuthForm, title: titleize('Sing In') },
-      { path: 'signup', component: AuthForm, title: titleize('Sing Up') },
+      {
+        path: 'profiles',
+        children: [
+          { path: '', outlet: 'nav', component: ProfileList },
+          { path: ':profileId', component: ChatRoom },
+        ],
+      },
+      {
+        path: 'chats',
+        children: [
+          { path: '', outlet: 'nav', component: ChatList },
+          { path: ':chatId', component: ChatRoom },
+        ],
+      },
+      { path: '**', redirectTo: 'chats' },
     ],
   },
 ];

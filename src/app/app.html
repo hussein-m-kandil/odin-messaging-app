@@ -1,23 +1,100 @@
-<nav class="p-4">
-  <h1 class="text-3xl font-bold text-center">{{ title }}</h1>
-</nav>
-@if (navigating()) {
-<p class="absolute top-1/2 left-1/2 -translate-1/2 -z-50">Loading...</p>
-} @else if (navErrMsg(); as _navErrMsg) {
-<p class="text-red-700 text-sm max-w-lg text-center mx-auto **:inline-block **:m-1">
-  <span>{{ _navErrMsg }}</span>
-  <br />
-  <button type="button" (click)="retryNavigation()" class="appearance-auto border">Retry</button>
-</p>
-} @else {
-<div class="text-center space-y-4">
-  <p>
-    A web app that lets users send messages to each other, built as part of studying The Odin
-    Project's Node.js course.
-  </p>
-  @if (authenticated()) {
-  <button type="button" (click)="signOut()" class="appearance-auto border">Sign Out</button>
-  }
+<!-- prettier-ignore -->
+@let _user = auth.user();
+@let _narrowScreen = vpWidth() < 720;
+@let _singularViewEnabled = singularViewEnabled();
+<div class="border-gray-300 **:border-gray-300">
+  <header
+    [class]="`absolute top-0 left-0 right-0 h-16 overflow-auto bg-gray-50
+      flex flex-wrap justify-center items-center border-b px-2
+      `"
+  >
+    <h1 class="text-2xl text-center font-bold inline-block">{{ title }}</h1>
+    @if (_user) {
+    <div class="ms-auto space-x-2 *:px-2 *:py-1 *:rounded-lg *:border *:leading-tight">
+      @if(!_narrowScreen) {
+      <!-- prettier-ignore -->
+      @let _togglerData = _singularViewEnabled 
+        ? {title: 'Open list', label: 'Open List'} 
+        : {title: 'Close list', label: 'Close List'};
+      <button type="button" (click)="toggleSingularView()" [title]="_togglerData.title">
+        {{ _togglerData.label }}
+      </button>
+      }
+      <button type="button" (click)="signOut()">Sign Out</button>
+    </div>
+    }
+  </header>
+  <div class="absolute top-16 left-0 right-0 bottom-0 overflow-auto">
+    @if (navigating()) {
+    <ng-container [ngTemplateOutlet]="_navigator" />
+    } @else if (navErrMsg(); as _navErrMsg) {
+    <ng-container [ngTemplateOutlet]="_navigator" [ngTemplateOutletContext]="{_navErrMsg}" />
+    } @else if (_user) {
+    <!-- prettier-ignore -->
+    @if(_narrowScreen || _singularViewEnabled) {
+    <ng-container [ngTemplateOutlet]="_singularView" />
+    } @else {
+    <ng-container [ngTemplateOutlet]="_compoundView" />
+    }
+    <!-- prettier-ignore -->
+    } @else {
+    <main>
+      <router-outlet />
+    </main>
+    }
+  </div>
 </div>
-<router-outlet />
-}
+
+<ng-template #_singularView>
+  @if (navListRouteActivated()) {
+  <ng-container [ngTemplateOutlet]="_nav" />
+  } @else {
+  <main>
+    <router-outlet />
+  </main>
+  }
+</ng-template>
+
+<ng-template #_compoundView>
+  <div class="absolute top-0 left-0 w-82 h-full border-r">
+    <ng-container [ngTemplateOutlet]="_nav" />
+  </div>
+  <main class="absolute top-0 left-82 right-0 h-full overflow-auto">
+    <router-outlet />
+  </main>
+</ng-template>
+
+<ng-template #_nav>
+  <nav>
+    <div class="h-8 flex border-b">
+      @for (_navItem of navItems; track _navItem) {
+      <a
+        routerLinkActive="bg-gray-100"
+        [ariaCurrentWhenActive]="true"
+        [class]="{ 'border-r': !$last }"
+        [routerLink]="['/', _navItem.toLowerCase()]"
+        class="grow p-2 text-center text-sm font-semibold hover:bg-gray-50"
+      >
+        {{ _navItem }}
+      </a>
+      }
+    </div>
+    <router-outlet name="nav" />
+  </nav>
+</ng-template>
+
+<ng-template #_navigator let-_errMsg="_navErrMsg">
+  <main class="absolute top-1/2 left-1/2 -translate-1/2 z-50">
+    @if (_errMsg) {
+    <p class="text-red-700 text-sm max-w-lg text-center mx-auto **:inline-block **:m-1">
+      <span>{{ _errMsg }}</span>
+      <br />
+      <button type="button" (click)="retryNavigation()" class="appearance-auto border">
+        Retry
+      </button>
+    </p>
+    } @else {
+    <p>Loading...</p>
+    }
+  </main>
+</ng-template>
