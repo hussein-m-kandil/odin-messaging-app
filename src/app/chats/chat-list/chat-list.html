@@ -1,0 +1,57 @@
+<div>
+  @if (chats.loading()) {
+  <p class="absolute top-0 left-0 -translate-1/2 z-30">Loading chats...</p>
+  } @else if (chats.loadError(); as _loadError) {
+  <p class="text-red-700 text-sm **:inline-block **:m-1">
+    <span>{{ _loadError }}</span>
+    <br />
+    <button type="button" (click)="chats.load()" class="appearance-auto border">Retry</button>
+  </p>
+  } @else {
+  <!-- prettier-ignore -->
+  @let _chatList = chats.list();
+  @if (_chatList.length > 0) {
+  <ul #listContainer aria-label="Chat list">
+    @for (_chat of _chatList; track _chat.id) {
+    <li class="border-b">
+      @let _title = chats.generateTitle(_chat, user());
+      <a
+        [title]="_title"
+        routerLinkActive="bg-gray-100"
+        [ariaCurrentWhenActive]="true"
+        [routerLink]="['/chats', _chat.id]"
+        class="block size-full p-2 hover:bg-gray-50 truncate"
+      >
+        {{ _title || 'Anonymous' }}
+      </a>
+    </li>
+    }
+    <!-- prettier-ignore -->
+    @if(chats.canLoadMore()) {
+    <div class="text-gray-500 text-center text-sm p-2">
+      @if(chats.loadingMore()) {
+      <p>Loading more chats...</p>
+      } @else if (chats.loadMoreError(); as _loadMoreError) {
+      <p class="text-red-700">
+        <span>{{ _loadMoreError }}</span>
+        <br />
+        <button type="button" (click)="chats.loadMore()" class="border">Retry</button>
+      </p>
+      } @else {
+      <button
+        #loadMoreBtn
+        type="button"
+        (click)="chats.loadMore()"
+        class="cursor-pointer hover:underline"
+      >
+        Load more
+      </button>
+      }
+    </div>
+    }
+    <!-- prettier-ignore -->
+  </ul>
+  } @else {
+  <p>There are no chats.</p>
+  } }
+</div>
