@@ -1,0 +1,119 @@
+@let _user = user(); @let _chatId = chatId(); @let _profileId = profileId(); @let _title = title();
+<!-- prettier-ignore -->
+@if (_chatId || _profileId) {
+<div class="absolute size-full overflow-auto" [aria-label]="`${_title} chat room`">
+  <nav
+    class="absolute top-0 left-0 w-full h-8 z-30 bg-gray-100 p-2 border-b flex justify-between items-center"
+  >
+    <button type="button" (click)="goBack()" class="border px-2 rounded-lg hover:bg-gray-50">
+      Back
+    </button>
+    <span class="inline-block w-1/2 mx-auto text-center truncate" [title]="_title">
+      {{ _title }}
+    </span>
+    <button type="button" (click)="refresh()" class="border px-2 rounded-lg hover:bg-gray-50">
+      Refresh
+    </button>
+  </nav>
+  <div
+    #messagesContainer
+    aria-live="assertive"
+    aria-label="Messages"
+    (scroll)="flushLoadMoreBtnWhenVisible()"
+    [class]="`overflow-auto absolute w-full left-0 top-8 bottom-20`"
+  >
+    @if (messages.loading() || messages.loadError()) {
+    <div class="absolute top-1/2 left-1/2 -translate-1/2 z-30 text-center text-sm p-2">
+      @if (messages.loadError(); as _loadError) {
+      <p class="text-red-700">
+        <span>{{ _loadError }}</span>
+        <br />
+        @if (_chatId) {
+        <button type="button" (click)="messages.load(_chatId)" class="border">Retry</button>
+        } @else if (_profileId) {
+        <button
+          type="button"
+          class="border"
+          (click)="messages.loadByMemberProfileId(_profileId, _user.profile.id)"
+        >
+          Retry
+        </button>
+        }
+      </p>
+      } @else {
+      <p>Loading messages...</p>
+      }
+    </div>
+    } @else if (_chatId) {
+    <div class="flex flex-col justify-end min-h-full">
+      @let _messages = messages.list().slice().reverse();
+      <!-- prettier-ignore -->
+      @if(messages.canLoadMore()) {
+      <div class="text-gray-500 text-center text-sm p-2">
+        @if(messages.loadingMore()) {
+        <p>Loading more messages...</p>
+        } @else if (messages.loadMoreError(); as _loadMoreError) {
+        <p class="text-red-700">
+          <span>{{ _loadMoreError }}</span>
+          <br />
+          <button type="button" (click)="messages.loadMore(_chatId)" class="border">Retry</button>
+        </p>
+        } @else {
+        <button
+          #loadMoreBtn
+          type="button"
+          (click)="messages.loadMore(_chatId)"
+          class="cursor-pointer hover:underline"
+        >
+          Load more
+        </button>
+        }
+      </div>
+      }
+      <!-- prettier-ignore -->
+      @for (_msg of _messages; track _msg.id) {
+      @let _fromCurrentUser = _msg.profileName === _user.username;
+      <div
+        aria-label="Message"
+        aria-atomic="true"
+        class="bg-amber-100 w-7/10 max-w-xs text-left mx-4 my-2 px-4 py-2 rounded-3xl shadow"
+        [class]="`${
+        _fromCurrentUser
+          ? 'text-right ms-auto rounded-br-none'
+          : 'rounded-bl-none'
+        }`"
+      >
+        <div class="text-xs text-gray-700 font-light">
+          {{ _msg.profileName }}
+        </div>
+        <div class="my-2">{{ _msg.body }}</div>
+      </div>
+      }
+    </div>
+    }@else {
+    <p class="text-center absolute top-1/2 left-1/2 -translate-1/2 z-30">New chat!</p>
+    }
+  </div>
+  <div class="absolute bottom-0 left-0 w-full h-20">
+    @if (_chatId && messages.chats.isDeadChat(_chatId, _user)) {
+    <div class="absolute size-full bg-gray-200">
+      <p
+        class="absolute w-full max-h-full overflow-auto p-1 top-1/2 left-1/2 -translate-1/2 text-center text-sm font-bold leading-tight"
+      >
+        This chat cannot receive new messages due to the absence of the other members.
+        <br />
+        <span class="text-gray-500 text-xs font-normal">
+          Hint: The absence of a member mostly means that its account has been deleted.
+        </span>
+      </p>
+    </div>
+    } @else {
+    <app-message-form
+      [chatId]="_chatId"
+      [profileId]="_profileId"
+      class="block absolute size-full px-2 pb-2"
+    />
+    }
+  </div>
+</div>
+}

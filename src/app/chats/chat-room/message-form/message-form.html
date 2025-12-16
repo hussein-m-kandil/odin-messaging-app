@@ -1,0 +1,26 @@
+<form
+  [formGroup]="form"
+  (ngSubmit)="submit()"
+  aria-label="New Message"
+  class="size-full flex border rounded-4xl"
+>
+  <div class="size-full relative grow rounded-l-4xl">
+    @if (errMsg(); as _errMsg) {
+    <p
+      class="absolute top-0 left-0 w-full px-4 pb-1 pt-0.5 text-xs text-center text-red-700 truncate"
+      [title]="_errMsg"
+    >
+      {{ _errMsg }}
+    </p>
+    }
+    <textarea
+      #msgBody
+      id="message-body"
+      formControlName="body"
+      aria-label="Message body"
+      placeholder="Your message..."
+      class="resize-none size-full align-middle px-4 pt-4 pb-2 text-sm rounded-l-4xl"
+    ></textarea>
+  </div>
+  <button type="submit" class="h-full p-4 border-l rounded-r-4xl">Send</button>
+</form>
