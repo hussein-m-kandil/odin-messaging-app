@@ -1,0 +1,548 @@
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { Chat, Profile, User } from './chats.types';
+import { environment } from '../../environments';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter, Router } from '@angular/router';
+import { Chats } from './chats';
+import { Component } from '@angular/core';
+
+const now = new Date().toISOString();
+const profile = {
+  id: crypto.randomUUID(),
+  tangible: true,
+  lastSeen: now,
+  visible: true,
+} as Profile;
+const user: User = {
+  bio: 'From the testing with love',
+  id: crypto.randomUUID(),
+  username: 'test_user',
+  fullname: 'Test User',
+  createdAt: now,
+  updatedAt: now,
+  isAdmin: false,
+  profile,
+};
+profile.user = user;
+
+const profile2 = { ...profile, id: crypto.randomUUID() } as Profile;
+const user2: User = {
+  ...user,
+  profile: profile2,
+  id: crypto.randomUUID(),
+  username: 'test_user_2',
+  fullname: 'Test User II',
+};
+profile2.user = user2;
+
+const chatId = crypto.randomUUID();
+const chat: Chat = {
+  profiles: [
+    { profileName: user.username, profileId: profile.id, joinedAt: now, profile, chatId },
+    {
+      profileName: user2.username,
+      profileId: profile2.id,
+      profile: profile2,
+      joinedAt: now,
+      chatId,
+    },
+  ],
+  createdAt: now,
+  updatedAt: now,
+  managers: [],
+  messages: [],
+  id: chatId,
+};
+
+const { apiUrl } = environment;
+const chatsUrl = `${apiUrl}/chats`;
+
+const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
+
+@Component({ selector: 'app-route-component-mock', template: '<div>Route Component Mock</div>' })
+class RouteComponentMock {}
+
+const setup = () => {
+  TestBed.configureTestingModule({
+    providers: [
+      provideHttpClient(),
+      provideHttpClientTesting(),
+      provideRouter([{ path: '**', component: RouteComponentMock }]),
+    ],
+  });
+  const httpTesting = TestBed.inject(HttpTestingController);
+  const service = TestBed.inject(Chats);
+  return { service, httpTesting };
+};
+
+const getServiceState = (service: Chats) => {
+  return {
+    list: service.list(),
+    loading: service.loading(),
+    canLoad: service.canLoad(),
+    loadError: service.loadError(),
+    loadingMore: service.loadingMore(),
+    canLoadMore: service.canLoadMore(),
+    loadMoreError: service.loadMoreError(),
+  };
+};
+
+describe('Chats', () => {
+  it('should have the expected initial state', () => {
+    const { service } = setup();
+    const serviceInitialState = getServiceState(service);
+    expect(serviceInitialState.canLoadMore).toBe(false);
+    expect(serviceInitialState.loadingMore).toBe(false);
+    expect(serviceInitialState.list).toStrictEqual([]);
+    expect(serviceInitialState.loadMoreError).toBe('');
+    expect(serviceInitialState.canLoad).toBe(true);
+    expect(serviceInitialState.loadError).toBe('');
+    expect(serviceInitialState.loading).toBe(false);
+  });
+
+  it('should load the chats', () => {
+    const { service, httpTesting } = setup();
+    service.load();
+    const reqInfo = { method: 'GET', url: chatsUrl };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the chats');
+    const serviceLoadingState = getServiceState(service);
+    const chats = [chat];
+    req.flush(chats);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceLoadingState.loading).toBe(true);
+    expect(serviceLoadingState.canLoad).toBe(false);
+    expect(serviceLoadingState.loadError).toBe('');
+    expect(serviceLoadingState.loadMoreError).toBe('');
+    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.loadingMore).toBe(false);
+    expect(serviceLoadingState.list).toStrictEqual([]);
+    expect(serviceFinalState.list).toStrictEqual(chats);
+    expect(serviceFinalState.loadingMore).toBe(false);
+    expect(serviceFinalState.loadMoreError).toBe('');
+    expect(serviceFinalState.canLoadMore).toBe(true);
+    expect(serviceFinalState.loading).toBe(false);
+    expect(serviceFinalState.canLoad).toBe(true);
+    expect(serviceFinalState.loadError).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should fail to load the chats on the 1st time due to a server error, then succeed on the 2nd', () => {
+    const { service, httpTesting } = setup();
+    const checkReq = () => {
+      const reqInfo = { method: 'GET', url: chatsUrl };
+      return httpTesting.expectOne(reqInfo, 'Request to get the chats');
+    };
+    service.list.set([chat]);
+    service.load();
+    const firstReq = checkReq();
+    const serviceLoadingState = getServiceState(service);
+    firstReq.flush('Failed', { status: 500, statusText: 'Internal server error' });
+    const serviceErrorState = getServiceState(service);
+    service.load();
+    const secondReq = checkReq();
+    const serviceSecondLoadingState = getServiceState(service);
+    const chats = [chat];
+    secondReq.flush(chats);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceLoadingState.loading).toBe(true);
+    expect(serviceLoadingState.canLoad).toBe(false);
+    expect(serviceLoadingState.loadError).toBe('');
+    expect(serviceLoadingState.loadMoreError).toBe('');
+    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.loadingMore).toBe(false);
+    expect(serviceLoadingState.list).toStrictEqual([]);
+    expect(serviceErrorState.loadError).toMatch(/failed/i);
+    expect(serviceErrorState.list).toStrictEqual([]);
+    expect(serviceErrorState.loadingMore).toBe(false);
+    expect(serviceErrorState.canLoadMore).toBe(false);
+    expect(serviceErrorState.loadMoreError).toBe('');
+    expect(serviceErrorState.loading).toBe(false);
+    expect(serviceErrorState.canLoad).toBe(true);
+    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
+    expect(serviceFinalState.list).toStrictEqual(chats);
+    expect(serviceFinalState.loadingMore).toBe(false);
+    expect(serviceFinalState.loadMoreError).toBe('');
+    expect(serviceFinalState.canLoadMore).toBe(true);
+    expect(serviceFinalState.loading).toBe(false);
+    expect(serviceFinalState.canLoad).toBe(true);
+    expect(serviceFinalState.loadError).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should fail to load the chats on the 1st time due to a network error, then succeed on the 2nd', () => {
+    const { service, httpTesting } = setup();
+    const checkReq = () => {
+      const reqInfo = { method: 'GET', url: chatsUrl };
+      return httpTesting.expectOne(reqInfo, 'Request to get the chats');
+    };
+    service.list.set([chat]);
+    service.load();
+    const firstReq = checkReq();
+    const serviceLoadingState = getServiceState(service);
+    firstReq.error(new ProgressEvent('Network error'));
+    const serviceErrorState = getServiceState(service);
+    service.load();
+    const secondReq = checkReq();
+    const serviceSecondLoadingState = getServiceState(service);
+    const chats = [chat];
+    secondReq.flush(chats);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceLoadingState.loading).toBe(true);
+    expect(serviceLoadingState.canLoad).toBe(false);
+    expect(serviceLoadingState.loadError).toBe('');
+    expect(serviceLoadingState.loadMoreError).toBe('');
+    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.loadingMore).toBe(false);
+    expect(serviceLoadingState.list).toStrictEqual([]);
+    expect(serviceErrorState.loadError).toMatch(/check .*(internet)? connection/i);
+    expect(serviceErrorState.list).toStrictEqual([]);
+    expect(serviceErrorState.loadingMore).toBe(false);
+    expect(serviceErrorState.canLoadMore).toBe(false);
+    expect(serviceErrorState.loadMoreError).toBe('');
+    expect(serviceErrorState.loading).toBe(false);
+    expect(serviceErrorState.canLoad).toBe(true);
+    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
+    expect(serviceFinalState.list).toStrictEqual(chats);
+    expect(serviceFinalState.loadingMore).toBe(false);
+    expect(serviceFinalState.loadMoreError).toBe('');
+    expect(serviceFinalState.canLoadMore).toBe(true);
+    expect(serviceFinalState.loading).toBe(false);
+    expect(serviceFinalState.canLoad).toBe(true);
+    expect(serviceFinalState.loadError).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should load more the chats', () => {
+    const { service, httpTesting } = setup();
+    service.list.set([chat]);
+    service.loadMore();
+    const reqInfo = { method: 'GET', url: `${chatsUrl}?cursor=${chat.id}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get more chats');
+    const serviceLoadingState = getServiceState(service);
+    req.flush([chat]);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceLoadingState.loading).toBe(false);
+    expect(serviceLoadingState.canLoad).toBe(false);
+    expect(serviceLoadingState.loadError).toBe('');
+    expect(serviceLoadingState.loadMoreError).toBe('');
+    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.loadingMore).toBe(true);
+    expect(serviceLoadingState.list).toStrictEqual([chat]);
+    expect(serviceFinalState.list).toStrictEqual([chat, chat]);
+    expect(serviceFinalState.loadingMore).toBe(false);
+    expect(serviceFinalState.loadMoreError).toBe('');
+    expect(serviceFinalState.canLoadMore).toBe(true);
+    expect(serviceFinalState.loading).toBe(false);
+    expect(serviceFinalState.canLoad).toBe(true);
+    expect(serviceFinalState.loadError).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should fail to load more chats on the 1st time due to a server error, then succeed on the 2nd', () => {
+    const { service, httpTesting } = setup();
+    const checkReq = () => {
+      const reqInfo = { method: 'GET', url: `${chatsUrl}?cursor=${chat.id}` };
+      return httpTesting.expectOne(reqInfo, 'Request to get more chats');
+    };
+    service.list.set([chat]);
+    service.loadMore();
+    const firstReq = checkReq();
+    const serviceLoadingState = getServiceState(service);
+    firstReq.flush('Failed', { status: 500, statusText: 'Internal server error' });
+    const serviceErrorState = getServiceState(service);
+    service.loadMore();
+    const secondReq = checkReq();
+    const serviceSecondLoadingState = getServiceState(service);
+    secondReq.flush([chat]);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceLoadingState.loading).toBe(false);
+    expect(serviceLoadingState.canLoad).toBe(false);
+    expect(serviceLoadingState.loadError).toBe('');
+    expect(serviceLoadingState.loadMoreError).toBe('');
+    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.loadingMore).toBe(true);
+    expect(serviceLoadingState.list).toStrictEqual([chat]);
+    expect(serviceErrorState.loadMoreError).toMatch(/failed/i);
+    expect(serviceErrorState.list).toStrictEqual([chat]);
+    expect(serviceErrorState.loadingMore).toBe(false);
+    expect(serviceErrorState.canLoadMore).toBe(false);
+    expect(serviceErrorState.loading).toBe(false);
+    expect(serviceErrorState.canLoad).toBe(true);
+    expect(serviceErrorState.loadError).toBe('');
+    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
+    expect(serviceFinalState.list).toStrictEqual([chat, chat]);
+    expect(serviceFinalState.loadingMore).toBe(false);
+    expect(serviceFinalState.loadMoreError).toBe('');
+    expect(serviceFinalState.canLoadMore).toBe(true);
+    expect(serviceFinalState.loading).toBe(false);
+    expect(serviceFinalState.canLoad).toBe(true);
+    expect(serviceFinalState.loadError).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should fail to load more chats on the 1st time due to a network error, then succeed on the 2nd', () => {
+    const { service, httpTesting } = setup();
+    const checkReq = () => {
+      const reqInfo = { method: 'GET', url: `${chatsUrl}?cursor=${chat.id}` };
+      return httpTesting.expectOne(reqInfo, 'Request to get more chats');
+    };
+    service.list.set([chat]);
+    service.loadMore();
+    const firstReq = checkReq();
+    const serviceLoadingState = getServiceState(service);
+    firstReq.error(new ProgressEvent('Network error'));
+    const serviceErrorState = getServiceState(service);
+    service.loadMore();
+    const secondReq = checkReq();
+    const serviceSecondLoadingState = getServiceState(service);
+    secondReq.flush([chat]);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceLoadingState.loading).toBe(false);
+    expect(serviceLoadingState.canLoad).toBe(false);
+    expect(serviceLoadingState.loadError).toBe('');
+    expect(serviceLoadingState.loadMoreError).toBe('');
+    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.loadingMore).toBe(true);
+    expect(serviceLoadingState.list).toStrictEqual([chat]);
+    expect(serviceErrorState.loadMoreError).toMatch(/check .*(internet)? connection/i);
+    expect(serviceErrorState.list).toStrictEqual([chat]);
+    expect(serviceErrorState.loadingMore).toBe(false);
+    expect(serviceErrorState.canLoadMore).toBe(false);
+    expect(serviceErrorState.loading).toBe(false);
+    expect(serviceErrorState.canLoad).toBe(true);
+    expect(serviceErrorState.loadError).toBe('');
+    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
+    expect(serviceFinalState.list).toStrictEqual([chat, chat]);
+    expect(serviceFinalState.loadingMore).toBe(false);
+    expect(serviceFinalState.loadMoreError).toBe('');
+    expect(serviceFinalState.canLoadMore).toBe(true);
+    expect(serviceFinalState.loading).toBe(false);
+    expect(serviceFinalState.canLoad).toBe(true);
+    expect(serviceFinalState.loadError).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should navigate to old chat if found by member and user profile id', async () => {
+    const { service, httpTesting } = setup();
+    const memberProfileId = profile2.id;
+    service.list.set([chat]);
+    const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
+    let resData: unknown, resErr: unknown;
+    req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to find a chat by member id');
+    const serviceLoadingState = getServiceState(service);
+    req.flush([chat]);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceLoadingState.loading).toBe(false);
+    expect(serviceLoadingState.canLoad).toBe(true);
+    expect(serviceLoadingState.loadError).toBe('');
+    expect(serviceLoadingState.loadMoreError).toBe('');
+    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.loadingMore).toBe(false);
+    expect(serviceLoadingState.list).toStrictEqual([chat]);
+    expect(serviceLoadingState).toStrictEqual(serviceFinalState);
+    expect(resErr).toBeUndefined();
+    expect(resData).toBeInstanceOf(Promise);
+    expect(await (resData as Promise<boolean>)).toBe(true);
+    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
+    httpTesting.verify();
+    navigationSpy.mockClear();
+  });
+
+  it('should not navigate to old chat if not found by member and user profile id', async () => {
+    const { service, httpTesting } = setup();
+    const memberProfileId = profile.id;
+    service.list.set([chat]);
+    const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
+    let resData: unknown, resErr: unknown;
+    req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to find a chat by member id');
+    const serviceLoadingState = getServiceState(service);
+    req.flush([chat]);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceLoadingState.loading).toBe(false);
+    expect(serviceLoadingState.canLoad).toBe(true);
+    expect(serviceLoadingState.loadError).toBe('');
+    expect(serviceLoadingState.loadMoreError).toBe('');
+    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.loadingMore).toBe(false);
+    expect(serviceLoadingState.list).toStrictEqual([chat]);
+    expect(serviceLoadingState).toStrictEqual(serviceFinalState);
+    expect(resErr).toBeUndefined();
+    expect(resData).toBeInstanceOf(Promise);
+    expect(navigationSpy).toHaveBeenCalledTimes(0);
+    expect(await (resData as Promise<boolean>)).toBe(false);
+    httpTesting.verify();
+    navigationSpy.mockClear();
+  });
+
+  it('should create a chat', () => {
+    const { service, httpTesting } = setup();
+    const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
+    let resData, resErr;
+    service
+      .create(newChatData)
+      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'Post', url: chatsUrl };
+    const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
+    req.flush(chat);
+    httpTesting
+      .expectOne({ method: 'Get', url: chatsUrl }, 'Request to get the chats')
+      .flush([chat]);
+    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
+    expect(resData).toStrictEqual(chat);
+    expect(resErr).toBeUndefined();
+    httpTesting.verify();
+    navigationSpy.mockClear();
+  });
+
+  it('should fail to create a chat due to a server error', () => {
+    const { service, httpTesting } = setup();
+    const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
+    let resData, resErr;
+    service
+      .create(newChatData)
+      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'Post', url: chatsUrl };
+    const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
+    req.flush('Failed', { status: 500, statusText: 'Internal server error' });
+    httpTesting.expectNone({ method: 'Get', url: chatsUrl }, 'Request to get the chats');
+    expect(navigationSpy).toHaveBeenCalledTimes(0);
+    expect(resErr).toBeInstanceOf(HttpErrorResponse);
+    expect(resData).toBeUndefined();
+    expect(resErr).toHaveProperty('status', 500);
+    expect(resErr).toHaveProperty('error', 'Failed');
+    httpTesting.verify();
+    navigationSpy.mockClear();
+  });
+
+  it('should fail to create a chat due to a network error', () => {
+    const { service, httpTesting } = setup();
+    const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
+    let resData, resErr;
+    service
+      .create(newChatData)
+      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'Post', url: chatsUrl };
+    const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
+    const networkError = new ProgressEvent('Network error');
+    req.error(networkError);
+    httpTesting.expectNone({ method: 'Get', url: chatsUrl }, 'Request to get the chats');
+    expect(navigationSpy).toHaveBeenCalledTimes(0);
+    expect(resErr).toBeInstanceOf(HttpErrorResponse);
+    expect(resData).toBeUndefined();
+    expect(resErr).toHaveProperty('status', 0);
+    expect(resErr).toHaveProperty('error', networkError);
+    httpTesting.verify();
+    navigationSpy.mockClear();
+  });
+
+  it('should generate a chat title as the other member profile name if the other member profile is null', () => {
+    const { service } = setup();
+    const testChat = structuredClone(chat);
+    testChat.id = crypto.randomUUID();
+    testChat.profiles[1].profile = null;
+    testChat.profiles[1].profileId = null;
+    expect(service.generateTitle(testChat, user)).toBe(testChat.profiles[1].profileName);
+  });
+
+  it('should generate a chat title as the other member name if the chat has 2 members', () => {
+    const { service } = setup();
+    expect(service.generateTitle(chat, user)).toBe(chat.profiles[1].profileName);
+  });
+
+  it('should generate a chat title as "other-name and another-name" if the chat has 3 members', () => {
+    const { service } = setup();
+    const testChat = structuredClone(chat);
+    testChat.id = crypto.randomUUID();
+    const testProfile = { ...profile, id: crypto.randomUUID() } as Profile;
+    const testUser: User = {
+      ...user,
+      profile: testProfile,
+      id: crypto.randomUUID(),
+      username: 'test_user_x',
+      fullname: 'Test User X',
+    };
+    testProfile.user = testUser;
+    testChat.profiles.push({
+      profileName: testUser.username,
+      profileId: testProfile.id,
+      profile: testProfile,
+      chatId: testChat.id,
+      joinedAt: now,
+    });
+    const expectedTitle = `${testChat.profiles[1].profileName} and ${testChat.profiles[2].profileName}`;
+    expect(service.generateTitle(testChat, user)).toBe(expectedTitle);
+  });
+
+  it('should generate a chat title as a comma separated list of the other members names for chat group', () => {
+    const { service } = setup();
+    const testChat = structuredClone(chat);
+    testChat.id = crypto.randomUUID();
+    const otherMemberNames: string[] = [testChat.profiles[1].profileName];
+    for (let i = 0; i < 2; i++) {
+      const num = i + 1;
+      const username = `test_user_x${num}`;
+      const testProfile = { ...profile, id: crypto.randomUUID() } as Profile;
+      const testUser: User = {
+        ...user,
+        username,
+        profile: testProfile,
+        id: crypto.randomUUID(),
+        fullname: `Test User X${num}`,
+      };
+      testProfile.user = testUser;
+      testChat.profiles.push({
+        profileName: testUser.username,
+        profileId: testProfile.id,
+        profile: testProfile,
+        chatId: testChat.id,
+        joinedAt: now,
+      });
+      otherMemberNames.push(username);
+    }
+    const namesWithoutLast = otherMemberNames.slice(0, -1);
+    const expectedTitle = `${namesWithoutLast.join(', ')}, and ${otherMemberNames.at(-1)}`;
+    expect(service.generateTitle(testChat, user)).toBe(expectedTitle);
+  });
+
+  it('should generate a chat title as "Yourself" in case of self-chat', () => {
+    const { service } = setup();
+    const testChat = structuredClone(chat);
+    testChat.id = crypto.randomUUID();
+    testChat.profiles.splice(1);
+    expect(service.generateTitle(testChat, user)).toBe('Yourself');
+  });
+
+  it('should consider the chat dead if it is missing profiles for all the other members', () => {
+    const { service } = setup();
+    const testChat = structuredClone(chat);
+    testChat.id = crypto.randomUUID();
+    testChat.profiles[1].profile = null;
+    testChat.profiles[1].profileId = null;
+    service.list.set([chat, testChat]);
+    expect(service.isDeadChat(testChat.id, user)).toBe(true);
+  });
+
+  it('should consider the chat alive if it is missing profiles for some of the other members', () => {
+    const { service } = setup();
+    const testChat = structuredClone(chat);
+    testChat.id = crypto.randomUUID();
+    testChat.profiles[1].profile = null;
+    testChat.profiles[1].profileId = null;
+    service.list.set([chat, testChat]);
+    expect(service.isDeadChat(chat.id, user)).toBe(false);
+  });
+
+  it('should consider the self-chat alive', () => {
+    const { service } = setup();
+    const testChat = structuredClone(chat);
+    testChat.id = crypto.randomUUID();
+    testChat.profiles.splice(1);
+    service.list.set([chat, testChat]);
+    expect(service.isDeadChat(testChat.id, user)).toBe(false);
+  });
+});
