@@ -6,6 +6,7 @@ import { ChatRoom } from './chats/chat-room';
 import { ChatList } from './chats/chat-list';
 import { AuthForm } from './auth/auth-form';
 import { Routes } from '@angular/router';
+import { NotFound } from './not-found';
 
 const { title } = environment;
 const titleize = (s: string) => `${s} | ${title}`;
@@ -32,6 +33,7 @@ export const routes: Routes = [
           { path: ':chatId', component: ChatRoom, title: titleize('Chat') },
         ],
       },
+      { path: 'not-found', component: NotFound, title: titleize('Not Found') },
       { path: '**', redirectTo: 'not-found' },
     ],
   },
