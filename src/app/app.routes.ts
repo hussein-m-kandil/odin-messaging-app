@@ -21,18 +21,18 @@ export const routes: Routes = [
       {
         path: 'profiles',
         children: [
-          { path: '', outlet: 'nav', component: ProfileList },
-          { path: ':profileId', component: ChatRoom },
+          { path: '', outlet: 'nav', component: ProfileList, title: titleize('Profiles') },
+          { path: ':profileId', component: ChatRoom, title: titleize('Profile') },
         ],
       },
       {
         path: 'chats',
         children: [
-          { path: '', outlet: 'nav', component: ChatList },
-          { path: ':chatId', component: ChatRoom },
+          { path: '', outlet: 'nav', component: ChatList, title: titleize('Chats') },
+          { path: ':chatId', component: ChatRoom, title: titleize('Chat') },
         ],
       },
-      { path: '**', redirectTo: 'chats' },
+      { path: '**', redirectTo: 'not-found' },
     ],
   },
 ];
