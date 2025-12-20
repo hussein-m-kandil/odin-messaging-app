@@ -1,0 +1,16 @@
+<div class="p-4 text-center">
+  <p class="text-(--p-button-text-danger-color) font-semibold">{{ message() }}</p>
+  <button
+    text
+    pButton
+    pRipple
+    rounded
+    outlined
+    size="small"
+    type="button"
+    severity="danger"
+    aria-label="Retry"
+    icon="pi pi-refresh"
+    (click)="retry.emit()"
+  ></button>
+</div>
