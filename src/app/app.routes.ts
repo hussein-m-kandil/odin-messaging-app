@@ -19,6 +19,8 @@ export const routes: Routes = [
     canActivate: [authGuard],
     resolve: { user: userResolver },
     children: [
+      { path: '', pathMatch: 'full', redirectTo: 'chats' },
+      { path: 'not-found', component: NotFound, title: titleize('Not Found') },
       {
         path: 'profiles',
         children: [
@@ -33,7 +35,6 @@ export const routes: Routes = [
           { path: ':chatId', component: ChatRoom, title: titleize('Chat') },
         ],
       },
-      { path: 'not-found', component: NotFound, title: titleize('Not Found') },
       { path: '**', redirectTo: 'not-found' },
     ],
   },
