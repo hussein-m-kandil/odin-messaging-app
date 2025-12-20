@@ -1,0 +1,6 @@
+@let _label = ariaLabel();
+<p-progress-spinner
+  [ariaLabel]="_label ? _label : 'loading...'"
+  [pt]="{ circle: { class: 'stroke-5' } }"
+  class="block size-8 m-auto my-4"
+/>
