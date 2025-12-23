@@ -86,26 +86,26 @@ describe('App', () => {
 
   it('should show loader on navigation', async () => {
     await renderComponent();
-    expect(screen.getByText(/loading/i)).toBeVisible();
+    expect(screen.getByLabelText(/loading/i)).toBeVisible();
   });
 
   it('should not show sign-out button for an unauthenticated user', async () => {
     userMock.mockImplementation(() => null);
     await renderComponent();
-    await waitForElementToBeRemoved(screen.getByText(/loading/i));
+    await waitForElementToBeRemoved(screen.getByLabelText(/loading/i));
     expect(screen.queryByRole('button', { name: /sign ?out/i })).toBeNull();
   });
 
   it('should show sign-out button for an authenticated user', async () => {
     await renderComponent();
-    await waitForElementToBeRemoved(screen.getByText(/loading/i));
+    await waitForElementToBeRemoved(screen.getByLabelText(/loading/i));
     expect(screen.getByRole('button', { name: /sign ?out/i })).toBeVisible();
   });
 
   it('should call `signOut` function from the Auth service when clicking the sign-out button', async () => {
     const user = userEvent.setup();
     await renderComponent();
-    await waitForElementToBeRemoved(screen.getByText(/loading/i));
+    await waitForElementToBeRemoved(screen.getByLabelText(/loading/i));
     await user.click(screen.getByRole('button', { name: /sign ?out/i }));
     expect(signOut).toHaveBeenCalledOnce();
   });
@@ -121,7 +121,7 @@ describe('App', () => {
         testbed.configureTestingModule({ rethrowApplicationErrors: false });
       },
     });
-    await waitForElementToBeRemoved(screen.getByText(/loading/i));
+    await waitForElementToBeRemoved(screen.getByLabelText(/loading/i));
     expect(screen.getByText(/failed to load/i));
     expect(screen.getByRole('button', { name: /retry/i }));
   });
@@ -138,9 +138,9 @@ describe('App', () => {
         testbed.configureTestingModule({ rethrowApplicationErrors: false });
       },
     });
-    await waitForElementToBeRemoved(screen.getByText(/loading/i));
+    await waitForElementToBeRemoved(screen.getByLabelText(/loading/i));
     await user.click(screen.getByRole('button', { name: /retry/i }));
-    await waitForElementToBeRemoved(screen.getByText(/loading/i));
+    await waitForElementToBeRemoved(screen.getByLabelText(/loading/i));
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
     expect(navigationSpy).toHaveBeenCalledExactlyOnceWith('/');
     expect(screen.queryByText(/failed to load/i)).toBeNull();
@@ -148,44 +148,44 @@ describe('App', () => {
 
   it('should redirect to `/chats` and display chat list at the initial route', async () => {
     await renderComponent();
-    await waitForElementToBeRemoved(screen.getByText(/loading/i));
+    await waitForElementToBeRemoved(screen.getByLabelText(/loading/i));
     expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
     expect(screen.getByRole('link', { name: /profiles/i })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'page');
   });
 
   it('should display the chat list when targeting the `/chats` route', async () => {
     await renderComponent({ initialRoute: '/chats' });
     expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
     expect(screen.getByRole('link', { name: /profiles/i })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'page');
   });
 
   it('should display the profile list when targeting the `/profiles` route', async () => {
     await renderComponent({ initialRoute: '/profiles' });
     expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
     expect(screen.getByRole('link', { name: /chats/i })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: /profiles/i })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('link', { name: /profiles/i })).toHaveAttribute('aria-current', 'page');
   });
 
   it('should navigate to `/profiles` on click the profiles link', async () => {
     const user = userEvent.setup();
     await renderComponent({ initialRoute: '/chats' });
     await user.click(screen.getByRole('link', { name: /profiles/i }));
-    await waitForElementToBeRemoved(screen.getByText(/loading/i));
+    await waitForElementToBeRemoved(screen.getByLabelText(/loading/i));
     expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
     expect(screen.getByRole('link', { name: /chats/i })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: /profiles/i })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('link', { name: /profiles/i })).toHaveAttribute('aria-current', 'page');
   });
 
   it('should navigate to `/chats` on click the chats link', async () => {
     const user = userEvent.setup();
     await renderComponent({ initialRoute: '/profiles' });
     await user.click(screen.getByRole('link', { name: /chats/i }));
-    await waitForElementToBeRemoved(screen.getByText(/loading/i));
+    await waitForElementToBeRemoved(screen.getByLabelText(/loading/i));
     expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
     expect(screen.getByRole('link', { name: /profiles/i })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'true');
+    expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'page');
   });
 
   const urls = ['/chats', '/chats/test-chat-id', '/profiles', '/profiles/test-profile-id'];
@@ -198,17 +198,18 @@ describe('App', () => {
         const profilesLink = screen.getByRole('link', { name: /profiles/i });
         const chatsLink = screen.getByRole('link', { name: /chats/i });
         if (initialRoute.startsWith('/chats')) {
-          await vi.waitFor(() => expect(chatsLink).toHaveAttribute('aria-current', 'true'));
-          expect(chatsLink).toHaveAttribute('aria-current', 'true');
-          expect(profilesLink).not.toHaveAttribute('aria-current');
+          await vi.waitFor(() => expect(screen.getByText(ChatListMock.TITLE)).toBeVisible());
           expect(screen.queryByText(ProfileListMock.TITLE)).toBeNull();
-          expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
         } else if (initialRoute.startsWith('/profiles')) {
-          await vi.waitFor(() => expect(profilesLink).toHaveAttribute('aria-current', 'true'));
-          expect(profilesLink).toHaveAttribute('aria-current', 'true');
-          expect(chatsLink).not.toHaveAttribute('aria-current');
-          expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
+          await vi.waitFor(() => expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible());
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
+        }
+        if (initialRoute.endsWith('/chats')) {
+          expect(chatsLink).toHaveAttribute('aria-current', 'page');
+          expect(profilesLink).not.toHaveAttribute('aria-current');
+        } else if (initialRoute.endsWith('/profiles')) {
+          expect(profilesLink).toHaveAttribute('aria-current', 'page');
+          expect(chatsLink).not.toHaveAttribute('aria-current');
         }
         if (initialRoute.endsWith('/chats') || initialRoute.endsWith('/profiles')) {
           expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
@@ -225,8 +226,8 @@ describe('App', () => {
         if (initialRoute.endsWith('/chats')) {
           const profilesLink = screen.getByRole('link', { name: /profiles/i });
           const chatsLink = screen.getByRole('link', { name: /chats/i });
-          await vi.waitFor(() => expect(chatsLink).toHaveAttribute('aria-current', 'true'));
-          expect(chatsLink).toHaveAttribute('aria-current', 'true');
+          await vi.waitFor(() => expect(chatsLink).toHaveAttribute('aria-current', 'page'));
+          expect(chatsLink).toHaveAttribute('aria-current', 'page');
           expect(profilesLink).not.toHaveAttribute('aria-current');
           expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
@@ -234,8 +235,8 @@ describe('App', () => {
         } else if (initialRoute.endsWith('/profiles')) {
           const profilesLink = screen.getByRole('link', { name: /profiles/i });
           const chatsLink = screen.getByRole('link', { name: /chats/i });
-          await vi.waitFor(() => expect(profilesLink).toHaveAttribute('aria-current', 'true'));
-          expect(profilesLink).toHaveAttribute('aria-current', 'true');
+          await vi.waitFor(() => expect(profilesLink).toHaveAttribute('aria-current', 'page'));
+          expect(profilesLink).toHaveAttribute('aria-current', 'page');
           expect(chatsLink).not.toHaveAttribute('aria-current');
           expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
@@ -259,17 +260,18 @@ describe('App', () => {
         const profilesLink = screen.getByRole('link', { name: /profiles/i });
         const chatsLink = screen.getByRole('link', { name: /chats/i });
         if (initialRoute.startsWith('/chats')) {
-          await vi.waitFor(() => expect(chatsLink).toHaveAttribute('aria-current', 'true'));
-          expect(chatsLink).toHaveAttribute('aria-current', 'true');
-          expect(profilesLink).not.toHaveAttribute('aria-current');
+          await vi.waitFor(() => expect(screen.getByText(ChatListMock.TITLE)).toBeVisible());
           expect(screen.queryByText(ProfileListMock.TITLE)).toBeNull();
-          expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
         } else if (initialRoute.startsWith('/profiles')) {
-          await vi.waitFor(() => expect(profilesLink).toHaveAttribute('aria-current', 'true'));
-          expect(profilesLink).toHaveAttribute('aria-current', 'true');
-          expect(chatsLink).not.toHaveAttribute('aria-current');
-          expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
+          await vi.waitFor(() => expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible());
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
+        }
+        if (initialRoute.endsWith('/chats')) {
+          expect(chatsLink).toHaveAttribute('aria-current', 'page');
+          expect(profilesLink).not.toHaveAttribute('aria-current');
+        } else if (initialRoute.endsWith('/profiles')) {
+          expect(profilesLink).toHaveAttribute('aria-current', 'page');
+          expect(chatsLink).not.toHaveAttribute('aria-current');
         }
         if (initialRoute.endsWith('/chats') || initialRoute.endsWith('/profiles')) {
           expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
@@ -288,8 +290,8 @@ describe('App', () => {
         if (initialRoute.endsWith('/chats')) {
           const profilesLink = screen.getByRole('link', { name: /profiles/i });
           const chatsLink = screen.getByRole('link', { name: /chats/i });
-          await vi.waitFor(() => expect(chatsLink).toHaveAttribute('aria-current', 'true'));
-          expect(chatsLink).toHaveAttribute('aria-current', 'true');
+          await vi.waitFor(() => expect(chatsLink).toHaveAttribute('aria-current', 'page'));
+          expect(chatsLink).toHaveAttribute('aria-current', 'page');
           expect(profilesLink).not.toHaveAttribute('aria-current');
           expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
@@ -297,8 +299,8 @@ describe('App', () => {
         } else if (initialRoute.endsWith('/profiles')) {
           const profilesLink = screen.getByRole('link', { name: /profiles/i });
           const chatsLink = screen.getByRole('link', { name: /chats/i });
-          await vi.waitFor(() => expect(profilesLink).toHaveAttribute('aria-current', 'true'));
-          expect(profilesLink).toHaveAttribute('aria-current', 'true');
+          await vi.waitFor(() => expect(profilesLink).toHaveAttribute('aria-current', 'page'));
+          expect(profilesLink).toHaveAttribute('aria-current', 'page');
           expect(chatsLink).not.toHaveAttribute('aria-current');
           expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
@@ -331,12 +333,15 @@ describe('App', () => {
         if (initialRoute.startsWith('/chats')) {
           expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ProfileListMock.TITLE)).toBeNull();
-          expect(chatsLink).toHaveAttribute('aria-current', 'true');
-          expect(profilesLink).not.toHaveAttribute('aria-current');
         } else {
           expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
-          expect(profilesLink).toHaveAttribute('aria-current', 'true');
+        }
+        if (initialRoute.endsWith('/chats')) {
+          expect(chatsLink).toHaveAttribute('aria-current', 'page');
+          expect(profilesLink).not.toHaveAttribute('aria-current');
+        } else if (initialRoute.endsWith('/profiles')) {
+          expect(profilesLink).toHaveAttribute('aria-current', 'page');
           expect(chatsLink).not.toHaveAttribute('aria-current');
         }
         if (!initialRoute.endsWith('/chats') && !initialRoute.endsWith('/profiles')) {
@@ -360,13 +365,13 @@ describe('App', () => {
           expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
           expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ProfileListMock.TITLE)).toBeNull();
-          expect(chatsLink).toHaveAttribute('aria-current', 'true');
+          expect(chatsLink).toHaveAttribute('aria-current', 'page');
           expect(profilesLink).not.toHaveAttribute('aria-current');
         } else if (initialRoute.endsWith('/profiles')) {
           expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
           expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
-          expect(profilesLink).toHaveAttribute('aria-current', 'true');
+          expect(profilesLink).toHaveAttribute('aria-current', 'page');
           expect(chatsLink).not.toHaveAttribute('aria-current');
         } else {
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
@@ -390,12 +395,15 @@ describe('App', () => {
         if (initialRoute.startsWith('/chats')) {
           expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ProfileListMock.TITLE)).toBeNull();
-          expect(chatsLink).toHaveAttribute('aria-current', 'true');
-          expect(profilesLink).not.toHaveAttribute('aria-current');
         } else {
           expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
-          expect(profilesLink).toHaveAttribute('aria-current', 'true');
+        }
+        if (initialRoute.endsWith('/chats')) {
+          expect(chatsLink).toHaveAttribute('aria-current', 'page');
+          expect(profilesLink).not.toHaveAttribute('aria-current');
+        } else if (initialRoute.endsWith('/profiles')) {
+          expect(profilesLink).toHaveAttribute('aria-current', 'page');
           expect(chatsLink).not.toHaveAttribute('aria-current');
         }
         if (!initialRoute.endsWith('/chats') && !initialRoute.endsWith('/profiles')) {

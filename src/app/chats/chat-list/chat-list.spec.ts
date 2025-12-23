@@ -18,7 +18,10 @@ const chatsMock = {
   list: vi.fn<() => unknown[]>(() => []),
 };
 
-const chats = [{ id: crypto.randomUUID() }, { id: crypto.randomUUID() }];
+const chats = [
+  { id: crypto.randomUUID(), messages: [{ body: 'Hi!' }] },
+  { id: crypto.randomUUID(), messages: [{ body: 'Hi!' }] },
+];
 
 const user = { id: crypto.randomUUID() } as User;
 
@@ -38,16 +41,18 @@ describe('ChatList', () => {
   afterEach(vi.resetAllMocks);
 
   it('should display a list of named chats', async () => {
-    const name = 'Test chat title';
+    const title = 'Test chat title';
     chatsMock.list.mockImplementation(() => chats);
-    chatsMock.generateTitle.mockImplementation(() => name);
+    chatsMock.generateTitle.mockImplementation(() => title);
     await renderComponent();
-    const chatLinks = screen.getAllByRole('link', { name }) as HTMLAnchorElement[];
-    expect(screen.getByRole('list', { name: /chat list/i })).toBeVisible();
+    const chatLinks = screen.getAllByRole('link', {
+      name: new RegExp(title),
+    }) as HTMLAnchorElement[];
+    expect(screen.getByRole('menu', { name: /chat list/i })).toBeVisible();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
-    expect(screen.queryByText(/loading chats/i)).toBeNull();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading chats/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
     expect(chatLinks).toHaveLength(chats.length);
     for (let i = 0; i < chatLinks.length; i++) {
       expect(chatLinks[i].href).toMatch(new RegExp(`chats/${chats[i].id}$`));
@@ -58,11 +63,11 @@ describe('ChatList', () => {
     chatsMock.list.mockImplementation(() => chats);
     await renderComponent();
     const chatLinks = screen.getAllByRole('link', { name: /anonymous/i }) as HTMLAnchorElement[];
-    expect(screen.getByRole('list', { name: /chat list/i })).toBeVisible();
+    expect(screen.getByRole('menu', { name: /chat list/i })).toBeVisible();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
-    expect(screen.queryByText(/loading chats/i)).toBeNull();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading chats/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
     expect(chatLinks).toHaveLength(chats.length);
     for (let i = 0; i < chatLinks.length; i++) {
       expect(chatLinks[i].href).toMatch(new RegExp(`chats/${chats[i].id}$`));
@@ -72,31 +77,26 @@ describe('ChatList', () => {
   it('should display a chats loading indicator', async () => {
     chatsMock.loading.mockImplementation(() => true);
     await renderComponent();
-    expect(screen.getByText(/loading chats/i)).toBeVisible();
+    expect(screen.getByLabelText(/loading chats/i)).toBeVisible();
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
-    expect(screen.queryByRole('list')).toBeNull();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
+    expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('should display an error message and a retry button', async () => {
+  it('should display an error message and a retry button that reloads the chats', async () => {
     const errMsg = 'Test error';
     chatsMock.loadError.mockImplementation(() => errMsg);
-    await renderComponent();
-    expect(screen.getByText(errMsg)).toBeVisible();
-    expect(screen.getByRole('button', { name: /retry/i })).toBeVisible();
-    expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
-    expect(screen.queryByText(/loading chats/i)).toBeNull();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
-    expect(screen.queryByRole('list')).toBeNull();
-  });
-
-  it('should load again on clicking the retry button', async () => {
-    chatsMock.loadError.mockImplementation(() => 'Test error');
     const { click } = userEvent.setup();
     await renderComponent();
     chatsMock.load.mockClear();
     await click(screen.getByRole('button', { name: /retry/i }));
+    expect(screen.getByText(errMsg)).toBeVisible();
+    expect(screen.getByRole('button', { name: /retry/i })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
+    expect(screen.queryByLabelText(/loading chats/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
+    expect(screen.queryByRole('menu')).toBeNull();
     expect(chatsMock.load).toHaveBeenCalledOnce();
   });
 
@@ -117,19 +117,22 @@ describe('ChatList', () => {
     await click(loadMoreBtn);
     expect(loadMoreBtn).toBeVisible();
     expect(chatsMock.loadMore).toHaveBeenCalledOnce();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
-    expect(screen.queryByText(/loading chats/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading chats/i)).toBeNull();
   });
 
-  it('should display load-more error', async () => {
+  it('should display load-more error and a retry-button that reloads more chats', async () => {
     const errMsg = 'Test error';
     chatsMock.loadMoreError.mockImplementation(() => errMsg);
     chatsMock.canLoadMore.mockImplementation(() => true);
     chatsMock.list.mockImplementation(() => chats);
+    const { click } = userEvent.setup();
     await renderComponent();
+    await click(screen.getByRole('button', { name: /retry/i }));
     expect(screen.getByText(errMsg)).toBeVisible();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
-    expect(screen.queryByText(/loading chats/i)).toBeNull();
+    expect(chatsMock.loadMore).toHaveBeenCalledOnce();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading chats/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 
@@ -138,8 +141,8 @@ describe('ChatList', () => {
     chatsMock.canLoadMore.mockImplementation(() => true);
     chatsMock.list.mockImplementation(() => chats);
     await renderComponent();
-    expect(screen.getByText(/loading more/i)).toBeVisible();
-    expect(screen.queryByText(/loading chats/i)).toBeNull();
+    expect(screen.getByLabelText(/loading more/i)).toBeVisible();
+    expect(screen.queryByLabelText(/loading chats/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 });

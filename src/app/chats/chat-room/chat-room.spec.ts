@@ -87,10 +87,9 @@ describe('ChatRoom', () => {
     expect(screen.getByRole('form', { name: /message/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /refresh/i })).toBeVisible();
     expect(screen.queryByRole('button', { name: /try/i })).toBeNull();
-    expect(screen.queryByText(/loading/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading/i)).toBeNull();
     expect(screen.queryByText(/failed/i)).toBeNull();
     for (const msg of messages) {
-      expect(screen.getByText(msg.profileName)).toBeVisible();
       expect(screen.getByText(msg.body)).toBeVisible();
     }
   });
@@ -103,10 +102,9 @@ describe('ChatRoom', () => {
     expect(screen.getByRole('form', { name: /message/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /refresh/i })).toBeVisible();
     expect(screen.queryByRole('button', { name: /try/i })).toBeNull();
-    expect(screen.queryByText(/loading/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading/i)).toBeNull();
     expect(screen.queryByText(/failed/i)).toBeNull();
     for (const msg of messages) {
-      expect(screen.queryByText(msg.profileName)).toBeNull();
       expect(screen.queryByText(msg.body)).toBeNull();
     }
     expect(messagesMock.load).toHaveBeenCalledTimes(0);
@@ -163,10 +161,9 @@ describe('ChatRoom', () => {
   it('should display messages loader indicator', async () => {
     messagesMock.loading.mockImplementation(() => true);
     await renderComponent({ inputs: { user, chatId } });
-    expect(screen.getByText(/loading messages/i)).toBeVisible();
-    expect(screen.queryByText(/loading more messages/i)).toBeNull();
+    expect(screen.getByLabelText(/loading messages/i)).toBeVisible();
+    expect(screen.queryByLabelText(/loading more messages/i)).toBeNull();
     for (const msg of messages) {
-      expect(screen.queryByText(msg.profileName)).toBeNull();
       expect(screen.queryByText(msg.body)).toBeNull();
     }
   });
@@ -175,10 +172,9 @@ describe('ChatRoom', () => {
     messagesMock.canLoadMore.mockImplementation(() => true);
     messagesMock.loadingMore.mockImplementation(() => true);
     await renderComponent({ inputs: { user, chatId } });
-    expect(screen.getByText(/loading more messages/i)).toBeVisible();
-    expect(screen.queryByText(/loading messages/i)).toBeNull();
+    expect(screen.getByLabelText(/loading more messages/i)).toBeVisible();
+    expect(screen.queryByLabelText(/loading messages/i)).toBeNull();
     for (const msg of messages) {
-      expect(screen.getByText(msg.profileName)).toBeVisible();
       expect(screen.getByText(msg.body)).toBeVisible();
     }
   });
@@ -211,10 +207,9 @@ describe('ChatRoom', () => {
     await click(retryBtn);
     expect(retryBtn).toBeVisible();
     expect(screen.getByText(errMsg)).toBeVisible();
-    expect(screen.queryByText(/loading/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading/i)).toBeNull();
     expect(messagesMock.load).toHaveBeenCalledExactlyOnceWith(chatId);
     for (const msg of messages) {
-      expect(screen.queryByText(msg.profileName)).toBeNull();
       expect(screen.queryByText(msg.body)).toBeNull();
     }
   });
@@ -229,10 +224,9 @@ describe('ChatRoom', () => {
     await click(retryBtn);
     expect(retryBtn).toBeVisible();
     expect(screen.getByText(errMsg)).toBeVisible();
-    expect(screen.queryByText(/loading/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading/i)).toBeNull();
     expect(messagesMock.loadMore).toHaveBeenCalledExactlyOnceWith(chatId);
     for (const msg of messages) {
-      expect(screen.getByText(msg.profileName)).toBeVisible();
       expect(screen.getByText(msg.body)).toBeVisible();
     }
   });

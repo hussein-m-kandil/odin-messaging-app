@@ -2,6 +2,7 @@ import {
   input,
   inject,
   effect,
+  computed,
   Injector,
   viewChild,
   Component,
@@ -11,18 +12,23 @@ import {
   ElementRef,
   SimpleChanges,
   afterNextRender,
-  computed,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ErrorMessage } from '../../error-message';
 import { AuthData } from '../../auth/auth.types';
+import { ButtonDirective } from 'primeng/button';
+import { MessageModule } from 'primeng/message';
 import { MessageForm } from './message-form';
-import { Messages } from './messages';
+import { DatePipe } from '@angular/common';
 import { Profiles } from '../../profiles';
+import { Ripple } from 'primeng/ripple';
+import { Spinner } from '../../spinner';
+import { Messages } from './messages';
 
 @Component({
   templateUrl: './chat-room.html',
   selector: 'app-chat-room',
-  imports: [MessageForm],
+  imports: [MessageForm, MessageModule, ButtonDirective, ErrorMessage, DatePipe, Spinner, Ripple],
   providers: [Messages],
 })
 export class ChatRoom implements OnChanges, OnDestroy {

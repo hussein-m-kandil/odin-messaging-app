@@ -10,45 +10,57 @@ import {
   afterNextRender,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { ErrorMessage } from '../../error-message';
+import { ButtonDirective } from 'primeng/button';
+import { AvatarModule } from 'primeng/avatar';
+import { MenuModule } from 'primeng/menu';
+import { Spinner } from '../../spinner';
+import { Ripple } from 'primeng/ripple';
 import { Profiles } from '../profiles';
 
 @Component({
   selector: 'app-profile-list',
-  imports: [RouterLink, RouterLinkActive],
+  imports: [
+    RouterLinkActive,
+    ButtonDirective,
+    ErrorMessage,
+    AvatarModule,
+    RouterLink,
+    MenuModule,
+    Spinner,
+    Ripple,
+  ],
   templateUrl: './profile-list.html',
   styles: ``,
 })
 export class ProfileList implements OnDestroy {
   private readonly _injector = inject(Injector);
 
-  private readonly _listContainer = viewChild<ElementRef<HTMLDivElement>>('listContainer');
   private readonly _loadMoreBtn = viewChild<ElementRef<HTMLButtonElement>>('loadMoreBtn');
+
+  private readonly _listEffect = effect(() => {
+    this.profiles.list();
+    untracked(() => {
+      afterNextRender(this.flushLoadMoreBtnWhenVisible, { injector: this._injector });
+    });
+  });
 
   protected readonly profiles = inject(Profiles);
 
-  private readonly _flushLoadMoreBtnWhenVisible = () => {
-    const listContainer = this._listContainer()?.nativeElement;
+  constructor() {
+    this.profiles.load();
+  }
+
+  protected flushLoadMoreBtnWhenVisible = () => {
     const loadMoreBtn = this._loadMoreBtn()?.nativeElement;
-    if (listContainer && loadMoreBtn) {
+    if (loadMoreBtn) {
       const loadMoreBtnRect = loadMoreBtn.getBoundingClientRect();
-      const messagesContainerRect = listContainer.getBoundingClientRect();
-      const loadMoreBtnVisible = loadMoreBtnRect.top <= messagesContainerRect.bottom;
+      const loadMoreBtnVisible = loadMoreBtnRect.top <= window.innerHeight;
       if (loadMoreBtnVisible && this.profiles.canLoadMore() && !this.profiles.hasAnyLoadError()) {
         this.profiles.loadMore();
       }
     }
   };
-
-  private readonly _listEffect = effect(() => {
-    this.profiles.list();
-    untracked(() => {
-      afterNextRender(this._flushLoadMoreBtnWhenVisible, { injector: this._injector });
-    });
-  });
-
-  constructor() {
-    this.profiles.load();
-  }
 
   ngOnDestroy() {
     this._listEffect.destroy();

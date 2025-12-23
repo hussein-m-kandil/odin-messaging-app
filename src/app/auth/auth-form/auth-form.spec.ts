@@ -6,11 +6,13 @@ import { TestBed } from '@angular/core/testing';
 import { AuthForm } from './auth-form';
 import { of, throwError } from 'rxjs';
 import { Auth } from '../auth';
+import { MessageService } from 'primeng/api';
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
 
-const signIn = vi.fn(() => of(null));
-const signUp = vi.fn(() => of(null));
+const mockUser = { username: 'test_user' };
+const signIn = vi.fn(() => of(mockUser));
+const signUp = vi.fn(() => of(mockUser));
 const mockAuthService = vi.fn(() => ({ signIn, signUp }));
 
 const renderComponent = async ({
@@ -19,6 +21,7 @@ const renderComponent = async ({
 }: RenderComponentOptions<AuthForm> = {}) => {
   const renderResult = await render(`<router-outlet />`, {
     providers: [
+      MessageService,
       provideRouter([
         { path: 'signin', component: AuthForm },
         { path: 'signup', component: AuthForm },
@@ -55,8 +58,8 @@ describe('AuthForm', () => {
   it('should render sign-in fields', async () => {
     await renderComponent({ initialRoute: SIGNIN_ROUTE });
     const usernameInp = screen.getByLabelText(/username/i);
-    const passwordInp = screen.getByLabelText(/password/i);
-    const confirmInp = screen.queryByLabelText(/confirm/i);
+    const passwordInp = screen.getByLabelText(/password$/i);
+    const confirmInp = screen.queryByLabelText(/confirmation$/i);
     const fullnameInp = screen.queryByLabelText(/fullname/i);
     const bioInp = screen.queryByLabelText(/bio/i);
     expect(usernameInp).toBeVisible();
@@ -78,7 +81,7 @@ describe('AuthForm', () => {
     await renderComponent({ initialRoute: SIGNUP_ROUTE });
     const usernameInp = screen.getByLabelText(/username/i);
     const passwordInp = screen.getByLabelText(/password$/i);
-    const confirmInp = screen.getByLabelText(/confirm/i);
+    const confirmInp = screen.getByLabelText(/confirmation$/i);
     const fullnameInp = screen.getByLabelText(/fullname/i);
     const bioInp = screen.getByLabelText(/bio/i);
     expect(usernameInp).toBeVisible();
@@ -137,24 +140,26 @@ describe('AuthForm', () => {
   it('should show-password button toggle the password value visibility in the sign-in form', async () => {
     const user = userEvent.setup();
     await renderComponent({ initialRoute: SIGNIN_ROUTE });
-    expect(screen.getByLabelText(/password/i)).toHaveAttribute('type', 'password');
-    await user.click(screen.getByRole('button', { name: /show .*password/i }));
-    expect(screen.getByLabelText(/password/i)).toHaveAttribute('type', 'text');
-    await user.click(screen.getByRole('button', { name: /hide .*password/i }));
-    expect(screen.getByLabelText(/password/i)).toHaveAttribute('type', 'password');
+    expect(screen.getByLabelText(/password$/i)).toHaveAttribute('type', 'password');
+    await user.click(screen.getByRole('button', { name: /show/i }));
+    expect(screen.getByLabelText(/password$/i)).toHaveAttribute('type', 'text');
+    await user.click(screen.getByRole('button', { name: /hide/i }));
+    expect(screen.getByLabelText(/password$/i)).toHaveAttribute('type', 'password');
   });
 
   it('should show-password button toggle the password value visibility in the sign-up form', async () => {
     const user = userEvent.setup();
     await renderComponent({ initialRoute: SIGNUP_ROUTE });
     expect(screen.getByLabelText(/password$/i)).toHaveAttribute('type', 'password');
-    expect(screen.getByLabelText(/confirm/i)).toHaveAttribute('type', 'password');
-    await user.click(screen.getByRole('button', { name: /show .*password$/i }));
+    expect(screen.getByLabelText(/confirmation$/i)).toHaveAttribute('type', 'password');
+    const showButtons = screen.getAllByRole('button', { name: /show/i });
+    for (const showBtn of showButtons) await user.click(showBtn);
     expect(screen.getByLabelText(/password$/i)).toHaveAttribute('type', 'text');
-    expect(screen.getByLabelText(/confirm/i)).toHaveAttribute('type', 'password');
-    await user.click(screen.getByRole('button', { name: /hide .*password$/i }));
+    expect(screen.getByLabelText(/confirmation$/i)).toHaveAttribute('type', 'text');
+    const hideButtons = screen.getAllByRole('button', { name: /hide/i });
+    for (const hideBtn of hideButtons) await user.click(hideBtn);
     expect(screen.getByLabelText(/password$/i)).toHaveAttribute('type', 'password');
-    expect(screen.getByLabelText(/confirm/i)).toHaveAttribute('type', 'password');
+    expect(screen.getByLabelText(/confirmation$/i)).toHaveAttribute('type', 'password');
   });
 
   it('should navigate to the sign-up form after clicking the sign-up button', async () => {
@@ -199,7 +204,7 @@ describe('AuthForm', () => {
     await user.click(screen.getByRole('button', { name: SIGNIN_REGEX }));
     expect(screen.getByRole('form', { name: SIGNIN_REGEX })).toBeVisible();
     expect(screen.getByLabelText(/username/i)).toBeInvalid();
-    expect(screen.getByLabelText(/password/i)).toBeInvalid();
+    expect(screen.getByLabelText(/password$/i)).toBeInvalid();
     expect(signIn).not.toHaveBeenCalled();
     expect(signUp).not.toHaveBeenCalled();
   });
@@ -207,11 +212,11 @@ describe('AuthForm', () => {
   it('should not submit the sing-in form while it has an empty username field', async () => {
     const user = userEvent.setup();
     await renderComponent({ initialRoute: SIGNIN_ROUTE });
-    await user.type(screen.getByLabelText(/password/i), 'pass@123');
+    await user.type(screen.getByLabelText(/password$/i), 'pass@123');
     await user.click(screen.getByRole('button', { name: SIGNIN_REGEX }));
     expect(screen.getByRole('form', { name: SIGNIN_REGEX })).toBeVisible();
     expect(screen.getByLabelText(/username/i)).toBeInvalid();
-    expect(screen.getByLabelText(/password/i)).toBeValid();
+    expect(screen.getByLabelText(/password$/i)).toBeValid();
     expect(signIn).not.toHaveBeenCalled();
     expect(signUp).not.toHaveBeenCalled();
   });
@@ -222,7 +227,7 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.click(screen.getByRole('button', { name: SIGNIN_REGEX }));
     expect(screen.getByRole('form', { name: SIGNIN_REGEX })).toBeVisible();
-    expect(screen.getByLabelText(/password/i)).toBeInvalid();
+    expect(screen.getByLabelText(/password$/i)).toBeInvalid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
     expect(signIn).not.toHaveBeenCalled();
     expect(signUp).not.toHaveBeenCalled();
@@ -232,7 +237,7 @@ describe('AuthForm', () => {
     const user = userEvent.setup();
     await renderComponent({ initialRoute: SIGNIN_ROUTE });
     await user.type(screen.getByLabelText(/username/i), 'test_user');
-    await user.type(screen.getByLabelText(/password/i), 'pass@123');
+    await user.type(screen.getByLabelText(/password$/i), 'pass@123');
     await user.click(screen.getByRole('button', { name: SIGNIN_REGEX }));
     expect(signIn).toHaveBeenCalledOnce();
     expect(signUp).not.toHaveBeenCalled();
@@ -246,7 +251,7 @@ describe('AuthForm', () => {
     expect(screen.getByLabelText(/username/i)).toBeInvalid();
     expect(screen.getByLabelText(/password$/i)).toBeInvalid();
     expect(screen.getByLabelText(/fullname/i)).toBeInvalid();
-    expect(screen.getByLabelText(/confirm/i)).toBeInvalid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeInvalid();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
     expect(signIn).not.toHaveBeenCalled();
     expect(signUp).not.toHaveBeenCalled();
@@ -257,13 +262,13 @@ describe('AuthForm', () => {
     await renderComponent({ initialRoute: SIGNUP_ROUTE });
     await user.type(screen.getByLabelText(/fullname/i), 'Test User');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pass@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pass@123');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(screen.getByRole('form', { name: SIGNUP_REGEX })).toBeVisible();
     expect(screen.getByLabelText(/username/i)).toBeInvalid();
     expect(screen.getByLabelText(/password$/i)).toBeValid();
     expect(screen.getByLabelText(/fullname/i)).toBeValid();
-    expect(screen.getByLabelText(/confirm/i)).toBeValid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeValid();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
     expect(signIn).not.toHaveBeenCalled();
     expect(signUp).not.toHaveBeenCalled();
@@ -277,7 +282,7 @@ describe('AuthForm', () => {
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(screen.getByRole('form', { name: SIGNUP_REGEX })).toBeVisible();
     expect(screen.getByLabelText(/password$/i)).toBeInvalid();
-    expect(screen.getByLabelText(/confirm/i)).toBeInvalid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeInvalid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
     expect(screen.getByLabelText(/fullname/i)).toBeValid();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
@@ -290,13 +295,13 @@ describe('AuthForm', () => {
     await renderComponent({ initialRoute: SIGNUP_ROUTE });
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pass@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pass@123');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(screen.getByRole('form', { name: SIGNUP_REGEX })).toBeVisible();
     expect(screen.getByLabelText(/fullname/i)).toBeInvalid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
     expect(screen.getByLabelText(/password$/i)).toBeValid();
-    expect(screen.getByLabelText(/confirm/i)).toBeValid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeValid();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
     expect(signIn).not.toHaveBeenCalled();
     expect(signUp).not.toHaveBeenCalled();
@@ -308,10 +313,10 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.type(screen.getByLabelText(/fullname/i), 'Test User');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pasS@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pasS@123');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(screen.getByRole('form', { name: SIGNUP_REGEX })).toBeVisible();
-    expect(screen.getByLabelText(/confirm/i)).toBeInvalid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeInvalid();
     expect(screen.getByLabelText(/password$/i)).toBeValid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
     expect(screen.getByLabelText(/fullname/i)).toBeValid();
@@ -336,7 +341,7 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.type(screen.getByLabelText(/fullname/i), 'Test User');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pass@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pass@123');
     await user.type(screen.getByLabelText(/bio/i), 'Testing...');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(signUp).toHaveBeenCalledOnce();
@@ -344,7 +349,7 @@ describe('AuthForm', () => {
     expect(screen.getByLabelText(/username/i)).toBeInvalid();
     expect(screen.getByLabelText(/fullname/i)).toBeInvalid();
     expect(screen.getByLabelText(/password$/i)).toBeInvalid();
-    expect(screen.getByLabelText(/confirm/i)).toBeValid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeValid();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
     expect(screen.getByText(new RegExp(usernameError))).toBeVisible();
     expect(screen.getByText(new RegExp(fullnameError))).toBeVisible();
@@ -361,7 +366,7 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.type(screen.getByLabelText(/fullname/i), 'Test User');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pass@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pass@123');
     await user.type(screen.getByLabelText(/bio/i), 'Testing...');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(signUp).toHaveBeenCalledOnce();
@@ -369,7 +374,7 @@ describe('AuthForm', () => {
     expect(screen.getByLabelText(/password$/i)).toBeValid();
     expect(screen.getByLabelText(/fullname/i)).toBeValid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
-    expect(screen.getByLabelText(/confirm/i)).toBeValid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeValid();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
     expect(screen.getByText(new RegExp(message))).toBeVisible();
   });
@@ -384,7 +389,7 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.type(screen.getByLabelText(/fullname/i), 'Test User');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pass@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pass@123');
     await user.type(screen.getByLabelText(/bio/i), 'Testing...');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(signUp).toHaveBeenCalledOnce();
@@ -392,7 +397,7 @@ describe('AuthForm', () => {
     expect(screen.getByLabelText(/password$/i)).toBeValid();
     expect(screen.getByLabelText(/fullname/i)).toBeValid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
-    expect(screen.getByLabelText(/confirm/i)).toBeValid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeValid();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
     expect(screen.getByText(new RegExp(message))).toBeVisible();
   });
@@ -406,7 +411,7 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.type(screen.getByLabelText(/fullname/i), 'Test User');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pass@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pass@123');
     await user.type(screen.getByLabelText(/bio/i), 'Testing...');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(signUp).toHaveBeenCalledOnce();
@@ -414,7 +419,7 @@ describe('AuthForm', () => {
     expect(screen.getByLabelText(/password$/i)).toBeValid();
     expect(screen.getByLabelText(/fullname/i)).toBeValid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
-    expect(screen.getByLabelText(/confirm/i)).toBeValid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeValid();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
     expect(screen.getByText(/something .*wrong/i)).toBeVisible();
   });
@@ -428,7 +433,7 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.type(screen.getByLabelText(/fullname/i), 'Test User');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pass@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pass@123');
     await user.type(screen.getByLabelText(/bio/i), 'Testing...');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(signUp).toHaveBeenCalledOnce();
@@ -436,7 +441,7 @@ describe('AuthForm', () => {
     expect(screen.getByLabelText(/password$/i)).toBeValid();
     expect(screen.getByLabelText(/fullname/i)).toBeValid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
-    expect(screen.getByLabelText(/confirm/i)).toBeValid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeValid();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
     expect(screen.getByText(/check your internet/i)).toBeVisible();
   });
@@ -447,12 +452,12 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.type(screen.getByLabelText(/fullname/i), 'Test User');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pass@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pass@123');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(signUp).toHaveBeenCalledOnce();
     expect(signIn).not.toHaveBeenCalled();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
-    expect(screen.getByLabelText(/confirm/i)).toBeValid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeValid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
     expect(screen.getByLabelText(/fullname/i)).toBeValid();
     expect(screen.getByLabelText(/password$/i)).toBeValid();
@@ -464,13 +469,13 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/username/i), 'test_user');
     await user.type(screen.getByLabelText(/fullname/i), 'Test User');
     await user.type(screen.getByLabelText(/password$/i), 'pass@123');
-    await user.type(screen.getByLabelText(/confirm/i), 'pass@123');
+    await user.type(screen.getByLabelText(/confirmation$/i), 'pass@123');
     await user.type(screen.getByLabelText(/bio/i), 'Testing...');
     await user.click(screen.getByRole('button', { name: SIGNUP_REGEX }));
     expect(signUp).toHaveBeenCalledOnce();
     expect(signIn).not.toHaveBeenCalled();
     expect(screen.getByLabelText(/bio/i)).toBeValid();
-    expect(screen.getByLabelText(/confirm/i)).toBeValid();
+    expect(screen.getByLabelText(/confirmation$/i)).toBeValid();
     expect(screen.getByLabelText(/username/i)).toBeValid();
     expect(screen.getByLabelText(/fullname/i)).toBeValid();
     expect(screen.getByLabelText(/password$/i)).toBeValid();

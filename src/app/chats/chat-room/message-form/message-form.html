@@ -1,26 +1,43 @@
-<form
-  [formGroup]="form"
-  (ngSubmit)="submit()"
-  aria-label="New Message"
-  class="size-full flex border rounded-4xl"
->
-  <div class="size-full relative grow rounded-l-4xl">
-    @if (errMsg(); as _errMsg) {
+@let _errMsg = errorMessage(); @let _invalid = !!_errMsg;
+<form [formGroup]="form" (ngSubmit)="submit()" aria-label="New Message" class="relative size-full">
+  <div role="alert">
+    @if (_errMsg) {
     <p
-      class="absolute top-0 left-0 w-full px-4 pb-1 pt-0.5 text-xs text-center text-red-700 truncate"
       [title]="_errMsg"
+      [class]="`absolute top-0 left-0 w-full ps-6 pt-0.5 pe-14 pb-1
+      text-xs text-center truncate text-(--p-button-text-danger-color)`"
     >
       {{ _errMsg }}
     </p>
     }
-    <textarea
-      #msgBody
-      id="message-body"
-      formControlName="body"
-      aria-label="Message body"
-      placeholder="Your message..."
-      class="resize-none size-full align-middle px-4 pt-4 pb-2 text-sm rounded-l-4xl"
-    ></textarea>
   </div>
-  <button type="submit" class="h-full p-4 border-l rounded-r-4xl">Send</button>
+  <textarea
+    #msgBody
+    pTextarea
+    variant="filled"
+    id="message-body"
+    aria-label="Message"
+    [invalid]="_invalid"
+    formControlName="body"
+    [aria-invalid]="_invalid"
+    placeholder="Message..."
+    [class]="`resize-none size-full text-sm font-semibold tracking-wider
+      ps-4 pt-4 pe-18 pb-2 rounded-4xl`"
+  ></textarea>
+  <button
+    pButton
+    pRipple
+    rounded
+    type="submit"
+    aria-label="Send"
+    class="block absolute right-2 top-1/2 -translate-y-1/2 size-14"
+  >
+    <i
+      pButtonIcon
+      aria-hidden="true"
+      [class]="`pi pi-send text-xl
+        absolute top-1/2 left-1/2 -translate-1/2
+        before:relative before:top-px before:right-px`"
+    ></i>
+  </button>
 </form>

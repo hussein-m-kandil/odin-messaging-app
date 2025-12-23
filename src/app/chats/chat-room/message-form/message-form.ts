@@ -1,19 +1,16 @@
-import {
-  FormGroup,
-  Validators,
-  FormControl,
-  ValueChangeEvent,
-  ReactiveFormsModule,
-} from '@angular/forms';
+import { FormGroup, FormControl, ValueChangeEvent, ReactiveFormsModule } from '@angular/forms';
 import { Component, ElementRef, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import { filter, finalize, Observable, take, takeLast, tap } from 'rxjs';
+import { ButtonDirective, ButtonIcon } from 'primeng/button';
 import { createResErrorHandler } from '../../../utils';
+import { TextareaModule } from 'primeng/textarea';
+import { Ripple } from 'primeng/ripple';
 import { Messages } from '../messages';
 import { Chats } from '../../chats';
 
 @Component({
   selector: 'app-message-form',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TextareaModule, ButtonDirective, ButtonIcon, Ripple],
   templateUrl: './message-form.html',
   styles: ``,
 })
@@ -26,10 +23,10 @@ export class MessageForm implements OnInit {
   readonly profileId = input<string>();
   readonly chatId = input<string>();
 
-  protected readonly errMsg = signal('');
+  protected readonly errorMessage = signal('');
 
   protected readonly form = new FormGroup({
-    body: new FormControl('', { validators: [Validators.required], nonNullable: true }),
+    body: new FormControl('', { nonNullable: true }),
   });
 
   private readonly _resetErrMsgOnChange = () => {
@@ -40,14 +37,14 @@ export class MessageForm implements OnInit {
     const isChangeEvent = (e: unknown) => e instanceof ValueChangeEvent;
     this.form.events
       .pipe(filter(isChangeEvent), take(2), takeLast(1))
-      .subscribe(() => this.errMsg.set(''));
+      .subscribe(() => this.errorMessage.set(''));
   };
 
   protected submit() {
-    this.errMsg.set('');
+    this.errorMessage.set('');
     this.form.markAllAsDirty();
-    if (this.form.enabled && this.form.valid) {
-      const newMessageData = this.form.getRawValue();
+    const newMessageData = this.form.getRawValue();
+    if (this.form.enabled && newMessageData.body) {
       const profileId = this.profileId();
       const chatId = this.chatId();
       let req$: Observable<unknown> | null = null;
@@ -65,7 +62,7 @@ export class MessageForm implements OnInit {
           )
           .subscribe({
             next: () => this.form.reset(),
-            error: createResErrorHandler(this.errMsg, 'Failed to send your message.'),
+            error: createResErrorHandler(this.errorMessage, 'Failed to send your message.'),
           });
       }
     }

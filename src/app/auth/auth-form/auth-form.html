@@ -1,98 +1,117 @@
-<div class="space-y-4 w-full max-w-sm mx-auto border border-surface m-4 p-4 pb-8 rounded-2xl">
-  <form
-    [formGroup]="authForm"
-    (ngSubmit)="submit()"
-    aria-labelledby="auth-form-label"
-    class="space-y-4"
+<div class="absolute size-full overflow-auto p-4">
+  <div
+    [class]="`min-h-full w-full max-w-md mx-auto p-4 pb-8 overflow-auto
+      space-y-4 rounded-2xl border border-surface
+    `"
   >
-    <h2 id="auth-form-label" class="text-center text-2xl font-bold text-color">
-      Sign {{ formType.suffix }}
-    </h2>
-    @if (authForm.errors?.['global']; as _globalError) {
-    <p class="text-red-700 text-sm block">
-      {{ _globalError }}
-    </p>
-    }
-    <div class="space-y-4 *:flex *:flex-col *:gap-1">
-      <ng-container
-        [ngTemplateOutlet]="authField"
-        [ngTemplateOutletContext]="{
-          control: authForm.controls.username,
-          label: 'Username',
-          id: 'username',
-          type: 'text',
-        }"
-      />
-      <ng-container
-        [ngTemplateOutlet]="authField"
-        [ngTemplateOutletContext]="{
-          control: authForm.controls.password,
-          hidden: passwordHidden(),
-          label: 'Password',
-          type: 'password',
-          id: 'password',
-        }"
-      />
-      @if (authForm.controls.confirm) {
-      <ng-container
-        [ngTemplateOutlet]="authField"
-        [ngTemplateOutletContext]="{
-          control: authForm.controls.confirm,
-          label: 'Password Confirmation',
-          hidden: confirmHidden(),
-          type: 'password',
-          id: 'confirm',
-        }"
-      />
-      } @if (authForm.controls.fullname) {
-      <ng-container
-        [ngTemplateOutlet]="authField"
-        [ngTemplateOutletContext]="{
-          control: authForm.controls.fullname,
-          label: 'Fullname',
-          id: 'fullname',
-          type: 'text',
-        }"
-      />
-      } @if (authForm.controls.bio) {
-      <ng-container
-        [ngTemplateOutlet]="authField"
-        [ngTemplateOutletContext]="{
-          control: authForm.controls.bio,
-          type: 'textarea',
-          label: 'Bio',
-          id: 'bio',
-        }"
-      />
-      }
-    </div>
-    @let _disabled = authForm.disabled;
-    <div>
-      <button type="submit" [disabled]="_disabled" class="appearance-auto border">
-        <span>Sign {{ formType.suffix }}</span>
-      </button>
-    </div>
-  </form>
-  <div class="text-center *:align-middle *:odd:inline-block *:odd:w-1/3 *:even:mx-2">
-    <hr />
-    <span>Or</span>
-    <hr />
-  </div>
-  <div>
-    <button
-      type="button"
-      [disabled]="_disabled"
-      (click)="changeForm()"
-      class="appearance-auto border"
+    <form
+      class="space-y-4"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      aria-labelledby="auth-form-label"
     >
-      <span>Sign {{ formType.oppositeSuffix }}</span>
-    </button>
+      <h2
+        id="auth-form-label"
+        class="text-center text-2xl font-bold text-color"
+        [class]="{ 'text-muted-color': form.disabled }"
+      >
+        Sign {{ formType.suffix }}
+      </h2>
+      @if (form.errors?.['global']; as _globalError) {
+      <p-message severity="error" size="small" variant="simple" class="block">
+        {{ _globalError }}
+      </p-message>
+      }
+      <div class="space-y-4 *:flex *:flex-col *:gap-1">
+        <ng-container
+          [ngTemplateOutlet]="authField"
+          [ngTemplateOutletContext]="{
+            control: form.controls.username,
+            label: 'Username',
+            id: 'username',
+            type: 'text',
+          }"
+        />
+        <ng-container
+          [ngTemplateOutlet]="authField"
+          [ngTemplateOutletContext]="{
+            control: form.controls.password,
+            hidden: passwordHidden(),
+            label: 'Password',
+            type: 'password',
+            id: 'password',
+          }"
+        />
+        @if (form.controls.confirm) {
+        <ng-container
+          [ngTemplateOutlet]="authField"
+          [ngTemplateOutletContext]="{
+            control: form.controls.confirm,
+            label: 'Password Confirmation',
+            hidden: confirmHidden(),
+            type: 'password',
+            id: 'confirm',
+          }"
+        />
+        } @if (form.controls.fullname) {
+        <ng-container
+          [ngTemplateOutlet]="authField"
+          [ngTemplateOutletContext]="{
+            control: form.controls.fullname,
+            label: 'Fullname',
+            id: 'fullname',
+            type: 'text',
+          }"
+        />
+        } @if (form.controls.bio) {
+        <ng-container
+          [ngTemplateOutlet]="authField"
+          [ngTemplateOutletContext]="{
+            control: form.controls.bio,
+            type: 'textarea',
+            label: 'Bio',
+            id: 'bio',
+          }"
+        />
+        }
+      </div>
+      @let _disabled = form.disabled;
+      <div>
+        <p-button
+          fluid
+          type="submit"
+          severity="primary"
+          [loading]="_disabled"
+          [label]="`Sign ${ formType.suffix }`"
+        />
+      </div>
+    </form>
+    <p-divider
+      type="solid"
+      align="center"
+      [pt]="{
+        content: { class: `font-bold ${form.disabled ? 'text-muted-color' : '' }` }
+      }"
+    >
+      Or
+    </p-divider>
+    <div>
+      <p-button
+        fluid
+        type="button"
+        severity="secondary"
+        [disabled]="_disabled"
+        (onClick)="changeForm()"
+        [label]="`Sign ${ formType.oppositeSuffix }`"
+      />
+    </div>
   </div>
 </div>
 
 <!-- 
-  Use a template fragment instead of a separate component, to avoid browser issues
-  that arises when bounding the id of an input-tag to a dynamic component input
+  Use a template fragment instead of a separate component,
+  to avoid the browser's input-without-id issues that arises
+  when bounding the id of an input-tag to a dynamic component input
 -->
 <ng-template
   #authField
@@ -103,46 +122,56 @@
   let-fieldHidden="hidden"
 >
   @let _invalid = fieldControl.invalid && fieldControl.dirty;
-  <div>
-    <label [for]="fieldId">{{ fieldLabel }}</label>
-    <div class="relative">
-      @if (fieldType === 'textarea') {
-      <textarea
-        [id]="fieldId"
-        [formControl]="fieldControl"
-        [aria-invalid]="_invalid"
-        class="appearance-auto border"
-      ></textarea>
-      } @else {
-      <input
-        [id]="fieldId"
-        [formControl]="fieldControl"
-        [aria-invalid]="_invalid"
-        [type]="fieldHidden === false ? 'text' : fieldType"
-        autocomplete="off"
-        class="appearance-auto border"
-      />
-      @if (fieldType === 'password') {
-      <button
-        type="button"
-        (click)="fieldId === 'confirm' ? toggleConfirmVisibility() : togglePasswordVisibility()"
-        class="appearance-auto border absolute top-0 right-0 bg-transparent"
-      >
-        <span>{{`${fieldHidden === false ? 'Hide' : 'Show'} ${fieldLabel.toLowerCase()}`}}</span>
-      </button>
-      } }
-    </div>
-  </div>
+  <p-float-label variant="on" class="block relative">
+    <label for="{{ fieldId }}">{{ fieldLabel }}</label>
+    @if (fieldType === 'textarea') {
+    <textarea
+      pTextarea
+      fluid
+      id="{{ fieldId }}"
+      [autoResize]="true"
+      [invalid]="_invalid"
+      [aria-invalid]="_invalid"
+      [formControl]="fieldControl"
+      class="p-3 text-sm font-semibold tracking-wider"
+    ></textarea>
+    } @else {
+    <input
+      pInputText
+      fluid
+      id="{{ fieldId }}"
+      [invalid]="_invalid"
+      [aria-invalid]="_invalid"
+      [formControl]="fieldControl"
+      [type]="fieldHidden === false ? 'text' : fieldType"
+      class="p-3 pe-9 text-sm font-semibold tracking-wider"
+      autocomplete="off"
+    />
+    @if (fieldType === 'password') { @let _passVisible = fieldHidden === false;
+    <p-button
+      text
+      rounded
+      outlined
+      size="small"
+      type="button"
+      severity="secondary"
+      [icon]="`pi pi-eye${_passVisible ? '-slash' : ''}`"
+      ariaLabel="{{`${_passVisible ? 'Hide' : 'Show'} ${fieldLabel.toLowerCase()} content`}}"
+      (onClick)="fieldId === 'confirm' ? toggleConfirmVisibility() : togglePasswordVisibility()"
+      styleClass="absolute top-1/2 -translate-y-1/2 right-2 text-(--p-form-field-icon-color)"
+    />
+    } }
+  </p-float-label>
   <!-- prettier-ignore -->
   @if (_invalid) {
-  <p class="text-red-700 text-sm">
+  <p-message severity="error" size="small" variant="simple">
     @if (fieldControl.getError('required')) {
-    <span
-      >{{ `${fieldLabel[0].toUpperCase()}${fieldLabel.slice(1).toLowerCase()}` }} is required.</span
-    >
+    <span>
+      {{ `${fieldLabel[0].toUpperCase()}${fieldLabel.slice(1).toLowerCase()}` }} is required.
+    </span>
     }@else if (fieldControl.getError('validation'); as _validationError) {
     <span>{{ _validationError }}</span>
     }
-  </p>
+  </p-message>
   }
 </ng-template>

@@ -9,26 +9,51 @@ import {
 import { inject, signal, OnInit, computed, Component, HostListener } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
+import { ButtonDirective } from 'primeng/button';
+import { ErrorMessage } from './error-message';
 import { environment } from '../environments';
+import { MessageService } from 'primeng/api';
+import { ColorScheme } from './color-scheme';
+import { TabsModule } from 'primeng/tabs';
+import { Ripple } from 'primeng/ripple';
+import { Toast } from 'primeng/toast';
+import { Spinner } from './spinner';
 import { Auth } from './auth';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet],
+  imports: [
+    RouterLinkActive,
+    NgTemplateOutlet,
+    ButtonDirective,
+    RouterOutlet,
+    ErrorMessage,
+    RouterLink,
+    TabsModule,
+    Spinner,
+    Ripple,
+    Toast,
+  ],
   templateUrl: './app.html',
   styles: ``,
+  providers: [MessageService],
 })
 export class App implements OnInit {
   private _failedUrl = '';
   private readonly _router = inject(Router);
 
+  protected readonly colorScheme = inject(ColorScheme);
   protected readonly auth = inject(Auth);
 
   protected readonly title = environment.title;
-  protected readonly navItems = ['Chats', 'Profiles'] as const;
+  protected readonly navItems = [
+    { route: '/chats', label: 'Chats', icon: 'pi pi-comments' },
+    { route: '/profiles', label: 'Profiles', icon: 'pi pi-users' },
+  ] as const;
 
   protected readonly vpWidth = signal(0);
   protected readonly navErrMsg = signal('');
+  protected readonly activeNavItemIndex = signal(0);
   protected readonly singularViewEnabled = signal(false);
   protected readonly navListRouteActivated = signal(this._isNavListUrl(this._router.url));
 
@@ -41,14 +66,15 @@ export class App implements OnInit {
         this.navErrMsg.set('Failed to load the requested page.');
       } else if (event instanceof NavigationEnd) {
         this.navListRouteActivated.set(this._isNavListUrl(event.urlAfterRedirects));
+        this.activeNavItemIndex.set(
+          this.navItems.findIndex(({ route }) => event.urlAfterRedirects.startsWith(route))
+        );
       }
     });
   }
 
   private _isNavListUrl(url: string) {
-    const urlPaths = url.split('/');
-    const lastUrlPath = urlPaths[urlPaths.length - 1];
-    return this.navItems.some((name) => lastUrlPath.startsWith(name.toLowerCase()));
+    return this.navItems.some(({ route }) => url.endsWith(route));
   }
 
   protected retryNavigation() {

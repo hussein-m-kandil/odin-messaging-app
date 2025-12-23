@@ -1,56 +1,56 @@
-<div class="relative">
+<div class="relative size-full overflow-auto" (scroll)="flushLoadMoreBtnWhenVisible()">
   @if (profiles.loading()) {
-  <p class="absolute top-0 left-0 -translate-1/2 z-30">Loading profiles...</p>
+  <app-spinner ariaLabel="Loading profiles..." />
   } @else if (profiles.loadError(); as _loadError) {
-  <p class="text-red-700 text-sm **:inline-block **:m-1">
-    <span>{{ _loadError }}</span>
-    <br />
-    <button type="button" (click)="profiles.load()" class="appearance-auto border">Retry</button>
-  </p>
+  <app-error-message [message]="_loadError" (retry)="profiles.load()" />
   } @else {
   <!-- prettier-ignore -->
   @let _profileList = profiles.list();
   @if (_profileList.length > 0) {
-  <ul #listContainer aria-label="Profile list">
-    @for (_profile of _profileList; track _profile.id) {
-    <li class="border-b">
+  <p-menu
+    [model]="_profileList"
+    ariaLabel="Profile list"
+    styleClass="rounded-none border-none"
+    [pt]="{ list: { class: 'gap-0' } }"
+  >
+    <ng-template #item let-_profile>
       <a
-        [ariaCurrentWhenActive]="true"
-        routerLinkActive="bg-gray-100"
+        pRipple
+        ariaCurrentWhenActive="page"
+        routerLinkActive="bg-highlight"
         [title]="_profile.user.username"
         [routerLink]="['/profiles', _profile.id]"
-        class="block size-full p-2 hover:bg-gray-50 truncate"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="size-full p-4 border-surface border-b flex items-center"
       >
-        {{ _profile.user.username }}
+        <p-avatar
+          label="{{ _profile.user.username[0].toUpperCase() }}"
+          class="shrink-0 me-2 text-center"
+          shape="circle"
+          size="normal"
+        />
+        <span class="font-semibold tracking-wider truncate">
+          {{ _profile.user.username || 'Anonymous' }}
+        </span>
       </a>
-    </li>
-    }
-    <!-- prettier-ignore -->
-    @if(profiles.canLoadMore()) {
-    <div class="text-gray-500 text-center text-sm p-2">
-      @if(profiles.loadingMore()) {
-      <p>Loading more profiles...</p>
-      } @else if (profiles.loadMoreError(); as _loadMoreError) {
-      <p class="text-red-700">
-        <span>{{ _loadMoreError }}</span>
-        <br />
-        <button type="button" (click)="profiles.loadMore()" class="border">Retry</button>
-      </p>
-      } @else {
-      <button
-        #loadMoreBtn
-        type="button"
-        (click)="profiles.loadMore()"
-        class="cursor-pointer hover:underline"
-      >
-        Load more
-      </button>
+    </ng-template>
+    <ng-template #end>
+      @if(profiles.canLoadMore()) {
+      <div class="text-center text-sm">
+        @if(profiles.loadingMore()) {
+        <app-spinner ariaLabel="Loading more profiles..." />
+        } @else if (profiles.loadMoreError(); as _loadMoreError) {
+        <app-error-message [message]="_loadMoreError" (retry)="profiles.loadMore()" />
+        } @else {
+        <button text outlined pButton #loadMoreBtn type="button" (click)="profiles.loadMore()">
+          Load more
+        </button>
+        }
+      </div>
       }
-    </div>
-    }
-    <!-- prettier-ignore -->
-  </ul>
+    </ng-template>
+  </p-menu>
   } @else {
-  <p>There are no profiles.</p>
+  <p class="text-muted-color">There are no profiles.</p>
   } }
 </div>

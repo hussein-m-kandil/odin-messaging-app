@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event';
 import { ProfileList } from './profile-list';
 import { Profiles } from '../profiles';
 
-const ProfilesMock = {
+const profilesMock = {
   load: vi.fn<() => void>(),
   loadError: vi.fn(() => ''),
   loading: vi.fn(() => false),
@@ -23,7 +23,7 @@ const profiles = [
 
 const renderComponent = ({ providers, ...options }: RenderComponentOptions<ProfileList> = {}) => {
   return render(ProfileList, {
-    providers: [{ provide: Profiles, useValue: ProfilesMock }, ...(providers || [])],
+    providers: [{ provide: Profiles, useValue: profilesMock }, ...(providers || [])],
     ...options,
   });
 };
@@ -32,14 +32,14 @@ describe('ProfileList', () => {
   afterEach(vi.resetAllMocks);
 
   it('should display a list of named profiles', async () => {
-    ProfilesMock.list.mockImplementation(() => profiles);
+    profilesMock.list.mockImplementation(() => profiles);
     await renderComponent();
-    expect(screen.getAllByRole('listitem')).toHaveLength(profiles.length);
-    expect(screen.getByRole('list', { name: /profile list/i })).toBeVisible();
+    expect(screen.getAllByRole('menuitem')).toHaveLength(profiles.length);
+    expect(screen.getByRole('menu', { name: /profile list/i })).toBeVisible();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
-    expect(screen.queryByText(/loading profiles/i)).toBeNull();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading profiles/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
     for (const { id, user } of profiles) {
       const name = new RegExp(user.username);
       const profileLink = screen.getByRole('link', { name }) as HTMLAnchorElement;
@@ -48,76 +48,74 @@ describe('ProfileList', () => {
   });
 
   it('should display a profiles loading indicator', async () => {
-    ProfilesMock.loading.mockImplementation(() => true);
+    profilesMock.loading.mockImplementation(() => true);
     await renderComponent();
-    expect(screen.getByText(/loading profiles/i)).toBeVisible();
+    expect(screen.getByLabelText(/loading profiles/i)).toBeVisible();
     expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
-    expect(screen.queryByRole('list')).toBeNull();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
+    expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('should display an error message and a retry button', async () => {
+  it('should display an error message and a retry button that reload the profiles', async () => {
     const errMsg = 'Test error';
-    ProfilesMock.loadError.mockImplementation(() => errMsg);
-    await renderComponent();
-    expect(screen.getByText(errMsg)).toBeVisible();
-    expect(screen.getByRole('button', { name: /retry/i })).toBeVisible();
-    expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
-    expect(screen.queryByText(/loading profiles/i)).toBeNull();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
-    expect(screen.queryByRole('list')).toBeNull();
-  });
-
-  it('should load again on clicking the retry button', async () => {
-    ProfilesMock.loadError.mockImplementation(() => 'Test error');
+    profilesMock.loadError.mockImplementation(() => errMsg);
     const { click } = userEvent.setup();
     await renderComponent();
-    ProfilesMock.load.mockClear();
+    profilesMock.load.mockClear();
     await click(screen.getByRole('button', { name: /retry/i }));
-    expect(ProfilesMock.load).toHaveBeenCalledOnce();
+    expect(screen.getByText(errMsg)).toBeVisible();
+    expect(profilesMock.load).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: /retry/i })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
+    expect(screen.queryByLabelText(/loading profiles/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
+    expect(screen.queryByRole('menu')).toBeNull();
   });
 
   it('should invoke the load-more method automatically if can load more', async () => {
-    ProfilesMock.list.mockImplementation(() => profiles);
-    ProfilesMock.canLoadMore.mockImplementation(() => true);
+    profilesMock.list.mockImplementation(() => profiles);
+    profilesMock.canLoadMore.mockImplementation(() => true);
     await renderComponent();
-    expect(ProfilesMock.loadMore).toHaveBeenCalled();
+    expect(profilesMock.loadMore).toHaveBeenCalled();
   });
 
   it('should display load-more button that invoke load-more method', async () => {
-    ProfilesMock.list.mockImplementation(() => profiles);
-    ProfilesMock.canLoadMore.mockImplementation(() => true);
+    profilesMock.list.mockImplementation(() => profiles);
+    profilesMock.canLoadMore.mockImplementation(() => true);
     const { click } = userEvent.setup();
     await renderComponent();
-    ProfilesMock.loadMore.mockClear();
+    profilesMock.loadMore.mockClear();
     const loadMoreBtn = screen.getByRole('button', { name: /load more/i });
     await click(loadMoreBtn);
     expect(loadMoreBtn).toBeVisible();
-    expect(ProfilesMock.loadMore).toHaveBeenCalledOnce();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
-    expect(screen.queryByText(/loading profiles/i)).toBeNull();
+    expect(profilesMock.loadMore).toHaveBeenCalledOnce();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading profiles/i)).toBeNull();
   });
 
-  it('should display load-more error', async () => {
+  it('should display load-more error and a retry-button that reloads more profiles', async () => {
     const errMsg = 'Test error';
-    ProfilesMock.loadMoreError.mockImplementation(() => errMsg);
-    ProfilesMock.canLoadMore.mockImplementation(() => true);
-    ProfilesMock.list.mockImplementation(() => profiles);
+    profilesMock.loadMoreError.mockImplementation(() => errMsg);
+    profilesMock.canLoadMore.mockImplementation(() => true);
+    profilesMock.list.mockImplementation(() => profiles);
+    const { click } = userEvent.setup();
     await renderComponent();
+    await click(screen.getByRole('button', { name: /retry/i }));
     expect(screen.getByText(errMsg)).toBeVisible();
-    expect(screen.queryByText(/loading more/i)).toBeNull();
-    expect(screen.queryByText(/loading profiles/i)).toBeNull();
+    expect(profilesMock.loadMore).toHaveBeenCalledOnce();
+    expect(screen.queryByLabelText(/loading more/i)).toBeNull();
+    expect(screen.queryByLabelText(/loading profiles/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 
   it('should display loading-more indicator', async () => {
-    ProfilesMock.loadingMore.mockImplementation(() => true);
-    ProfilesMock.canLoadMore.mockImplementation(() => true);
-    ProfilesMock.list.mockImplementation(() => profiles);
+    profilesMock.loadingMore.mockImplementation(() => true);
+    profilesMock.canLoadMore.mockImplementation(() => true);
+    profilesMock.list.mockImplementation(() => profiles);
     await renderComponent();
-    expect(screen.getByText(/loading more/i)).toBeVisible();
-    expect(screen.queryByText(/loading profiles/i)).toBeNull();
+    expect(screen.getByLabelText(/loading more/i)).toBeVisible();
+    expect(screen.queryByLabelText(/loading profiles/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 });
