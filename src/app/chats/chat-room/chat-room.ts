@@ -43,13 +43,7 @@ export class ChatRoom implements OnChanges, OnDestroy {
   private readonly _messageListEffect = effect(() => {
     this.messages.list();
     untracked(() => {
-      afterNextRender(
-        () => {
-          if (!this.messages.moreLoaded()) this._scrollDownMessages();
-          this.flushLoadMoreBtnWhenVisible();
-        },
-        { injector: this._injector }
-      );
+      afterNextRender(() => this.flushLoadMoreBtnWhenVisible(), { injector: this._injector });
     });
   });
 
@@ -74,13 +68,6 @@ export class ChatRoom implements OnChanges, OnDestroy {
   readonly user = input.required<AuthData['user']>();
   readonly profileId = input<string>();
   readonly chatId = input<string>();
-
-  private _scrollDownMessages() {
-    const messagesContainer = this._messagesContainer()?.nativeElement;
-    if (messagesContainer && !this.messages.loadingMore()) {
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-  }
 
   private _loadMessagesIfChatIdChanged(chatId?: SimpleChanges<ChatRoom>['chatId']) {
     const chatIdChanged = chatId && chatId.currentValue !== chatId.previousValue;
