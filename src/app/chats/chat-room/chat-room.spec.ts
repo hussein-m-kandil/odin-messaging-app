@@ -1,11 +1,12 @@
 import { render, RenderComponentOptions } from '@testing-library/angular';
 import { provideRouter, Router } from '@angular/router';
-import { ChatRoom } from './chat-room';
-import { Messages } from './messages';
+import { userEvent } from '@testing-library/user-event';
 import { Message, User } from '../chats.types';
 import { screen } from '@testing-library/dom';
-import userEvent from '@testing-library/user-event';
 import { Profiles } from '../../profiles';
+import { ChatRoom } from './chat-room';
+import { Observable, of } from 'rxjs';
+import { Messages } from './messages';
 
 const user = { id: crypto.randomUUID(), profile: { id: crypto.randomUUID() } } as User;
 const profileId = crypto.randomUUID();
@@ -56,6 +57,9 @@ const messagesMock = {
     isDeadChat: vi.fn<() => void>(),
     generateTitle: vi.fn<() => string>(),
     list: vi.fn<() => unknown[]>(() => []),
+    createMessage: vi.fn<() => Observable<unknown>>(() => of({ id: crypto.randomUUID() })),
+    getChatMessages: vi.fn<() => Observable<unknown[]>>(() => of([{ id: crypto.randomUUID() }])),
+    getChat: vi.fn<() => Observable<unknown>>(() => of({ id: crypto.randomUUID(), messages: [] })),
   },
 };
 

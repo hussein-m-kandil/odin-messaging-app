@@ -1,5 +1,5 @@
 import { inject, signal, DestroyRef, Injectable, computed } from '@angular/core';
-import { Chat, NewChatData, Profile, User } from './chats.types';
+import { Chat, Message, NewChatData, NewMessageData, Profile, User } from './chats.types';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
@@ -95,6 +95,22 @@ export class Chats {
         this._router.navigate(['/chats', chat.id]);
       })
     );
+  }
+
+  getChat(chatId: Chat['id']) {
+    return this._http.get<Chat>(`${this.baseUrl}/${chatId}`);
+  }
+
+  getChatMessages(chatId: Chat['id'], cursor?: Message['id']) {
+    return cursor
+      ? this._http.get<Message[]>(`${this.baseUrl}/${chatId}/messages`, { params: { cursor } })
+      : this.getChat(chatId).pipe(map((chat) => chat.messages));
+  }
+
+  createMessage(chatId: Chat['id'], data: NewMessageData) {
+    return this._http
+      .post<Message>(`${this.baseUrl}/${chatId}/messages`, data)
+      .pipe(tap(() => this.load()));
   }
 
   navigateToChatByMemberProfileId(memberProfileId: Profile['id'], userProfileId: Profile['id']) {

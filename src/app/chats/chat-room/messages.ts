@@ -2,14 +2,12 @@ import { inject, signal, Injectable, DestroyRef, computed } from '@angular/core'
 import { Chat, Message, NewMessageData, Profile } from '../chats.types';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createResErrorHandler } from '../../utils';
-import { HttpClient } from '@angular/common/http';
 import { finalize, tap } from 'rxjs';
 import { Chats } from '../chats';
 
 @Injectable()
 export class Messages {
   private readonly _destroyRef = inject(DestroyRef);
-  private readonly _http = inject(HttpClient);
 
   readonly list = signal<Message[]>([]);
   readonly loadingMore = signal(false);
@@ -51,15 +49,14 @@ export class Messages {
 
   load(chatId: Chat['id'], cursor?: Message['id']) {
     const loadingMore = !!cursor;
-    const options = loadingMore && cursor ? { params: { cursor } } : {};
     if (!loadingMore) this.list.set([]);
     this.loadingMore.set(loadingMore);
     this.loading.set(!loadingMore);
     this.moreLoaded.set(false);
     this.loadMoreError.set('');
     this.loadError.set('');
-    this._http
-      .get<Message[]>(`${this.chats.baseUrl}/${chatId}/messages`, options)
+    this.chats
+      .getChatMessages(chatId, cursor)
       .pipe(
         takeUntilDestroyed(this._destroyRef),
         finalize(() => {
@@ -99,7 +96,7 @@ export class Messages {
   }
 
   create(chatId: Chat['id'], data: NewMessageData) {
-    return this._http.post<Message>(`${this.chats.baseUrl}/${chatId}/messages`, data).pipe(
+    return this.chats.createMessage(chatId, data).pipe(
       takeUntilDestroyed(this._destroyRef),
       tap((message) => this.list.update((messages) => [message, ...messages]))
     );
