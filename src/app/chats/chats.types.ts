@@ -7,10 +7,8 @@ export interface Message {
   body: string;
   chatId: Chat['id'];
   profileName: string;
-  profileId?: Profile['id'] | null;
   profile?: Profile | null;
-  seenBy: ProfileSawMessage[];
-  receivedBy: ProfileReceivedMessage[];
+  profileId?: Profile['id'] | null;
   imageId?: Image['id'] | null;
   image?: Image | null;
   createdAt: string;
@@ -32,6 +30,8 @@ export interface ChatProfile {
   profileName: string;
   chatId: Chat['id'];
   joinedAt: string;
+  lastSeenAt?: string | null;
+  lastReceivedAt?: string | null;
 }
 
 export interface ChatManager {
@@ -39,20 +39,6 @@ export interface ChatManager {
   profileId: Profile['id'];
   chatId: Chat['id'];
   profile: Profile;
-}
-
-export interface ProfileSawMessage {
-  profile: Profile;
-  profileId: Profile['id'];
-  messageId: Message['id'];
-  seenAt: string;
-}
-
-export interface ProfileReceivedMessage {
-  profile: Profile;
-  profileId: Profile['id'];
-  messageId: Message['id'];
-  receivedAt: string;
 }
 
 export interface NewMessageData {

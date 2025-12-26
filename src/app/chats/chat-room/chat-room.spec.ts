@@ -16,9 +16,7 @@ const now = new Date().toISOString();
 const messages: Message[] = [
   {
     chatId,
-    seenBy: [],
     body: 'Hi!',
-    receivedBy: [],
     createdAt: now,
     updatedAt: now,
     id: crypto.randomUUID(),
@@ -26,9 +24,7 @@ const messages: Message[] = [
   },
   {
     chatId,
-    seenBy: [],
     body: 'Bye!',
-    receivedBy: [],
     createdAt: now,
     updatedAt: now,
     id: crypto.randomUUID(),
