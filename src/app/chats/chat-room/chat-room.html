@@ -56,7 +56,7 @@
     `"
   >
     @if (messages.loading() || messages.loadError()) {
-    <div class="absolute top-1/2 left-1/2 -translate-1/2 z-30 text-center text-sm p-2">
+    <div class="absolute top-1/2 left-1/2 -translate-1/2 z-30">
       @if (messages.loadError(); as _loadError) {
       <!-- prettier-ignore -->
       @if (_chatId) {
@@ -79,8 +79,8 @@
       <div class="flex flex-col-reverse justify-end min-h-full">
         @let _messages = messages.list();
         <!-- prettier-ignore -->
-        @for (_msg of _messages; track _msg.id) { @let
-        _fromCurrentUser = _msg.profileName === _user.username;
+        @for (_msg of _messages; track _msg.id) {
+        @let _fromCurrentUser = _msg.profileName === _user.username;
         <div
           aria-label="Message"
           aria-atomic="true"
@@ -97,7 +97,7 @@
           </div>
         </div>
         }
-        <div class="text-gray-500 text-center text-sm p-2 min-h-8">
+        <div class="min-h-8">
           @if(messages.canLoadMore()) { @if(messages.loadingMore()) {
           <app-spinner ariaLabel="Loading more messages..." />
           } @else if (messages.loadMoreError(); as _loadMoreError) {

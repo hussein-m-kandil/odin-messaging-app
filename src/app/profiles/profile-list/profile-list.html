@@ -35,19 +35,17 @@
       </a>
     </ng-template>
     <ng-template #end>
-      @if(profiles.canLoadMore()) {
-      <div class="text-center text-sm">
-        @if(profiles.loadingMore()) {
-        <app-spinner ariaLabel="Loading more profiles..." />
-        } @else if (profiles.loadMoreError(); as _loadMoreError) {
-        <app-error-message [message]="_loadMoreError" (retry)="profiles.loadMore()" />
-        } @else {
+      @if(profiles.canLoadMore()) { @if(profiles.loadingMore()) {
+      <app-spinner ariaLabel="Loading more profiles..." />
+      } @else if (profiles.loadMoreError(); as _loadMoreError) {
+      <app-error-message [message]="_loadMoreError" (retry)="profiles.loadMore()" />
+      } @else {
+      <div class="text-center">
         <button text outlined pButton #loadMoreBtn type="button" (click)="profiles.loadMore()">
           Load more
         </button>
-        }
       </div>
-      }
+      } }
     </ng-template>
   </p-menu>
   } @else {

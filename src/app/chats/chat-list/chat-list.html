@@ -42,19 +42,17 @@
       </a>
     </ng-template>
     <ng-template #end>
-      @if(chats.canLoadMore()) {
-      <div class="text-center text-sm">
-        @if(chats.loadingMore()) {
-        <app-spinner ariaLabel="Loading more chats..." />
-        } @else if (chats.loadMoreError(); as _loadMoreError) {
-        <app-error-message [message]="_loadMoreError" (retry)="chats.loadMore()" />
-        } @else {
+      @if(chats.canLoadMore()) { @if(chats.loadingMore()) {
+      <app-spinner ariaLabel="Loading more chats..." />
+      } @else if (chats.loadMoreError(); as _loadMoreError) {
+      <app-error-message [message]="_loadMoreError" (retry)="chats.loadMore()" />
+      } @else {
+      <div class="text-center">
         <button text outlined pButton pRipple #loadMoreBtn type="button" (click)="chats.loadMore()">
           Load more
         </button>
-        }
       </div>
-      }
+      } }
     </ng-template>
   </p-menu>
   } @else {
