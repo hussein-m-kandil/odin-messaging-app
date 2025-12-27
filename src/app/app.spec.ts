@@ -2,6 +2,7 @@ import {
   render,
   screen,
   fireEvent,
+  getByRole,
   RenderComponentOptions,
   waitForElementToBeRemoved,
 } from '@testing-library/angular';
@@ -79,9 +80,11 @@ const renderComponent = ({ providers, ...options }: RenderComponentOptions<App> 
 describe('App', () => {
   afterEach(vi.resetAllMocks);
 
-  it('should render title', async () => {
+  it('should render the title', async () => {
     await renderComponent();
-    expect(screen.getByRole('heading', { name: new RegExp(environment.title, 'i') })).toBeVisible();
+    const heading = screen.getByRole('heading', { name: new RegExp(environment.title, 'i') });
+    expect(heading).toBeVisible();
+    expect(getByRole(heading, 'link')).toHaveAttribute('href', '/');
   });
 
   it('should show loader on navigation', async () => {

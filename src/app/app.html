@@ -8,7 +8,9 @@
       flex flex-wrap justify-center items-center border-surface border-b px-2
     `"
   >
-    <h1 class="text-primary-contrast text-2xl text-center font-bold p-2">{{ title }}</h1>
+    <h1 class="text-primary-contrast text-2xl text-center font-bold p-2">
+      <a routerLink="/">{{ title }}</a>
+    </h1>
     <div class="ms-auto space-x-2 *:text-xs">
       <!-- prettier-ignore -->
       @let _scheme = colorScheme.scheme();
