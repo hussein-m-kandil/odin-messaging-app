@@ -4,6 +4,7 @@ import { environment } from '../environments';
 import { authGuard } from './auth/auth-guard';
 import { ChatRoom } from './chats/chat-room';
 import { ChatList } from './chats/chat-list';
+import { Profile } from './profiles/profile';
 import { AuthForm } from './auth/auth-form';
 import { Routes } from '@angular/router';
 import { NotFound } from './not-found';
@@ -38,7 +39,8 @@ export const routes: Routes = [
             resolve: { user: userResolver },
             children: [
               { path: '', outlet: 'menu', component: ProfileList, title: titleize('Profiles') },
-              { path: ':profileId', component: ChatRoom, title: titleize('Profile') },
+              { path: ':profileId/chat', component: ChatRoom, title: titleize('Chat') },
+              { path: ':profileId', component: Profile, title: titleize('Profile') },
             ],
           },
         ],

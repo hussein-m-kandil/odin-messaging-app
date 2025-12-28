@@ -1,0 +1,27 @@
+@let _profile = profile();
+<div class="size-full flex flex-col justify-center">
+  @if (errorMessage(); as _errMsg) {
+  <app-error-message [message]="_errMsg" (retry)="load()" />
+  } @else if (!_profile) {
+  <app-spinner ariaLabel="Loading profile..." />
+  } @else {
+  <div class="text-center space-y-4">
+    <p-avatar [label]="_profile.user.username[0].toUpperCase()" size="xlarge" />
+    <h2 class="text-xl font-bold leading-tight">
+      {{ _profile.user.fullname }}
+      <br />
+      <span class="text-sm text-muted-color font-light">@{{ _profile.user.username }}</span>
+    </h2>
+    <div>
+      <a
+        pButton
+        pRipple
+        rounded
+        icon="pi pi-send"
+        routerLink="chat"
+        aria-label="Chat with {{ _profile.user.username }}"
+      ></a>
+    </div>
+  </div>
+  }
+</div>
