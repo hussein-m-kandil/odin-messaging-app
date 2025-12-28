@@ -7,6 +7,7 @@ import { ChatList } from './chats/chat-list';
 import { AuthForm } from './auth/auth-form';
 import { Routes } from '@angular/router';
 import { NotFound } from './not-found';
+import { Home } from './home';
 
 const { title } = environment;
 const titleize = (s: string) => `${s} | ${title}`;
@@ -17,22 +18,29 @@ export const routes: Routes = [
   {
     path: '',
     canActivate: [authGuard],
-    resolve: { user: userResolver },
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'chats' },
       { path: 'not-found', component: NotFound, title: titleize('Not Found') },
       {
-        path: 'profiles',
+        path: '',
+        component: Home,
         children: [
-          { path: '', outlet: 'nav', component: ProfileList, title: titleize('Profiles') },
-          { path: ':profileId', component: ChatRoom, title: titleize('Profile') },
-        ],
-      },
-      {
-        path: 'chats',
-        children: [
-          { path: '', outlet: 'nav', component: ChatList, title: titleize('Chats') },
-          { path: ':chatId', component: ChatRoom, title: titleize('Chat') },
+          { path: '', pathMatch: 'full', redirectTo: 'chats' },
+          {
+            path: 'chats',
+            resolve: { user: userResolver },
+            children: [
+              { path: '', outlet: 'menu', component: ChatList, title: titleize('Chats') },
+              { path: ':chatId', component: ChatRoom, title: titleize('Chat') },
+            ],
+          },
+          {
+            path: 'profiles',
+            resolve: { user: userResolver },
+            children: [
+              { path: '', outlet: 'menu', component: ProfileList, title: titleize('Profiles') },
+              { path: ':profileId', component: ChatRoom, title: titleize('Profile') },
+            ],
+          },
         ],
       },
       { path: '**', redirectTo: 'not-found' },
