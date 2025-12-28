@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
 import { createResErrorHandler } from '../utils';
 import { Profile } from '../app.types';
-import { finalize } from 'rxjs';
+import { finalize, of } from 'rxjs';
 
 const { apiUrl } = environment;
 
@@ -42,6 +42,8 @@ export class Profiles {
     return canLoad && !!hasMore;
   });
 
+  readonly baseUrl = `${apiUrl}/profiles`;
+
   load(cursor?: Profile['id']) {
     const loadingMore = !!cursor;
     const options = loadingMore ? { params: { cursor } } : {};
@@ -51,7 +53,7 @@ export class Profiles {
     this.loadMoreError.set('');
     this.loadError.set('');
     this._http
-      .get<Profile[]>(`${apiUrl}/profiles`, options)
+      .get<Profile[]>(this.baseUrl, options)
       .pipe(
         takeUntilDestroyed(this._destroyRef),
         finalize(() => (loadingMore ? this.loadingMore.set(false) : this.loading.set(false)))
@@ -72,5 +74,11 @@ export class Profiles {
     const list = this.list();
     const cursor: Profile['id'] | undefined = list[list.length - 1]?.id;
     this.load(cursor);
+  }
+
+  getProfile(id: Profile['id']) {
+    const foundProfile = this.list().find((p) => p.id === id);
+    if (foundProfile) return of(foundProfile);
+    return this._http.get<Profile>(`${this.baseUrl}/${id}`);
   }
 }

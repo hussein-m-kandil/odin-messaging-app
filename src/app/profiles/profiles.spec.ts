@@ -1,5 +1,5 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
 import { TestBed } from '@angular/core/testing';
 import { Profile } from '../app.types';
@@ -26,6 +26,7 @@ const getServiceState = (service: Profiles) => {
     loadingMore: service.loadingMore(),
     canLoadMore: service.canLoadMore(),
     loadMoreError: service.loadMoreError(),
+    baseUrl: service.baseUrl,
   };
 };
 
@@ -33,6 +34,7 @@ describe('Profiles', () => {
   it('should have the expected initial state', () => {
     const { service } = setup();
     const serviceInitialState = getServiceState(service);
+    expect(serviceInitialState.baseUrl).toBe(profilesUrl);
     expect(serviceInitialState.canLoadMore).toBe(false);
     expect(serviceInitialState.loadingMore).toBe(false);
     expect(serviceInitialState.list).toStrictEqual([]);
@@ -262,6 +264,70 @@ describe('Profiles', () => {
     expect(serviceFinalState.loading).toBe(false);
     expect(serviceFinalState.canLoad).toBe(true);
     expect(serviceFinalState.loadError).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should get a profile from the current list', () => {
+    const { service, httpTesting } = setup();
+    const profile = profiles[1];
+    service.list.set(profiles);
+    const profile$ = service.getProfile(profile.id);
+    let resData, resError;
+    profile$.subscribe({ next: (d) => (resData = d), error: (e) => (resError = e) });
+    httpTesting.expectNone(`${profilesUrl}/${profile.id}`, 'Request to get a profile');
+    expect(resData).toEqual(profile);
+    expect(resError).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should get a profile from the backend', () => {
+    const { service, httpTesting } = setup();
+    const profileId = crypto.randomUUID();
+    service.list.set(profiles);
+    const profile$ = service.getProfile(profileId);
+    let resData, resError;
+    profile$.subscribe({ next: (d) => (resData = d), error: (e) => (resError = e) });
+    const reqInfo = { method: 'GET', url: `${profilesUrl}/${profileId}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get a profile');
+    req.flush(profiles[1]);
+    expect(resData).toEqual(profiles[1]);
+    expect(resError).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should fail to get a profile from the backend due to a server error', () => {
+    const { service, httpTesting } = setup();
+    const profileId = crypto.randomUUID();
+    service.list.set(profiles);
+    const profile$ = service.getProfile(profileId);
+    let resData, resError;
+    profile$.subscribe({ next: (d) => (resData = d), error: (e) => (resError = e) });
+    const reqInfo = { method: 'GET', url: `${profilesUrl}/${profileId}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get a profile');
+    const error = 'Failed';
+    req.flush(error, { status: 500, statusText: 'Internal server error' });
+    expect(resError).toBeInstanceOf(HttpErrorResponse);
+    expect(resError).toHaveProperty('error', error);
+    expect(resError).toHaveProperty('status', 500);
+    expect(resData).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should fail to get a profile from the backend due to a network error', () => {
+    const { service, httpTesting } = setup();
+    const profileId = crypto.randomUUID();
+    service.list.set(profiles);
+    const profile$ = service.getProfile(profileId);
+    let resData, resError;
+    profile$.subscribe({ next: (d) => (resData = d), error: (e) => (resError = e) });
+    const reqInfo = { method: 'GET', url: `${profilesUrl}/${profileId}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get a profile');
+    const error = new ProgressEvent('Network error');
+    req.error(error);
+    expect(resError).toBeInstanceOf(HttpErrorResponse);
+    expect(resError).toHaveProperty('error', error);
+    expect(resError).toHaveProperty('status', 0);
+    expect(resData).toBeUndefined();
     httpTesting.verify();
   });
 });
