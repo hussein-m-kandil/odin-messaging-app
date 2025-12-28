@@ -7,10 +7,12 @@ const renderComponent = (options: RenderComponentOptions<ErrorMessage> = {}) => 
 };
 
 describe('ErrorMessage', () => {
+  afterEach(vi.resetAllMocks);
+
   it('should render the given message, and a retry button', async () => {
     const retry = vi.fn();
     const message = 'Test error message';
-    await renderComponent({ inputs: { message }, on: { retry } });
+    await renderComponent({ inputs: { message }, on: { retry }, autoDetectChanges: false });
     expect(retry).toHaveBeenCalledTimes(0);
     expect(screen.getByText(message)).toBeVisible();
     expect(screen.getByRole('button', { name: /retry/i })).toBeVisible();
@@ -20,7 +22,7 @@ describe('ErrorMessage', () => {
     const retry = vi.fn();
     const message = 'Test error message';
     const { click } = userEvent.setup();
-    await renderComponent({ inputs: { message }, on: { retry } });
+    await renderComponent({ inputs: { message }, on: { retry }, autoDetectChanges: false });
     await click(screen.getByRole('button', { name: /retry/i }));
     expect(retry).toHaveBeenCalledOnce();
   });
