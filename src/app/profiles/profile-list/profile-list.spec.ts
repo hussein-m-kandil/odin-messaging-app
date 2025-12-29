@@ -61,7 +61,7 @@ describe('ProfileList', () => {
     const errMsg = 'Test error';
     profilesMock.loadError.mockImplementation(() => errMsg);
     const { click } = userEvent.setup();
-    await renderComponent();
+    await renderComponent({ autoDetectChanges: false });
     profilesMock.load.mockClear();
     await click(screen.getByRole('button', { name: /retry/i }));
     expect(screen.getByText(errMsg)).toBeVisible();
@@ -84,7 +84,7 @@ describe('ProfileList', () => {
     profilesMock.list.mockImplementation(() => profiles);
     profilesMock.canLoadMore.mockImplementation(() => true);
     const { click } = userEvent.setup();
-    await renderComponent();
+    await renderComponent({ autoDetectChanges: false });
     profilesMock.loadMore.mockClear();
     const loadMoreBtn = screen.getByRole('button', { name: /load more/i });
     await click(loadMoreBtn);
@@ -100,7 +100,7 @@ describe('ProfileList', () => {
     profilesMock.canLoadMore.mockImplementation(() => true);
     profilesMock.list.mockImplementation(() => profiles);
     const { click } = userEvent.setup();
-    await renderComponent();
+    await renderComponent({ autoDetectChanges: false });
     await click(screen.getByRole('button', { name: /retry/i }));
     expect(screen.getByText(errMsg)).toBeVisible();
     expect(profilesMock.loadMore).toHaveBeenCalledOnce();
