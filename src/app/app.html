@@ -1,4 +1,6 @@
+@let _narrowScreen = vpWidth() < 720; @let _singularViewEnabled = singularViewEnabled();
 <div>
+  @let _user = auth.user();
   <header
     [class]="`absolute top-0 left-0 right-0 h-16 overflow-auto bg-primary
       flex flex-wrap justify-center items-center border-surface border-b px-2
@@ -21,7 +23,20 @@
         (click)="colorScheme.switch()"
         aria-label="Switch color scheme. {{ _SchemeTitle }} selected."
       ></button>
-      @if (auth.user()) {
+      @if (_user) { @if (!_narrowScreen) {
+      <!-- prettier-ignore -->
+      @let _viewSwitchLabel = _singularViewEnabled ? 'Open main menu' : 'Close main menu';
+      <button
+        pButton
+        pRipple
+        rounded
+        size="small"
+        type="button"
+        (click)="toggleSingularView()"
+        aria-label="{{ _viewSwitchLabel }}"
+        icon="{{ _singularViewEnabled ? 'pi pi-tablet' : 'pi pi-th-large' }}"
+      ></button>
+      }
       <button
         pButton
         pRipple
@@ -46,10 +61,60 @@
     </main>
     } @else {
     <main class="size-full">
-      <router-outlet />
+      @if (_user) { @if(_narrowScreen || _singularViewEnabled) {
+      <ng-container [ngTemplateOutlet]="_singularView" />
+      } @else {
+      <ng-container [ngTemplateOutlet]="_compoundView" />
+      } } @else {
+      <ng-container [ngTemplateOutlet]="_mainContent" />
+      }
     </main>
     }
   </div>
 </div>
 
 <p-toast position="bottom-right" />
+
+<ng-template #_singularView>
+  <ng-container [ngTemplateOutlet]="mainMenuRouteActivated() ? _mainMenu : _mainContent" />
+</ng-template>
+
+<ng-template #_compoundView>
+  <div class="absolute top-0 left-0 w-82 h-full overflow-auto border-surface border-r">
+    <ng-container [ngTemplateOutlet]="_mainMenu" />
+  </div>
+  <div class="absolute top-0 left-82 right-0 h-full overflow-auto">
+    <ng-container [ngTemplateOutlet]="_mainContent" />
+  </div>
+</ng-template>
+
+<ng-template #_mainMenu>
+  <nav class="absolute size-full overflow-auto">
+    <p-tabs [value]="activeMenuIndex()">
+      <p-tablist [pt]="{ content: { class: `*:h-10 *:border-0` } }">
+        @for(_navItem of mainNavItems; track _navItem){
+        <p-tab [value]="$index" class="inline-block relative w-1/2 h-full p-0">
+          <a
+            ariaCurrentWhenActive="page"
+            routerLinkActive="p-tab-active"
+            [routerLink]="[_navItem.route]"
+            [routerLinkActiveOptions]="{ exact: true }"
+            class="inline-block relative size-full text-center leading-tight *:align-middle"
+          >
+            <span class="absolute top-1/2 left-1/2 -translate-1/2">
+              <i [class]="_navItem.icon"></i>&nbsp;{{ _navItem.label }}
+            </span>
+          </a>
+        </p-tab>
+        }
+      </p-tablist>
+    </p-tabs>
+    <div [class]="`absolute top-10 left-0 bottom-0 w-full overflow-auto`">
+      <router-outlet name="mainMenu" />
+    </div>
+  </nav>
+</ng-template>
+
+<ng-template #_mainContent>
+  <router-outlet />
+</ng-template>

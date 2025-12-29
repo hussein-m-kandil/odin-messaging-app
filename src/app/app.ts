@@ -1,6 +1,14 @@
-import { Router, RouterLink, RouterOutlet, NavigationError } from '@angular/router';
-import { inject, signal, computed, Component } from '@angular/core';
+import {
+  Router,
+  RouterLink,
+  RouterOutlet,
+  NavigationEnd,
+  NavigationError,
+  RouterLinkActive,
+} from '@angular/router';
+import { inject, signal, computed, Component, OnInit, HostListener } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgTemplateOutlet } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
 import { ErrorMessage } from './error-message';
 import { environment } from '../environments';
@@ -10,12 +18,13 @@ import { TabsModule } from 'primeng/tabs';
 import { Ripple } from 'primeng/ripple';
 import { Toast } from 'primeng/toast';
 import { Spinner } from './spinner';
-import { filter } from 'rxjs';
 import { Auth } from './auth';
 
 @Component({
   selector: 'app-root',
   imports: [
+    NgTemplateOutlet,
+    RouterLinkActive,
     ButtonDirective,
     RouterOutlet,
     ErrorMessage,
@@ -29,30 +38,44 @@ import { Auth } from './auth';
   styles: ``,
   providers: [MessageService],
 })
-export class App {
+export class App implements OnInit {
   private _failedUrl = '';
   private readonly _router = inject(Router);
   private readonly _toast = inject(MessageService);
 
+  protected readonly title = environment.title;
+  protected readonly mainNavItems = [
+    { route: '/chats', label: 'Chats', icon: 'pi pi-comments' },
+    { route: '/profiles', label: 'Profiles', icon: 'pi pi-users' },
+  ] as const;
+
   protected readonly colorScheme = inject(ColorScheme);
   protected readonly auth = inject(Auth);
 
-  protected readonly navErrMsg = signal('');
-
   protected readonly navigating = computed(() => !!this._router.currentNavigation());
 
-  protected readonly title = environment.title;
+  protected readonly vpWidth = signal(0);
+  protected readonly navErrMsg = signal('');
+  protected readonly activeMenuIndex = signal(0);
+  protected readonly singularViewEnabled = signal(false);
+  protected readonly mainMenuRouteActivated = signal(this._isMainMenuUrl(this._router.url));
 
   constructor() {
-    this._router.events
-      .pipe(
-        takeUntilDestroyed(),
-        filter((event): event is NavigationError => event instanceof NavigationError)
-      )
-      .subscribe((event) => {
+    this._router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
+      if (event instanceof NavigationError) {
         this._failedUrl = event.url;
         this.navErrMsg.set('Failed to load the requested page.');
-      });
+      } else if (event instanceof NavigationEnd) {
+        this.mainMenuRouteActivated.set(this._isMainMenuUrl(event.urlAfterRedirects));
+        this.activeMenuIndex.set(
+          this.mainNavItems.findIndex(({ route }) => event.urlAfterRedirects.startsWith(route))
+        );
+      }
+    });
+  }
+
+  private _isMainMenuUrl(url: string) {
+    return this.mainNavItems.some(({ route }) => new RegExp(`${route}/?$`).test(url));
   }
 
   protected retryNavigation() {
@@ -72,5 +95,18 @@ export class App {
       summary: `Bye${user ? ', ' + user.username : ''}`,
       detail: 'You have signed-out successfully.',
     });
+  }
+
+  protected toggleSingularView() {
+    this.singularViewEnabled.update((enabled) => !enabled);
+  }
+
+  @HostListener('window:resize')
+  protected handleWindowResize() {
+    this.vpWidth.set(window.innerWidth);
+  }
+
+  ngOnInit() {
+    this.handleWindowResize();
   }
 }

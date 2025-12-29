@@ -8,7 +8,6 @@ import { Profile } from './profiles/profile';
 import { AuthForm } from './auth/auth-form';
 import { Routes } from '@angular/router';
 import { NotFound } from './not-found';
-import { Home } from './home';
 
 const { title } = environment;
 const titleize = (s: string) => `${s} | ${title}`;
@@ -23,14 +22,13 @@ export const routes: Routes = [
       { path: 'not-found', component: NotFound, title: titleize('Not Found') },
       {
         path: '',
-        component: Home,
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'chats' },
           {
             path: 'chats',
             resolve: { user: userResolver },
             children: [
-              { path: '', outlet: 'menu', component: ChatList, title: titleize('Chats') },
+              { path: '', outlet: 'mainMenu', component: ChatList, title: titleize('Chats') },
               { path: ':chatId', component: ChatRoom, title: titleize('Chat') },
             ],
           },
@@ -38,7 +36,7 @@ export const routes: Routes = [
             path: 'profiles',
             resolve: { user: userResolver },
             children: [
-              { path: '', outlet: 'menu', component: ProfileList, title: titleize('Profiles') },
+              { path: '', outlet: 'mainMenu', component: ProfileList, title: titleize('Profiles') },
               { path: ':profileId/chat', component: ChatRoom, title: titleize('Chat') },
               { path: ':profileId', component: Profile, title: titleize('Profile') },
             ],
