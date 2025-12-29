@@ -13,20 +13,20 @@ const { title } = environment;
 const titleize = (s: string) => `${s} | ${title}`;
 
 export const routes: Routes = [
+  { path: 'not-found', component: NotFound, title: titleize('Not Found') },
   { path: 'signin', canActivate: [authGuard], component: AuthForm, title: titleize('Sing In') },
   { path: 'signup', canActivate: [authGuard], component: AuthForm, title: titleize('Sing Up') },
   {
     path: '',
     canActivate: [authGuard],
+    resolve: { user: userResolver },
     children: [
-      { path: 'not-found', component: NotFound, title: titleize('Not Found') },
       {
         path: '',
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'chats' },
           {
             path: 'chats',
-            resolve: { user: userResolver },
             children: [
               { path: '', outlet: 'mainMenu', component: ChatList, title: titleize('Chats') },
               { path: ':chatId', component: ChatRoom, title: titleize('Chat') },
@@ -34,7 +34,6 @@ export const routes: Routes = [
           },
           {
             path: 'profiles',
-            resolve: { user: userResolver },
             children: [
               { path: '', outlet: 'mainMenu', component: ProfileList, title: titleize('Profiles') },
               { path: ':profileId/chat', component: ChatRoom, title: titleize('Chat') },
@@ -43,7 +42,7 @@ export const routes: Routes = [
           },
         ],
       },
-      { path: '**', redirectTo: 'not-found' },
     ],
   },
+  { path: '**', redirectTo: 'not-found' },
 ];
