@@ -1,5 +1,6 @@
 import { profileResolver } from './profiles/profile-resolver';
 import { ProfileList } from './profiles/profile-list';
+import { chatResolver } from './chats/chat-resolver';
 import { userResolver } from './auth/user-resolver';
 import { environment } from '../environments';
 import { authGuard } from './auth/auth-guard';
@@ -7,11 +8,25 @@ import { ChatRoom } from './chats/chat-room';
 import { ChatList } from './chats/chat-list';
 import { Profile } from './profiles/profile';
 import { AuthForm } from './auth/auth-form';
-import { Routes } from '@angular/router';
+import { Route, Routes } from '@angular/router';
 import { NotFound } from './not-found';
 
 const { title } = environment;
 const titleize = (s: string) => `${s} | ${title}`;
+
+const chatRoute: Route = {
+  path: ':chatId',
+  component: ChatRoom,
+  title: titleize('Chat'),
+  resolve: { chat: chatResolver },
+};
+
+const profileRoute = {
+  path: ':profileId',
+  component: Profile,
+  title: titleize('Profile'),
+  resolve: { profile: profileResolver },
+};
 
 export const routes: Routes = [
   { path: 'not-found', component: NotFound, title: titleize('Not Found') },
@@ -30,20 +45,15 @@ export const routes: Routes = [
             path: 'chats',
             children: [
               { path: '', outlet: 'mainMenu', component: ChatList, title: titleize('Chats') },
-              { path: ':chatId', component: ChatRoom, title: titleize('Chat') },
+              { ...chatRoute, path: ':chatId' },
             ],
           },
           {
             path: 'profiles',
             children: [
               { path: '', outlet: 'mainMenu', component: ProfileList, title: titleize('Profiles') },
-              { path: ':profileId/chat', component: ChatRoom, title: titleize('Chat') },
-              {
-                path: ':profileId',
-                component: Profile,
-                title: titleize('Profile'),
-                resolve: { profile: profileResolver },
-              },
+              { ...chatRoute, path: ':profileId/chat' },
+              { ...profileRoute, path: ':profileId' },
             ],
           },
         ],

@@ -1,7 +1,7 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { asyncScheduler, Observable, observeOn, of, throwError } from 'rxjs';
 import { provideHttpClient } from '@angular/common/http';
-import { Message, NewMessageData } from '../chats.types';
+import { Chat, Message, NewMessageData } from '../chats.types';
 import { environment } from '../../../environments';
 import { TestBed } from '@angular/core/testing';
 import { Messages } from './messages';
@@ -39,25 +39,29 @@ const getServiceState = (service: Messages) => {
   return {
     list: service.list(),
     loading: service.loading(),
-    canLoad: service.canLoad(),
     loadError: service.loadError(),
-    loadingMore: service.loadingMore(),
-    canLoadMore: service.canLoadMore(),
-    loadMoreError: service.loadMoreError(),
+    hasMore: service.hasMore(),
   };
 };
 
 describe('Messages', () => {
-  it('should have the expected initial state', () => {
+  it('should have the initial state', () => {
     const { service } = setup();
     const serviceInitialState = getServiceState(service);
-    expect(serviceInitialState.canLoadMore).toBe(false);
-    expect(serviceInitialState.loadingMore).toBe(false);
     expect(serviceInitialState.list).toStrictEqual([]);
-    expect(serviceInitialState.loadMoreError).toBe('');
-    expect(serviceInitialState.canLoad).toBe(true);
     expect(serviceInitialState.loadError).toBe('');
     expect(serviceInitialState.loading).toBe(false);
+    expect(serviceInitialState.hasMore).toBe(false);
+  });
+
+  it('should init', () => {
+    const { service } = setup();
+    service.init({ id: chatId, messages: [message, message] } as Chat);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceFinalState.loadError).toBe('');
+    expect(serviceFinalState.hasMore).toBe(true);
+    expect(serviceFinalState.loading).toBe(false);
+    expect(serviceFinalState.list).toStrictEqual([message, message]);
   });
 
   it('should load the messages', () => {
@@ -72,19 +76,14 @@ describe('Messages', () => {
     const serviceFinalState = getServiceState(service);
     expect(serviceLoadingState.loading).toBe(true);
     expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.canLoad).toBe(false);
-    expect(serviceLoadingState.loadMoreError).toBe('');
-    expect(serviceLoadingState.loadingMore).toBe(false);
-    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.hasMore).toBe(false);
     expect(serviceLoadingState.list).toStrictEqual([]);
     expect(serviceFinalState.list).toStrictEqual([message, message]);
-    expect(serviceFinalState.loadingMore).toBe(false);
-    expect(serviceFinalState.loadMoreError).toBe('');
-    expect(serviceFinalState.canLoadMore).toBe(true);
     expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.canLoad).toBe(true);
+    expect(serviceFinalState.hasMore).toBe(true);
     expect(serviceFinalState.loadError).toBe('');
     chatsMock.getChatMessages.mockReset();
+    vi.useRealTimers();
   });
 
   it('should fail to load the messages', () => {
@@ -99,19 +98,14 @@ describe('Messages', () => {
     const serviceErrorState = getServiceState(service);
     expect(serviceLoadingState.loading).toBe(true);
     expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.canLoad).toBe(false);
-    expect(serviceLoadingState.loadMoreError).toBe('');
-    expect(serviceLoadingState.loadingMore).toBe(false);
-    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.hasMore).toBe(false);
     expect(serviceLoadingState.list).toStrictEqual([]);
     expect(serviceErrorState.list).toStrictEqual([]);
-    expect(serviceErrorState.loadingMore).toBe(false);
-    expect(serviceErrorState.loadMoreError).toBe('');
     expect(serviceErrorState.loading).toBe(false);
-    expect(serviceErrorState.canLoad).toBe(true);
-    expect(serviceErrorState.canLoadMore).toBe(false);
+    expect(serviceErrorState.hasMore).toBe(false);
     expect(serviceErrorState.loadError).toMatch(/failed/i);
     chatsMock.getChatMessages.mockReset();
+    vi.useRealTimers();
   });
 
   it('should load more messages', () => {
@@ -121,25 +115,20 @@ describe('Messages', () => {
     );
     const { service } = setup();
     service.list.set([message]);
-    service.loadMore(chatId);
+    service.load(chatId);
     const serviceLoadingState = getServiceState(service);
     vi.runAllTimers();
     const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.loading).toBe(false);
+    expect(serviceLoadingState.loading).toBe(true);
     expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.canLoad).toBe(false);
-    expect(serviceLoadingState.loadMoreError).toBe('');
-    expect(serviceLoadingState.loadingMore).toBe(true);
-    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.hasMore).toBe(false);
     expect(serviceLoadingState.list).toStrictEqual([message]);
     expect(serviceFinalState.list).toStrictEqual([message, message]);
-    expect(serviceFinalState.loadingMore).toBe(false);
-    expect(serviceFinalState.loadMoreError).toBe('');
-    expect(serviceFinalState.canLoadMore).toBe(true);
     expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.canLoad).toBe(true);
+    expect(serviceFinalState.hasMore).toBe(true);
     expect(serviceFinalState.loadError).toBe('');
     chatsMock.getChatMessages.mockReset();
+    vi.useRealTimers();
   });
 
   it('should fail to load more messages', () => {
@@ -150,62 +139,19 @@ describe('Messages', () => {
     const { service } = setup();
     service.list.set([message]);
     service.hasMore.set(true);
-    service.loadMore(chatId);
+    service.load(chatId);
     const serviceLoadingState = getServiceState(service);
     vi.runAllTimers();
     const serviceErrorState = getServiceState(service);
-    expect(serviceLoadingState.loading).toBe(false);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.canLoad).toBe(false);
-    expect(serviceLoadingState.loadMoreError).toBe('');
-    expect(serviceLoadingState.loadingMore).toBe(true);
-    expect(serviceLoadingState.canLoadMore).toBe(false);
-    expect(serviceLoadingState.list).toStrictEqual([message]);
-    expect(serviceErrorState.list).toStrictEqual([message]);
-    expect(serviceErrorState.loadingMore).toBe(false);
-    expect(serviceErrorState.loadMoreError).toMatch(/failed/i);
-    expect(serviceErrorState.canLoadMore).toBe(true);
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceErrorState.canLoad).toBe(true);
-    expect(serviceErrorState.loadError).toBe('');
-    chatsMock.getChatMessages.mockReset();
-  });
-
-  it('should fail to load messages by member id due to navigation error, do nothing on success', () => {
-    vi.useFakeTimers();
-    chatsMock.navigateToChatByMemberProfileId.mockImplementationOnce(() =>
-      throwError(() => new Error('Test nav error')).pipe(observeOn(asyncScheduler, 200))
-    );
-    const { service } = setup();
-    const userProfileId = crypto.randomUUID();
-    const memberProfileId = crypto.randomUUID();
-    service.loadByMemberProfileId(memberProfileId, userProfileId);
-    const serviceLoadingState = getServiceState(service);
-    vi.runAllTimers();
-    const serviceErrorState = getServiceState(service);
-    service.loadByMemberProfileId(memberProfileId, userProfileId);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.loadingMore).toBe(false);
-    expect(serviceLoadingState.canLoadMore).toBe(false);
-    expect(serviceLoadingState.list).toStrictEqual([]);
-    expect(serviceLoadingState.loadMoreError).toBe('');
-    expect(serviceLoadingState.canLoad).toBe(false);
     expect(serviceLoadingState.loading).toBe(true);
     expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceErrorState.canLoad).toBe(true);
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceErrorState.list).toStrictEqual([]);
-    expect(serviceErrorState.loadMoreError).toBe('');
-    expect(serviceErrorState.canLoadMore).toBe(false);
-    expect(serviceErrorState.loadingMore).toBe(false);
+    expect(serviceLoadingState.hasMore).toBe(true);
+    expect(serviceLoadingState.list).toStrictEqual([message]);
+    expect(serviceErrorState.list).toStrictEqual([message]);
     expect(serviceErrorState.loadError).toMatch(/failed/i);
-    expect(serviceFinalState.loadingMore).toBe(false);
-    expect(serviceFinalState.canLoadMore).toBe(false);
-    expect(serviceFinalState.loadMoreError).toBe('');
-    expect(serviceFinalState.list).toStrictEqual([]);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.canLoad).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    expect(serviceErrorState.loading).toBe(false);
+    expect(serviceErrorState.hasMore).toBe(true);
+    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 

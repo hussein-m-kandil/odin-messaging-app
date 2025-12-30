@@ -1,6 +1,4 @@
-@let _user = user(); @let _chatId = chatId(); @let _profileId = profileId(); @let _title = title();
-<!-- prettier-ignore -->
-@if (_chatId || _profileId) {
+@let _user = user(); @let _title = title();
 <div class="absolute size-full overflow-auto" [aria-label]="`${_title} chat room`">
   <nav
     [class]="`absolute top-0 left-0 w-full h-10 z-30 px-2 overflow-auto
@@ -55,26 +53,7 @@
       flex flex-col-reverse
     `"
   >
-    @if (messages.loading() || messages.loadError()) {
-    <div class="absolute top-1/2 left-1/2 -translate-1/2 z-30">
-      @if (messages.loadError(); as _loadError) {
-      <!-- prettier-ignore -->
-      @if (_chatId) {
-      <app-error-message [message]="_loadError" (retry)="messages.load(_chatId)" />
-      } @else if (_profileId) {
-      <app-error-message
-        [message]="_loadError"
-        (retry)="messages.loadByMemberProfileId(_profileId, _user.profile.id)"
-      />
-      } @else {
-      <app-error-message [message]="_loadError" />
-      }
-      <!-- prettier-ignore -->
-      } @else {
-      <app-spinner ariaLabel="Loading messages..." />
-      }
-    </div>
-    } @else if (_chatId) {
+    @if (chat(); as _chat) {
     <div>
       <div class="flex flex-col-reverse justify-end min-h-full">
         @let _messages = messages.list();
@@ -97,11 +76,13 @@
           </div>
         </div>
         }
-        <div class="min-h-8">
-          @if(messages.canLoadMore()) { @if(messages.loadingMore()) {
+        <div class="min-h-8 text-center">
+          @if(messages.hasMore()) {
+          <!-- prettier-ignore -->
+          @if(messages.loading()) {
           <app-spinner ariaLabel="Loading more messages..." />
-          } @else if (messages.loadMoreError(); as _loadMoreError) {
-          <app-error-message [message]="_loadMoreError" (retry)="messages.loadMore(_chatId)" />
+          } @else if (messages.loadError(); as _loadError) {
+          <app-error-message [message]="_loadError" (retry)="messages.load(_chat.id)" />
           } @else {
           <button
             #loadMoreBtn
@@ -110,11 +91,13 @@
             text
             outlined
             type="button"
-            (click)="messages.loadMore(_chatId)"
+            (click)="messages.load(_chat.id)"
           >
             Load more
           </button>
-          } }
+          }
+          <!-- prettier-ignore -->
+          }
         </div>
       </div>
     </div>
@@ -124,6 +107,9 @@
     </p>
     }
   </div>
+  <!-- prettier-ignore -->
+  @let _chatId = chatId(); @let _profileId = profileId();
+  @if (_chatId || _profileId) {
   <div class="absolute bottom-0 left-0 w-full h-20">
     @if (_chatId && messages.chats.isDeadChat(_chatId, _user)) {
     <p-message
@@ -141,5 +127,5 @@
     />
     }
   </div>
+  }
 </div>
-}

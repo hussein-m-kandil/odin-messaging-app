@@ -24,6 +24,7 @@ import { Profiles } from '../../profiles';
 import { Ripple } from 'primeng/ripple';
 import { Spinner } from '../../spinner';
 import { Messages } from './messages';
+import { Chat } from '../chats.types';
 
 @Component({
   templateUrl: './chat-room.html',
@@ -66,24 +67,9 @@ export class ChatRoom implements OnChanges, OnDestroy {
   });
 
   readonly user = input.required<AuthData['user']>();
+  readonly chat = input.required<Chat | null>();
   readonly profileId = input<string>();
   readonly chatId = input<string>();
-
-  private _loadMessagesIfChatIdChanged(chatId?: SimpleChanges<ChatRoom>['chatId']) {
-    const chatIdChanged = chatId && chatId.currentValue !== chatId.previousValue;
-    if (chatIdChanged && chatId.currentValue && this.messages.canLoad()) {
-      this.messages.reset();
-      this.messages.load(chatId.currentValue);
-    }
-  }
-
-  private _loadMessagesIfProfileIdChanged(profileId?: SimpleChanges<ChatRoom>['profileId']) {
-    const chatIdChanged = profileId && profileId.currentValue !== profileId.previousValue;
-    if (chatIdChanged && profileId.currentValue && this.messages.canLoad()) {
-      this.messages.reset();
-      this.messages.loadByMemberProfileId(profileId.currentValue, this.user().profile.id);
-    }
-  }
 
   protected flushLoadMoreBtnWhenVisible() {
     const messagesContainer = this._messagesContainer()?.nativeElement;
@@ -93,22 +79,16 @@ export class ChatRoom implements OnChanges, OnDestroy {
       const loadMoreBtnRect = loadMoreBtn.getBoundingClientRect();
       const messagesContainerRect = messagesContainer.getBoundingClientRect();
       const loadMoreBtnVisible = loadMoreBtnRect.bottom >= messagesContainerRect.top;
-      if (loadMoreBtnVisible && this.messages.canLoadMore() && !this.messages.hasAnyLoadError()) {
-        this.messages.loadMore(chatId);
+      if (loadMoreBtnVisible && !this.messages.loading() && !this.messages.loadError()) {
+        this.messages.load(chatId);
       }
     }
   }
 
   protected refresh() {
-    const profileId = this.profileId();
-    const chatId = this.chatId();
-    if (chatId) {
-      this.messages.reset();
-      this.messages.load(chatId);
-    } else if (profileId) {
-      this.messages.reset();
-      this.messages.loadByMemberProfileId(profileId, this.user().profile.id);
-    }
+    this.messages.reset();
+    const chat = this.chat();
+    if (chat) this.messages.load(chat.id);
   }
 
   protected goBack() {
@@ -116,8 +96,7 @@ export class ChatRoom implements OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges<ChatRoom>) {
-    this._loadMessagesIfChatIdChanged(changes.chatId);
-    this._loadMessagesIfProfileIdChanged(changes.profileId);
+    if (changes.chat) this.messages.init(changes.chat.currentValue);
   }
 
   ngOnDestroy(): void {
