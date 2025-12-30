@@ -19,6 +19,7 @@ describe('Profile', () => {
     expect(screen.getByRole('heading', { name: new RegExp(profile.user.fullname) })).toBeVisible();
     expect(screen.getByText(profile.user.username[0].toUpperCase())).toBeVisible();
     expect(screen.getByText(new RegExp(profile.user.username))).toBeVisible();
+    expect(screen.getByRole('link', { name: /back/i })).toBeVisible();
     expect(
       screen.getByRole('link', { name: new RegExp(`chat with ${profile.user.username}`, 'i') })
     ).toBeVisible();

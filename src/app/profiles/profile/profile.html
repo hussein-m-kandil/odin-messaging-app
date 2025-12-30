@@ -1,7 +1,20 @@
 @let _profile = profile();
-<!-- TODO: Add a button to navigate back -->
-<div class="size-full flex flex-col justify-center">
-  <div class="text-center space-y-4">
+<section class="size-full flex flex-col justify-center">
+  <nav class="px-4 p-2">
+    <a
+      pButton
+      pRipple
+      text
+      rounded
+      outlined
+      size="small"
+      routerLink=".."
+      aria-label="Go back"
+      class="**:leading-0!"
+      icon="pi pi-arrow-left"
+    ></a>
+  </nav>
+  <div class="my-auto space-y-4 text-center">
     <p-avatar [label]="_profile.user.username[0].toUpperCase()" size="xlarge" />
     <h2 class="text-xl font-bold leading-tight">
       {{ _profile.user.fullname }}
@@ -19,4 +32,4 @@
       ></a>
     </div>
   </div>
-</div>
+</section>
