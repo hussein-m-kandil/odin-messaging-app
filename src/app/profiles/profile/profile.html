@@ -1,10 +1,6 @@
 @let _profile = profile();
+<!-- TODO: Add a button to navigate back -->
 <div class="size-full flex flex-col justify-center">
-  @if (errorMessage(); as _errMsg) {
-  <app-error-message [message]="_errMsg" (retry)="load()" />
-  } @else if (!_profile) {
-  <app-spinner ariaLabel="Loading profile..." />
-  } @else {
   <div class="text-center space-y-4">
     <p-avatar [label]="_profile.user.username[0].toUpperCase()" size="xlarge" />
     <h2 class="text-xl font-bold leading-tight">
@@ -23,5 +19,4 @@
       ></a>
     </div>
   </div>
-  }
 </div>
