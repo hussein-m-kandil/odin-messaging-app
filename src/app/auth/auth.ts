@@ -1,6 +1,6 @@
 import { computed, signal, inject, Injectable, effect, untracked } from '@angular/core';
+import { catchError, of, map, Observable, switchMap, defer } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { catchError, of, map, Observable, switchMap } from 'rxjs';
 import { SigninData, SignupData, AuthData } from './auth.types';
 import { authNavOpts, isAuthData, isAuthUrl } from './utils';
 import { toObservable } from '@angular/core/rxjs-interop';
@@ -39,26 +39,28 @@ export class Auth {
   };
 
   private _verify = (): Observable<boolean> => {
-    const token = this._storage.getItem(AUTH_KEY) || '';
-    if (!token) return of(false);
-    return this._http
-      .get<AuthData['user'] | null>(`${apiUrl}/auth/me`, { headers: { Authorization: token } })
-      .pipe(
-        catchError((error: unknown) => {
-          if (error instanceof HttpErrorResponse && error.status === 401) {
-            this._storage.removeItem(AUTH_KEY);
-            return of(null);
-          }
-          throw error;
-        }),
-        map((user) => {
-          if (user) {
-            this._saveValidAuthDataAndGetUserOrThrow({ token, user });
-            return true;
-          }
-          return false;
-        })
-      );
+    return defer(() => {
+      const token = this._storage.getItem(AUTH_KEY) || '';
+      if (!token) return of(false);
+      return this._http
+        .get<AuthData['user'] | null>(`${apiUrl}/auth/me`, { headers: { Authorization: token } })
+        .pipe(
+          catchError((error: unknown) => {
+            if (error instanceof HttpErrorResponse && error.status === 401) {
+              this._storage.removeItem(AUTH_KEY);
+              return of(null);
+            }
+            throw error;
+          }),
+          map((user) => {
+            if (user) {
+              this._saveValidAuthDataAndGetUserOrThrow({ token, user });
+              return true;
+            }
+            return false;
+          })
+        );
+    });
   };
 
   readonly user = computed<AuthData['user'] | null>(() => {

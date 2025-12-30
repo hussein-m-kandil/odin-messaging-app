@@ -1,10 +1,10 @@
 import { inject, signal, DestroyRef, Injectable, computed } from '@angular/core';
 import { Chat, Message, NewChatData, NewMessageData, Profile, User } from './chats.types';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { defer, finalize, map, of, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
 import { createResErrorHandler } from '../utils';
-import { finalize, map, of, tap } from 'rxjs';
 import { Router } from '@angular/router';
 
 const { apiUrl } = environment;
@@ -45,6 +45,12 @@ export class Chats {
   });
 
   readonly baseUrl = `${apiUrl}/chats`;
+
+  private _findChatByAllMemberIds(chats: Chat[], memberIds: Profile['id'][]) {
+    return chats.find((chat) =>
+      chat.profiles.every((c) => c.profileId && memberIds.includes(c.profileId))
+    );
+  }
 
   reset() {
     this.loadingMore.set(false);
@@ -98,9 +104,34 @@ export class Chats {
   }
 
   getChat(chatId: Chat['id']) {
-    const foundChat = this.list().find((chat) => chat.id === chatId);
-    if (foundChat) return of(foundChat);
-    return this._http.get<Chat>(`${this.baseUrl}/${chatId}`);
+    return defer(() => {
+      const foundChat = this.list().find((chat) => chat.id === chatId);
+      if (foundChat) return of(foundChat);
+      return this._http.get<Chat>(`${this.baseUrl}/${chatId}`);
+    });
+  }
+
+  getChatByMemberProfileId(memberProfileId: Profile['id'], userProfileId: Profile['id']) {
+    return defer(() => {
+      const foundChat = this._findChatByAllMemberIds(this.list(), [memberProfileId, userProfileId]);
+      if (foundChat) return of(foundChat);
+      return this._http
+        .get<Chat[]>(`${this.baseUrl}/members/${memberProfileId}`)
+        .pipe(
+          map(
+            (chats) => this._findChatByAllMemberIds(chats, [memberProfileId, userProfileId]) || null
+          )
+        );
+    });
+  }
+
+  navigateToChatByMemberProfileId(...args: Parameters<typeof this.getChatByMemberProfileId>) {
+    return this.getChatByMemberProfileId(...args).pipe(
+      map((chat) => {
+        if (chat) return this._router.navigate(['/chats', chat.id]);
+        return Promise.resolve(false);
+      })
+    );
   }
 
   getChatMessages(chatId: Chat['id'], cursor?: Message['id']) {
@@ -113,22 +144,6 @@ export class Chats {
     return this._http
       .post<Message>(`${this.baseUrl}/${chatId}/messages`, data)
       .pipe(tap(() => this.load()));
-  }
-
-  navigateToChatByMemberProfileId(memberProfileId: Profile['id'], userProfileId: Profile['id']) {
-    return this._http.get<Chat[]>(`${this.baseUrl}/members/${memberProfileId}`).pipe(
-      map((chats) => {
-        const chat = chats.find(
-          (chat) =>
-            chat.profiles.length === 2 &&
-            chat.profiles.every(
-              (c) => c.profileId === userProfileId || c.profileId === memberProfileId
-            )
-        );
-        if (chat) return this._router.navigate(['/chats', chat.id]);
-        return Promise.resolve(false);
-      })
-    );
   }
 
   generateTitle(chat: Chat, currentUser: User) {

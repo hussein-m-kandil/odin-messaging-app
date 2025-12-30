@@ -326,17 +326,16 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should navigate to old chat if found by member and user profile id', async () => {
+  it('should navigate to old chat if got from the current list by member and user profile ids', async () => {
     const { service, httpTesting } = setup();
-    const memberProfileId = profile2.id;
     service.list.set([chat]);
+    const memberProfileId = profile2.id;
     const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
     let resData: unknown, resErr: unknown;
     req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
-    const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
-    const req = httpTesting.expectOne(reqInfo, 'Request to find a chat by member id');
+    const url = `${chatsUrl}/members/${memberProfileId}`;
+    httpTesting.expectNone(url, 'Request to find a chat by member id');
     const serviceLoadingState = getServiceState(service);
-    req.flush([chat]);
     const serviceFinalState = getServiceState(service);
     expect(serviceLoadingState.loading).toBe(false);
     expect(serviceLoadingState.canLoad).toBe(true);
@@ -348,16 +347,15 @@ describe('Chats', () => {
     expect(serviceLoadingState).toStrictEqual(serviceFinalState);
     expect(resErr).toBeUndefined();
     expect(resData).toBeInstanceOf(Promise);
-    expect(await (resData as Promise<boolean>)).toBe(true);
+    await expect(resData).resolves.toBe(true);
     expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
     httpTesting.verify();
     navigationSpy.mockClear();
   });
 
-  it('should not navigate to old chat if not found by member and user profile id', async () => {
+  it('should navigate to old chat if got from the backend by member and user profile ids', async () => {
     const { service, httpTesting } = setup();
-    const memberProfileId = profile.id;
-    service.list.set([chat]);
+    const memberProfileId = profile2.id;
     const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
     let resData: unknown, resErr: unknown;
     req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
@@ -372,12 +370,39 @@ describe('Chats', () => {
     expect(serviceLoadingState.loadMoreError).toBe('');
     expect(serviceLoadingState.canLoadMore).toBe(false);
     expect(serviceLoadingState.loadingMore).toBe(false);
-    expect(serviceLoadingState.list).toStrictEqual([chat]);
+    expect(serviceLoadingState.list).toStrictEqual([]);
+    expect(serviceLoadingState).toStrictEqual(serviceFinalState);
+    expect(resErr).toBeUndefined();
+    expect(resData).toBeInstanceOf(Promise);
+    await expect(resData).resolves.toBe(true);
+    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
+    httpTesting.verify();
+    navigationSpy.mockClear();
+  });
+
+  it('should not navigate to old chat if not found by member and user profile ids', async () => {
+    const { service, httpTesting } = setup();
+    const memberProfileId = profile.id;
+    const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
+    let resData: unknown, resErr: unknown;
+    req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to find a chat by member id');
+    const serviceLoadingState = getServiceState(service);
+    req.flush([chat]);
+    const serviceFinalState = getServiceState(service);
+    expect(serviceLoadingState.loading).toBe(false);
+    expect(serviceLoadingState.canLoad).toBe(true);
+    expect(serviceLoadingState.loadError).toBe('');
+    expect(serviceLoadingState.loadMoreError).toBe('');
+    expect(serviceLoadingState.canLoadMore).toBe(false);
+    expect(serviceLoadingState.loadingMore).toBe(false);
+    expect(serviceLoadingState.list).toStrictEqual([]);
     expect(serviceLoadingState).toStrictEqual(serviceFinalState);
     expect(resErr).toBeUndefined();
     expect(resData).toBeInstanceOf(Promise);
     expect(navigationSpy).toHaveBeenCalledTimes(0);
-    expect(await (resData as Promise<boolean>)).toBe(false);
+    await expect(resData).resolves.toBe(false);
     httpTesting.verify();
     navigationSpy.mockClear();
   });
@@ -596,6 +621,68 @@ describe('Chats', () => {
     let resData, resErr;
     service.getChat(chatId).subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
+    const error = new ProgressEvent('Network error.');
+    req.error(error);
+    expect(resErr).toBeInstanceOf(HttpErrorResponse);
+    expect(resErr).toHaveProperty('error', error);
+    expect(resErr).toHaveProperty('status', 0);
+    expect(resData).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should get a chat by member profile id from the current list', () => {
+    const { service, httpTesting } = setup();
+    service.list.set([chat]);
+    let resData, resErr;
+    service
+      .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
+      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const url = `${chatsUrl}/members/${chat.profiles[1].profileId}`;
+    httpTesting.expectNone(url, 'Request to get the chat messages');
+    expect(resData).toStrictEqual(chat);
+    expect(resErr).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should get a chat by member profile id from the backend', () => {
+    const { service, httpTesting } = setup();
+    let resData, resErr;
+    service
+      .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
+      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId!}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
+    req.flush([chat]);
+    expect(resErr).toBeUndefined();
+    expect(resData).toStrictEqual(chat);
+    httpTesting.verify();
+  });
+
+  it('should fail to get a chat by member profile id from the backend due to a server error', () => {
+    const { service, httpTesting } = setup();
+    let resData, resErr;
+    service
+      .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
+      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
+    const error = 'Failed';
+    req.flush(error, { status: 500, statusText: 'Internal server error' });
+    expect(resErr).toBeInstanceOf(HttpErrorResponse);
+    expect(resErr).toHaveProperty('error', error);
+    expect(resErr).toHaveProperty('status', 500);
+    expect(resData).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should fail to get a chat by member profile id from the backend due to a network error', () => {
+    const { service, httpTesting } = setup();
+    let resData, resErr;
+    service
+      .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
+      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = new ProgressEvent('Network error.');
     req.error(error);

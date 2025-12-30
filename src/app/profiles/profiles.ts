@@ -3,8 +3,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
 import { createResErrorHandler } from '../utils';
+import { defer, finalize, of } from 'rxjs';
 import { Profile } from '../app.types';
-import { finalize, of } from 'rxjs';
 
 const { apiUrl } = environment;
 
@@ -77,8 +77,10 @@ export class Profiles {
   }
 
   getProfile(id: Profile['id']) {
-    const foundProfile = this.list().find((p) => p.id === id);
-    if (foundProfile) return of(foundProfile);
-    return this._http.get<Profile>(`${this.baseUrl}/${id}`);
+    return defer(() => {
+      const foundProfile = this.list().find((p) => p.id === id);
+      if (foundProfile) return of(foundProfile);
+      return this._http.get<Profile>(`${this.baseUrl}/${id}`);
+    });
   }
 }
