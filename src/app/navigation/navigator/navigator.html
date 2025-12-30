@@ -1,0 +1,7 @@
+<div class="size-full flex flex-col justify-center items-center">
+  @if (navigation.error(); as _navErr) {
+  <app-error-message [message]="_navErr.message" (retry)="navigation.retry()" />
+  } @else {
+  <app-spinner [ariaLabel]="label()" />
+  }
+</div>

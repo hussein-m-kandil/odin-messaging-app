@@ -50,27 +50,17 @@
       }
     </div>
   </header>
-  <div [class]="`absolute top-16 left-0 right-0 bottom-0 overflow-auto`">
-    @if (navigating() || navErrMsg()) {
-    <main class="absolute top-1/2 left-1/2 -translate-1/2 z-50">
-      @if (navErrMsg(); as _navErrMsg) {
-      <app-error-message [message]="_navErrMsg" (retry)="retryNavigation()" />
-      } @else {
-      <app-spinner ariaLabel="Loading..." />
-      }
-    </main>
+  <main [class]="`absolute top-16 left-0 right-0 bottom-0 overflow-auto`">
+    @if (navigation.isInitial()) {
+    <app-navigator />
+    } @else if (_user) {
+    <ng-container
+      [ngTemplateOutlet]="_narrowScreen || _singularViewEnabled ? _singularView : _compoundView"
+    />
     } @else {
-    <main class="size-full">
-      @if (_user) { @if(_narrowScreen || _singularViewEnabled) {
-      <ng-container [ngTemplateOutlet]="_singularView" />
-      } @else {
-      <ng-container [ngTemplateOutlet]="_compoundView" />
-      } } @else {
-      <ng-container [ngTemplateOutlet]="_mainContent" />
-      }
-    </main>
+    <ng-container [ngTemplateOutlet]="_mainContent" />
     }
-  </div>
+  </main>
 </div>
 
 <p-toast position="bottom-right" />
@@ -116,5 +106,9 @@
 </ng-template>
 
 <ng-template #_mainContent>
+  @if (navigation.navigating() || navigation.error()) {
+  <app-navigator />
+  } @else {
   <router-outlet />
+  }
 </ng-template>

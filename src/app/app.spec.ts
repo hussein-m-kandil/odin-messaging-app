@@ -8,15 +8,11 @@ import {
 import { userEvent } from '@testing-library/user-event';
 import { ColorScheme, SCHEMES } from './color-scheme';
 import { environment } from '../environments';
+import { Navigation } from './navigation';
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
-import { of, throwError } from 'rxjs';
 import { Auth } from './auth';
 import { App } from './app';
-
-const consoleLogSpy = vi.spyOn(window.console, 'log');
-const consoleErrorSpy = vi.spyOn(window.console, 'error');
-const navigationSpy = vi.spyOn(Router.prototype, 'navigateByUrl');
+import { of } from 'rxjs';
 
 const user = { id: crypto.randomUUID() };
 
@@ -26,6 +22,8 @@ const authMock = vi.fn(() => ({ user: userMock, signOut }));
 
 const scheme = SCHEMES[1];
 const colorSchemeMock = { scheme: vi.fn(() => scheme), switch: vi.fn() };
+
+const navigationMock = { isInitial: vi.fn(), navigating: vi.fn(), error: vi.fn() };
 
 const resolve = { testData: vi.fn(() => of(null)) };
 
@@ -51,31 +49,37 @@ const testRoutes = [
     resolve,
     children: [
       {
-        path: 'profiles',
-        children: [
-          { path: '', outlet: 'mainMenu', component: ProfileListMock },
-          { path: ':profileId', component: ChatRoomMock },
-        ],
-      },
-      {
         path: 'chats',
         children: [
           { path: '', outlet: 'mainMenu', component: ChatListMock },
           { path: ':chatId', component: ChatRoomMock },
         ],
       },
-      { path: '**', redirectTo: 'chats' },
+      {
+        path: 'profiles',
+        children: [
+          { path: '', outlet: 'mainMenu', component: ProfileListMock },
+          { path: ':profileId', component: ChatRoomMock },
+        ],
+      },
     ],
   },
 ];
 
-const renderComponent = ({ providers, routes, ...options }: RenderComponentOptions<App> = {}) => {
+const renderComponent = ({
+  initialRoute,
+  providers,
+  routes,
+  ...options
+}: RenderComponentOptions<App> = {}) => {
   return render(App, {
     providers: [
       { provide: ColorScheme, useValue: colorSchemeMock },
+      { provide: Navigation, useValue: navigationMock },
       { provide: Auth, useValue: authMock() },
       ...(providers || []),
     ],
+    initialRoute: initialRoute || '/chats',
     routes: routes || testRoutes,
     ...options,
   });
@@ -91,9 +95,36 @@ describe('App', () => {
     expect(getByRole(heading, 'link')).toHaveAttribute('href', '/');
   });
 
-  it('should show loader on navigation', async () => {
+  it('should display the chat list', async () => {
+    await renderComponent();
+    expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
+    expect(screen.getByRole('link', { name: /profiles/i })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('should display the profile list', async () => {
+    await renderComponent({ initialRoute: '/profiles' });
+    expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
+    expect(screen.getByRole('link', { name: /chats/i })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: /profiles/i })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('should show loader on initial navigation', async () => {
+    navigationMock.navigating.mockImplementation(() => true);
+    navigationMock.isInitial.mockImplementation(() => true);
     await renderComponent();
     expect(screen.getByLabelText(/loading/i)).toBeVisible();
+    expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
+    expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
+  });
+
+  it('should show loader on non-initial navigation', async () => {
+    navigationMock.navigating.mockImplementation(() => true);
+    navigationMock.isInitial.mockImplementation(() => false);
+    await renderComponent();
+    expect(screen.getByLabelText(/loading/i)).toBeVisible();
+    expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
+    expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
   });
 
   it('should not show sign-out button for an unauthenticated user', async () => {
@@ -131,75 +162,39 @@ describe('App', () => {
     expect(colorSchemeMock.switch).toHaveBeenCalledOnce();
   });
 
-  it('should show a navigation error message and a retry button', async () => {
-    resolve.testData.mockImplementationOnce(() =>
-      throwError(() => new Error('Test resolve error'))
-    );
-    consoleErrorSpy.mockImplementationOnce(() => undefined);
-    consoleLogSpy.mockImplementationOnce(() => undefined);
-    await renderComponent({
-      autoDetectChanges: false,
-      configureTestBed: (testbed) => {
-        testbed.configureTestingModule({ rethrowApplicationErrors: false });
-      },
-    });
-    await vi.waitFor(() => expect(screen.queryByLabelText(/loading/i)).toBeNull());
-    expect(screen.getByText(/failed to load/i));
-    expect(screen.getByRole('button', { name: /retry/i }));
-  });
-
-  it('should navigate to same url again when clicking retry, after a navigation error', async () => {
-    resolve.testData.mockImplementationOnce(() =>
-      throwError(() => new Error('Test resolve error'))
-    );
-    consoleErrorSpy.mockImplementationOnce(() => undefined);
-    consoleLogSpy.mockImplementationOnce(() => undefined);
-    const user = userEvent.setup();
-    await renderComponent({
-      autoDetectChanges: false,
-      configureTestBed: (testbed) => {
-        testbed.configureTestingModule({ rethrowApplicationErrors: false });
-      },
-    });
-    await vi.waitFor(() => expect(screen.queryByLabelText(/loading/i)).toBeNull());
-    await user.click(screen.getByRole('button', { name: /retry/i }));
-    await vi.waitFor(() => expect(screen.queryByLabelText(/loading/i)).toBeNull());
-    expect(screen.queryByRole('button', { name: /retry/i })).toBeNull();
-    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith('/');
-    expect(screen.queryByText(/failed to load/i)).toBeNull();
-  });
-
-  it('should redirect to `/chats` and display chat list at the initial route', async () => {
+  it('should display an initial navigation error message and a retry button', async () => {
+    const error = { message: 'Test navigation error', url: '/' };
+    navigationMock.isInitial.mockImplementation(() => true);
+    navigationMock.error.mockImplementation(() => error);
     await renderComponent();
-    await vi.waitFor(() => expect(screen.getByText(ChatListMock.TITLE)).toBeVisible());
-    expect(screen.getByRole('link', { name: /profiles/i })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByText(error.message));
+    expect(screen.getByRole('button', { name: /retry/i }));
+    expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
+    expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
+    expect(screen.queryByLabelText(/loading/i)).toBeNull();
   });
 
-  it('should display the chat list when targeting the `/chats` route', async () => {
-    await renderComponent({ initialRoute: '/chats' });
-    await vi.waitFor(() => expect(screen.getByText(ChatListMock.TITLE)).toBeVisible());
-    expect(screen.getByRole('link', { name: /profiles/i })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'page');
+  it('should display a non-initial navigation error message and a retry button', async () => {
+    const error = { message: 'Test navigation error', url: '/' };
+    navigationMock.error.mockImplementation(() => error);
+    await renderComponent();
+    expect(screen.getByText(error.message));
+    expect(screen.getByRole('button', { name: /retry/i }));
+    expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
+    expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
+    expect(screen.queryByLabelText(/loading/i)).toBeNull();
   });
 
-  it('should display the profile list when targeting the `/profiles` route', async () => {
-    await renderComponent({ initialRoute: '/profiles' });
-    expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
-    expect(screen.getByRole('link', { name: /chats/i })).not.toHaveAttribute('aria-current');
-    expect(screen.getByRole('link', { name: /profiles/i })).toHaveAttribute('aria-current', 'page');
-  });
-
-  it('should navigate to `/profiles` on click the profiles link', async () => {
+  it('should navigate to `/profiles`', async () => {
     const user = userEvent.setup();
-    await renderComponent({ initialRoute: '/chats' });
+    await renderComponent();
     await user.click(screen.getByRole('link', { name: /profiles/i }));
     await vi.waitFor(() => expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible());
     expect(screen.getByRole('link', { name: /chats/i })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: /profiles/i })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('should navigate to `/chats` on click the chats link', async () => {
+  it('should navigate to `/chats`', async () => {
     const user = userEvent.setup();
     await renderComponent({ initialRoute: '/profiles' });
     await user.click(screen.getByRole('link', { name: /chats/i }));
@@ -218,10 +213,10 @@ describe('App', () => {
         const profilesLink = screen.getByRole('link', { name: /profiles/i });
         const chatsLink = screen.getByRole('link', { name: /chats/i });
         if (initialRoute.startsWith('/chats')) {
-          await vi.waitFor(() => expect(screen.getByText(ChatListMock.TITLE)).toBeVisible());
+          expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ProfileListMock.TITLE)).toBeNull();
         } else if (initialRoute.startsWith('/profiles')) {
-          await vi.waitFor(() => expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible());
+          expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
         }
         if (initialRoute.endsWith('/chats')) {
@@ -246,7 +241,6 @@ describe('App', () => {
         if (initialRoute.endsWith('/chats')) {
           const profilesLink = screen.getByRole('link', { name: /profiles/i });
           const chatsLink = screen.getByRole('link', { name: /chats/i });
-          await vi.waitFor(() => expect(chatsLink).toHaveAttribute('aria-current', 'page'));
           expect(chatsLink).toHaveAttribute('aria-current', 'page');
           expect(profilesLink).not.toHaveAttribute('aria-current');
           expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
@@ -255,7 +249,6 @@ describe('App', () => {
         } else if (initialRoute.endsWith('/profiles')) {
           const profilesLink = screen.getByRole('link', { name: /profiles/i });
           const chatsLink = screen.getByRole('link', { name: /chats/i });
-          await vi.waitFor(() => expect(profilesLink).toHaveAttribute('aria-current', 'page'));
           expect(profilesLink).toHaveAttribute('aria-current', 'page');
           expect(chatsLink).not.toHaveAttribute('aria-current');
           expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
@@ -311,7 +304,6 @@ describe('App', () => {
           const profilesLink = screen.getByRole('link', { name: /profiles/i });
           const chatsLink = screen.getByRole('link', { name: /chats/i });
           await vi.waitFor(() => expect(chatsLink).toHaveAttribute('aria-current', 'page'));
-          expect(chatsLink).toHaveAttribute('aria-current', 'page');
           expect(profilesLink).not.toHaveAttribute('aria-current');
           expect(screen.getByText(ChatListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
@@ -320,7 +312,6 @@ describe('App', () => {
           const profilesLink = screen.getByRole('link', { name: /profiles/i });
           const chatsLink = screen.getByRole('link', { name: /chats/i });
           await vi.waitFor(() => expect(profilesLink).toHaveAttribute('aria-current', 'page'));
-          expect(profilesLink).toHaveAttribute('aria-current', 'page');
           expect(chatsLink).not.toHaveAttribute('aria-current');
           expect(screen.getByText(ProfileListMock.TITLE)).toBeVisible();
           expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();

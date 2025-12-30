@@ -1,3 +1,4 @@
+import { profileResolver } from './profiles/profile-resolver';
 import { ProfileList } from './profiles/profile-list';
 import { userResolver } from './auth/user-resolver';
 import { environment } from '../environments';
@@ -37,7 +38,12 @@ export const routes: Routes = [
             children: [
               { path: '', outlet: 'mainMenu', component: ProfileList, title: titleize('Profiles') },
               { path: ':profileId/chat', component: ChatRoom, title: titleize('Chat') },
-              { path: ':profileId', component: Profile, title: titleize('Profile') },
+              {
+                path: ':profileId',
+                component: Profile,
+                title: titleize('Profile'),
+                resolve: { profile: profileResolver },
+              },
             ],
           },
         ],
