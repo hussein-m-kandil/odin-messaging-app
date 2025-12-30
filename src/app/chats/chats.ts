@@ -4,7 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
 import { createResErrorHandler } from '../utils';
-import { finalize, map, tap } from 'rxjs';
+import { finalize, map, of, tap } from 'rxjs';
 import { Router } from '@angular/router';
 
 const { apiUrl } = environment;
@@ -98,6 +98,8 @@ export class Chats {
   }
 
   getChat(chatId: Chat['id']) {
+    const foundChat = this.list().find((chat) => chat.id === chatId);
+    if (foundChat) return of(foundChat);
     return this._http.get<Chat>(`${this.baseUrl}/${chatId}`);
   }
 

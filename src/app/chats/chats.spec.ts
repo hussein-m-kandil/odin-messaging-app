@@ -549,19 +549,34 @@ describe('Chats', () => {
     expect(service.isDeadChat(testChat.id, user)).toBe(false);
   });
 
-  it('should get the chat', () => {
+  it('should get the chat from the current list', () => {
     const { service, httpTesting } = setup();
+    service.list.set([chat]);
     let resData, resErr;
     service.getChat(chatId).subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
-    const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}` };
-    const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
-    req.flush(chat);
+    httpTesting.expectNone(`${chatsUrl}/${chatId}`, 'Request to get the chat messages');
     expect(resData).toStrictEqual(chat);
     expect(resErr).toBeUndefined();
     httpTesting.verify();
   });
 
-  it('should fail to get the chat due to a server error', () => {
+  it('should get the chat from the backend', () => {
+    const { service, httpTesting } = setup();
+    service.list.set([chat]);
+    const randChatId = crypto.randomUUID();
+    const chat$ = service.getChat(randChatId);
+    let resData, resErr;
+    chat$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/${randChatId}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
+    const resBody = { ...chat, id: randChatId };
+    req.flush(resBody);
+    expect(resData).toStrictEqual(resBody);
+    expect(resErr).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should fail to get the chat from the backend due to a server error', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     service.getChat(chatId).subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
@@ -576,7 +591,7 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should fail to get the chat due to a network error', () => {
+  it('should fail to get the chat from the backend due to a network error', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     service.getChat(chatId).subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
