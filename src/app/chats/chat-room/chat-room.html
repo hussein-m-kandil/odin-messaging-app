@@ -10,18 +10,17 @@
         flex justify-between items-center *:odd:min-w-max *:odd:aspect-square
       `"
     >
-      <button
+      <a
         pButton
         pRipple
         text
         rounded
         outlined
         size="small"
-        type="button"
-        aria-label="Back"
+        routerLink=".."
+        aria-label="Go back"
         icon="pi pi-arrow-left"
-        (click)="goBack()"
-      ></button>
+      ></a>
       <span
         [class]="`inline-block max-w-1/2 mx-auto truncate
         text-lg text-primary text-center font-bold tracking-wider

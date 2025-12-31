@@ -36,7 +36,7 @@ const messages: Message[] = [
 
 const chat = { id: chatId, messages } as Chat;
 
-const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
+const navigationSpy = vi.spyOn(Router.prototype, 'navigateByUrl');
 
 const messagesMock = {
   loading: vi.fn(() => false),
@@ -80,7 +80,7 @@ describe('ChatRoom', () => {
   it('should display a chat with messages, navbar, and message form', async () => {
     await renderComponent({ inputs: { user, chat, chatId } });
     expect(screen.getByRole('navigation')).toBeVisible();
-    expect(screen.getByRole('button', { name: /back/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /back/i })).toBeVisible();
     expect(screen.getByRole('form', { name: /message/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /refresh/i })).toBeVisible();
     expect(screen.queryByRole('button', { name: /try/i })).toBeNull();
@@ -113,7 +113,7 @@ describe('ChatRoom', () => {
   it('should navigate back when clicking the back button', async () => {
     const { click } = userEvent.setup();
     await renderComponent({ inputs: { user, chat, chatId } });
-    const backBtn = screen.getByRole('button', { name: /back/i });
+    const backBtn = screen.getByRole('link', { name: /back/i });
     await click(backBtn);
     expect(navigationSpy).toHaveBeenCalledOnce();
   });

@@ -13,12 +13,12 @@ import {
   SimpleChanges,
   afterNextRender,
 } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
 import { ErrorMessage } from '../../error-message';
 import { AuthData } from '../../auth/auth.types';
 import { ButtonDirective } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
 import { MessageForm } from './message-form';
+import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { Profiles } from '../../profiles';
 import { Ripple } from 'primeng/ripple';
@@ -29,14 +29,21 @@ import { Chat } from '../chats.types';
 @Component({
   templateUrl: './chat-room.html',
   selector: 'app-chat-room',
-  imports: [MessageForm, MessageModule, ButtonDirective, ErrorMessage, DatePipe, Spinner, Ripple],
+  imports: [
+    ButtonDirective,
+    MessageModule,
+    ErrorMessage,
+    MessageForm,
+    RouterLink,
+    DatePipe,
+    Spinner,
+    Ripple,
+  ],
   providers: [Messages],
 })
 export class ChatRoom implements OnChanges, OnDestroy {
-  private readonly _route = inject(ActivatedRoute);
   private readonly _injector = inject(Injector);
   private readonly _profiles = inject(Profiles);
-  private readonly _router = inject(Router);
 
   private readonly _messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
   private readonly _loadMoreBtn = viewChild<ElementRef<HTMLButtonElement>>('loadMoreBtn');
@@ -89,10 +96,6 @@ export class ChatRoom implements OnChanges, OnDestroy {
     this.messages.reset();
     const chat = this.chat();
     if (chat) this.messages.load(chat.id);
-  }
-
-  protected goBack() {
-    this._router.navigate(['..'], { relativeTo: this._route });
   }
 
   ngOnChanges(changes: SimpleChanges<ChatRoom>) {
