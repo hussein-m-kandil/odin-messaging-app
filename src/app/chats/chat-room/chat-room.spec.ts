@@ -38,7 +38,13 @@ const chat = { id: chatId, messages } as Chat;
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigateByUrl');
 
+HTMLElement.prototype.scrollBy = vi.fn();
+
 const messagesMock = {
+  loadingRecent: vi.fn(() => false),
+  loadRecentError: vi.fn(() => ''),
+  loadRecent: vi.fn<() => void>(),
+  listUpdated: vi.fn(() => false),
   loading: vi.fn(() => false),
   hasMore: vi.fn(() => false),
   loadError: vi.fn(() => ''),
@@ -82,8 +88,9 @@ describe('ChatRoom', () => {
     expect(screen.getByRole('navigation')).toBeVisible();
     expect(screen.getByRole('link', { name: /back/i })).toBeVisible();
     expect(screen.getByRole('form', { name: /message/i })).toBeVisible();
-    expect(screen.getByRole('button', { name: /refresh/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /update/i })).toBeVisible();
     expect(screen.queryByRole('button', { name: /try/i })).toBeNull();
+    expect(screen.queryByLabelText(/updating/i)).toBeNull();
     expect(screen.queryByLabelText(/loading/i)).toBeNull();
     expect(screen.queryByText(/failed/i)).toBeNull();
     for (const msg of messages) {
@@ -118,13 +125,32 @@ describe('ChatRoom', () => {
     expect(navigationSpy).toHaveBeenCalledOnce();
   });
 
-  it('should reset, then load the messages when clicking the refresh button', async () => {
+  it('should auto-scroll once start', async () => {
+    await renderComponent({ inputs: { user, chat, chatId } });
+    expect(HTMLElement.prototype.scrollBy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should scroll, and load recent messages when clicking the update button', async () => {
     const { click } = userEvent.setup();
     await renderComponent({ inputs: { user, chat, chatId } });
-    const refreshBtn = screen.getByRole('button', { name: /refresh/i });
-    await click(refreshBtn);
-    expect(messagesMock.reset).toHaveBeenCalledOnce();
-    expect(messagesMock.load).toHaveBeenCalledExactlyOnceWith(chatId);
+    const updateBtn = screen.getByRole('button', { name: /update/i });
+    await click(updateBtn);
+    expect(HTMLElement.prototype.scrollBy).toHaveBeenCalledTimes(2); // +1 auto-scroll on start
+    expect(messagesMock.loadRecent).toHaveBeenCalledExactlyOnceWith(chatId, user.username);
+  });
+
+  it('should display updating indicator on loading recent messages', async () => {
+    messagesMock.loadingRecent.mockImplementation(() => true);
+    await renderComponent({ inputs: { user, chat, chatId } });
+    expect(screen.getByLabelText(/updating/i)).toBeVisible();
+  });
+
+  it('should display updating error, if any', async () => {
+    const errorMessage = 'Test update error';
+    messagesMock.loadRecentError.mockImplementation(() => errorMessage);
+    await renderComponent({ inputs: { user, chat, chatId } });
+    expect(screen.queryByLabelText(/updating/i)).toBeNull();
+    expect(screen.getByText(errorMessage)).toBeVisible();
   });
 
   it('should not have a form if it is a dead chat', async () => {

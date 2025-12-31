@@ -8,7 +8,6 @@ import {
   Component,
   untracked,
   OnChanges,
-  OnDestroy,
   ElementRef,
   SimpleChanges,
   afterNextRender,
@@ -41,19 +40,12 @@ import { Chat } from '../chats.types';
   ],
   providers: [Messages],
 })
-export class ChatRoom implements OnChanges, OnDestroy {
+export class ChatRoom implements OnChanges {
   private readonly _injector = inject(Injector);
   private readonly _profiles = inject(Profiles);
 
   private readonly _messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
   private readonly _loadMoreBtn = viewChild<ElementRef<HTMLButtonElement>>('loadMoreBtn');
-
-  private readonly _messageListEffect = effect(() => {
-    this.messages.list();
-    untracked(() => {
-      afterNextRender(() => this.flushLoadMoreBtnWhenVisible(), { injector: this._injector });
-    });
-  });
 
   protected readonly messages = inject(Messages);
 
@@ -78,6 +70,29 @@ export class ChatRoom implements OnChanges, OnDestroy {
   readonly profileId = input<string>();
   readonly chatId = input<string>();
 
+  constructor() {
+    effect(() => {
+      this.messages.list();
+      untracked(() => {
+        afterNextRender(
+          () => {
+            this.flushLoadMoreBtnWhenVisible();
+          },
+          { injector: this._injector }
+        );
+      });
+    });
+    effect(() => {
+      const loadingRecentFinished = !this.messages.loadingRecent();
+      if (loadingRecentFinished) this._scrollDown();
+    });
+  }
+
+  private _scrollDown() {
+    const messagesContainer = this._messagesContainer()?.nativeElement;
+    messagesContainer?.scrollBy(0, messagesContainer.scrollHeight);
+  }
+
   protected flushLoadMoreBtnWhenVisible() {
     const messagesContainer = this._messagesContainer()?.nativeElement;
     const loadMoreBtn = this._loadMoreBtn()?.nativeElement;
@@ -92,17 +107,13 @@ export class ChatRoom implements OnChanges, OnDestroy {
     }
   }
 
-  protected refresh() {
-    this.messages.reset();
+  protected update() {
+    this._scrollDown();
     const chat = this.chat();
-    if (chat) this.messages.load(chat.id);
+    if (chat) this.messages.loadRecent(chat.id, this.user().username);
   }
 
   ngOnChanges(changes: SimpleChanges<ChatRoom>) {
     if (changes.chat) this.messages.init(changes.chat.currentValue);
-  }
-
-  ngOnDestroy(): void {
-    this._messageListEffect.destroy();
   }
 }

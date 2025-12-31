@@ -37,9 +37,9 @@
         outlined
         size="small"
         type="button"
-        aria-label="Refresh"
+        aria-label="Update"
         icon="pi pi-refresh"
-        (click)="refresh()"
+        (click)="update()"
       ></button>
     </div>
   </nav>
@@ -55,8 +55,18 @@
     @if (chat(); as _chat) {
     <div>
       <div class="flex flex-col-reverse justify-end min-h-full">
-        @let _messages = messages.list();
+        <div>
+          @if(messages.loadingRecent()) {
+          <app-spinner ariaLabel="Updating chat messages..." />
+          } @else if (messages.loadRecentError(); as _loadRecentError) {
+          <app-error-message
+            [message]="_loadRecentError"
+            (retry)="messages.loadRecent(_chat.id, _user.username)"
+          />
+          }
+        </div>
         <!-- prettier-ignore -->
+        @let _messages = messages.list();
         @for (_msg of _messages; track _msg.id) {
         @let _fromCurrentUser = _msg.profileName === _user.username;
         <div
