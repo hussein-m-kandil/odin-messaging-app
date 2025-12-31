@@ -1,5 +1,5 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { HttpErrorResponse, HttpParams, provideHttpClient } from '@angular/common/http';
 import { Chat, Profile, User, Message, NewMessageData } from './chats.types';
 import { provideRouter, Router } from '@angular/router';
 import { environment } from '../../environments';
@@ -545,7 +545,7 @@ describe('Chats', () => {
     expect(service.generateTitle(testChat, user)).toBe('Yourself');
   });
 
-  it('should consider the chat dead if it is missing profiles for all the other members', () => {
+  it('should consider a chat dead if it is missing profiles for all the other members', () => {
     const { service } = setup();
     const testChat = structuredClone(chat);
     testChat.id = crypto.randomUUID();
@@ -555,7 +555,7 @@ describe('Chats', () => {
     expect(service.isDeadChat(testChat.id, user)).toBe(true);
   });
 
-  it('should consider the chat alive if it is missing profiles for some of the other members', () => {
+  it('should consider a chat alive if it is missing profiles for some of the other members', () => {
     const { service } = setup();
     const testChat = structuredClone(chat);
     testChat.id = crypto.randomUUID();
@@ -565,7 +565,7 @@ describe('Chats', () => {
     expect(service.isDeadChat(chat.id, user)).toBe(false);
   });
 
-  it('should consider the self-chat alive', () => {
+  it('should consider a self-chat alive', () => {
     const { service } = setup();
     const testChat = structuredClone(chat);
     testChat.id = crypto.randomUUID();
@@ -574,7 +574,7 @@ describe('Chats', () => {
     expect(service.isDeadChat(testChat.id, user)).toBe(false);
   });
 
-  it('should get the chat from the current list', () => {
+  it('should get a chat from the current list', () => {
     const { service, httpTesting } = setup();
     service.list.set([chat]);
     let resData, resErr;
@@ -585,7 +585,7 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should get the chat from the backend', () => {
+  it('should get a chat from the backend', () => {
     const { service, httpTesting } = setup();
     service.list.set([chat]);
     const randChatId = crypto.randomUUID();
@@ -601,7 +601,7 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should fail to get the chat from the backend due to a server error', () => {
+  it('should fail to get a chat from the backend due to a server error', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     service.getChat(chatId).subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
@@ -616,7 +616,7 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should fail to get the chat from the backend due to a network error', () => {
+  it('should fail to get a chat from the backend due to a network error', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     service.getChat(chatId).subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
@@ -693,27 +693,27 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should get the chat messages', () => {
+  it('should get a chat messages', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     service
       .getChatMessages(chatId)
       .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
-    const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}` };
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
-    req.flush({ ...chat, messages: [message, message] });
+    req.flush([message, message]);
     expect(resData).toStrictEqual([message, message]);
     expect(resErr).toBeUndefined();
     httpTesting.verify();
   });
 
-  it('should fail to get the chat messages due to a server error', () => {
+  it('should fail to get a chat messages due to a server error', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     service
       .getChatMessages(chatId)
       .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
-    const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}` };
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = 'Failed';
     req.flush(error, { status: 500, statusText: 'Internal server error' });
@@ -724,13 +724,13 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should fail to get the chat messages due to a network error', () => {
+  it('should fail to get a chat messages due to a network error', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     service
       .getChatMessages(chatId)
       .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
-    const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}` };
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = new ProgressEvent('Network error.');
     req.error(error);
@@ -741,12 +741,12 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should get more of the chat messages', () => {
+  it('should get more of a chat messages', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     const cursor = message.id;
     service
-      .getChatMessages(chatId, cursor)
+      .getChatMessages(chatId, new HttpParams({ fromObject: { cursor } }))
       .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages?cursor=${cursor}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more of the chat messages');
@@ -756,12 +756,12 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should fail to get more of the chat messages due to a server error', () => {
+  it('should fail to get more of a chat messages due to a server error', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     const cursor = message.id;
     service
-      .getChatMessages(chatId, cursor)
+      .getChatMessages(chatId, new HttpParams({ fromObject: { cursor } }))
       .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages?cursor=${cursor}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more of the chat messages');
@@ -774,12 +774,12 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should fail to get more of the chat messages due to a network error', () => {
+  it('should fail to get more of a chat messages due to a network error', () => {
     const { service, httpTesting } = setup();
     let resData, resErr;
     const cursor = message.id;
     service
-      .getChatMessages(chatId, cursor)
+      .getChatMessages(chatId, new HttpParams({ fromObject: { cursor } }))
       .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages?cursor=${cursor}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more of the chat messages');

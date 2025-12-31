@@ -2,7 +2,7 @@ import { inject, signal, DestroyRef, Injectable, computed } from '@angular/core'
 import { Chat, Message, NewChatData, NewMessageData, Profile, User } from './chats.types';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { defer, finalize, map, of, tap } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments';
 import { createResErrorHandler } from '../utils';
 import { Router } from '@angular/router';
@@ -134,10 +134,8 @@ export class Chats {
     );
   }
 
-  getChatMessages(chatId: Chat['id'], cursor?: Message['id']) {
-    return cursor
-      ? this._http.get<Message[]>(`${this.baseUrl}/${chatId}/messages`, { params: { cursor } })
-      : this.getChat(chatId).pipe(map((chat) => chat.messages));
+  getChatMessages(chatId: Chat['id'], params?: HttpParams) {
+    return this._http.get<Message[]>(`${this.baseUrl}/${chatId}/messages`, { params });
   }
 
   createMessage(chatId: Chat['id'], data: NewMessageData) {
