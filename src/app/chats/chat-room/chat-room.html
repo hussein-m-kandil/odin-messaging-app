@@ -54,17 +54,15 @@
   >
     @if (chat(); as _chat) {
     <div>
-      <div class="flex flex-col-reverse justify-end min-h-full">
-        <div>
-          @if(messages.loadingRecent()) {
-          <app-spinner ariaLabel="Updating chat messages..." />
-          } @else if (messages.loadRecentError(); as _loadRecentError) {
-          <app-error-message
-            [message]="_loadRecentError"
-            (retry)="messages.loadRecent(_chat.id, _user.username)"
-          />
-          }
-        </div>
+      <div class="flex flex-col-reverse justify-end min-h-full space-y-4">
+        @if(messages.loadingRecent()) {
+        <app-spinner ariaLabel="Updating chat messages..." />
+        } @else if (messages.loadRecentError(); as _loadRecentError) {
+        <app-error-message
+          [message]="_loadRecentError"
+          (retry)="messages.loadRecent(_chat.id, _user.username)"
+        />
+        }
         <!-- prettier-ignore -->
         @let _messages = messages.list();
         @for (_msg of _messages; track _msg.id) {
@@ -72,7 +70,7 @@
         <div
           aria-label="Message"
           aria-atomic="true"
-          class="bg-highlight-emphasis max-w-xs text-left rounded-2xl shadow p-3 space-y-2 my-2"
+          class="bg-highlight-emphasis max-w-xs text-left rounded-2xl shadow p-3 space-y-2"
           [class]="`${
           _fromCurrentUser
             ? 'ms-auto rounded-br-none'
@@ -80,10 +78,26 @@
           }`"
         >
           <div class="text-sm font-semibold tracking-wider">{{ _msg.body }}</div>
-          <div class="text-muted-color text-xs font-light tracking-tight leading-tight">
-            {{ _msg.createdAt | date : 'mediumDate' }} at {{ _msg.createdAt | date : 'shortTime' }}
+          <div
+            class="text-muted-color text-xs font-light tracking-tight leading-tight"
+            [class]="{ 'text-end': _fromCurrentUser }"
+          >
+            <time [attr.datetime]="_msg.createdAt">
+              {{ _msg.createdAt | date : 'shortTime' }}
+            </time>
           </div>
         </div>
+        <!-- prettier-ignore -->
+        @let _msgDayDate = _msg.createdAt | date : 'mediumDate';
+        @let _nextMsgDayDate = $last ? '' : _messages[$index + 1].createdAt | date : 'mediumDate';
+        @if (_msgDayDate !== _nextMsgDayDate) {
+        <div class="text-xs text-center text-muted-color">
+          <time [attr.datetime]="_msg.createdAt | date : 'yyyy-MM-dd'">
+            {{ _msgDayDate }}
+          </time>
+        </div>
+        }
+        <!-- prettier-ignore -->
         }
         <div class="min-h-8 text-center">
           @if(messages.hasMore()) {
