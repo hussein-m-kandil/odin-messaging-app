@@ -1,4 +1,4 @@
-import { inject, signal, Injectable, DestroyRef } from '@angular/core';
+import { inject, signal, Injectable, DestroyRef, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Chat, Message, NewMessageData } from '../chats.types';
 import { createResErrorHandler } from '../../utils';
@@ -10,43 +10,29 @@ import { Chats } from '../chats';
 export class Messages {
   private readonly _destroyRef = inject(DestroyRef);
 
-  readonly list = signal<Message[]>([]);
+  readonly chats = inject(Chats);
+
+  readonly list = computed<Message[]>(() => this.chats.activatedChat()?.messages || []);
+
   readonly loadingRecent = signal(false);
   readonly loadRecentError = signal('');
   readonly hasMore = signal(false);
   readonly loading = signal(false);
   readonly loadError = signal('');
 
-  readonly chats = inject(Chats);
-
-  private _updateList(newList: Message[]) {
-    let updated = false;
-    this.list.update((oldList) => {
-      const updatedList = oldList
-        .filter((oldMsg) => !newList.some((newMsg) => newMsg.id === oldMsg.id))
-        .concat(newList)
-        .sort((a, b) => -1 * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
-      updated = oldList.length !== updatedList.length;
-      return updatedList;
-    });
-    return updated;
-  }
-
   reset() {
+    this.chats.activate(null);
     this.loadingRecent.set(false);
     this.loadRecentError.set('');
     this.hasMore.set(false);
     this.loading.set(false);
     this.loadError.set('');
-    this.list.set([]);
   }
 
-  init(chat: Chat | null) {
+  init(chat: ReturnType<typeof this.chats.activatedChat>) {
     this.reset();
-    if (chat) {
-      this.list.set(chat.messages);
-      this.hasMore.set(!!chat.messages.length);
-    }
+    this.chats.activate(chat);
+    this.hasMore.set(!!chat?.messages.length);
   }
 
   load(chatId: Chat['id']) {
@@ -64,7 +50,7 @@ export class Messages {
       .subscribe({
         next: (olderList) => {
           this.hasMore.set(!!olderList.length);
-          if (this.hasMore()) this._updateList(olderList);
+          if (this.hasMore()) this.chats.updateActivatedChatMessages(olderList);
         },
         error: createResErrorHandler(this.loadError, 'Failed to load any messages.'),
       });
@@ -87,7 +73,7 @@ export class Messages {
         )
         .subscribe({
           next: (newerList) => {
-            const updated = this._updateList(newerList.reverse());
+            const updated = this.chats.updateActivatedChatMessages(newerList.reverse());
             if (updated) this.loadRecent(chatId, currentProfileName);
           },
           error: createResErrorHandler(this.loadRecentError, 'Failed to update chat messages.'),
@@ -98,7 +84,7 @@ export class Messages {
   create(chatId: Chat['id'], data: NewMessageData) {
     return this.chats.createMessage(chatId, data).pipe(
       takeUntilDestroyed(this._destroyRef),
-      tap((message) => this._updateList([message]))
+      tap((message) => this.chats.updateActivatedChatMessages([message]))
     );
   }
 }
