@@ -9,14 +9,21 @@ import { Chats } from '../chats';
 
 const { apiUrl } = environment;
 
+const chatId = crypto.randomUUID();
+
 const chatsMock = {
   baseUrl: `${apiUrl}/chats`,
   getChatMessages: vi.fn(),
   createMessage: vi.fn(),
   getChat: vi.fn(),
+  activate: vi.fn(),
+  updateActivatedChatMessages: vi.fn(),
+  activatedChat: vi.fn<() => { id: string; messages: Message[] }>(() => ({
+    id: chatId,
+    messages: [],
+  })),
 };
 
-const chatId = crypto.randomUUID();
 const message = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -66,7 +73,14 @@ const getServiceState = (service: Messages) => {
   };
 };
 
+const setMessageList = (messages: Message[]) => {
+  const activatedChat = chatsMock.activatedChat();
+  chatsMock.activatedChat.mockImplementation(() => ({ ...activatedChat, messages }));
+};
+
 describe('Messages', () => {
+  afterEach(vi.resetAllMocks);
+
   it('should have the initial state', () => {
     const { service } = setup();
     const serviceInitialState = getServiceState(service);
@@ -78,14 +92,18 @@ describe('Messages', () => {
 
   it('should init', () => {
     const { service } = setup();
-    service.init({ id: chatId, messages: [message, message] } as Chat);
+    const chat = { id: chatId, messages: [message, message] } as Chat;
+    service.init(chat);
     const serviceFinalState = getServiceState(service);
     expect(serviceFinalState.loadError).toBe('');
     expect(serviceFinalState.hasMore).toBe(true);
     expect(serviceFinalState.loading).toBe(false);
     expect(serviceFinalState.loadRecentError).toBe('');
     expect(serviceFinalState.loadingRecent).toBe(false);
-    expect(serviceFinalState.list).toStrictEqual([message, message]);
+    expect(serviceFinalState.list).toStrictEqual(chatsMock.activatedChat().messages);
+    expect(chatsMock.activate).toHaveBeenCalledTimes(2);
+    expect(chatsMock.activate).toHaveBeenNthCalledWith(1, null);
+    expect(chatsMock.activate).toHaveBeenNthCalledWith(2, chat);
   });
 
   it('should load the messages', () => {
@@ -94,7 +112,7 @@ describe('Messages', () => {
       of([message, message]).pipe(observeOn(asyncScheduler, 0))
     );
     const { service } = setup();
-    service.list.set([message]);
+    setMessageList([message]);
     service.load(chatId);
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
@@ -105,13 +123,14 @@ describe('Messages', () => {
     expect(serviceLoadingState.loadError).toBe('');
     expect(serviceLoadingState.hasMore).toBe(false);
     expect(serviceLoadingState.list).toStrictEqual([message]);
-    expect(serviceFinalState.list).toStrictEqual([message, message]);
+    expect(serviceFinalState.list).toStrictEqual([message]);
     expect(serviceFinalState.loadingRecent).toBe(false);
     expect(serviceFinalState.loadRecentError).toBe('');
     expect(serviceFinalState.loading).toBe(false);
     expect(serviceFinalState.hasMore).toBe(true);
     expect(serviceFinalState.loadError).toBe('');
-    chatsMock.getChatMessages.mockReset();
+    expect(chatsMock.getChatMessages).toHaveBeenCalledOnce();
+    expect(chatsMock.updateActivatedChatMessages).toHaveBeenCalledOnce();
     vi.useRealTimers();
   });
 
@@ -128,7 +147,6 @@ describe('Messages', () => {
     const serviceFinalState = getServiceState(service);
     expect(serviceLoadingState.loadError).toBe('');
     expect(serviceFinalState.loadError).toBe('');
-    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 
@@ -154,7 +172,6 @@ describe('Messages', () => {
     expect(serviceErrorState.loadRecentError).toBe('');
     expect(serviceErrorState.loadingRecent).toBe(false);
     expect(serviceErrorState.loadError).toMatch(/failed/i);
-    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 
@@ -164,7 +181,7 @@ describe('Messages', () => {
       of([message, message3]).pipe(observeOn(asyncScheduler, 0))
     );
     const { service } = setup();
-    service.list.set([message2, message3]);
+    setMessageList([message2, message3]);
     service.load(chatId);
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
@@ -175,13 +192,12 @@ describe('Messages', () => {
     expect(serviceLoadingState.loadError).toBe('');
     expect(serviceLoadingState.hasMore).toBe(false);
     expect(serviceLoadingState.list).toStrictEqual([message2, message3]);
-    expect(serviceFinalState.list).toStrictEqual([message3, message2, message]);
+    expect(serviceFinalState.list).toStrictEqual([message2, message3]);
     expect(serviceFinalState.loadingRecent).toBe(false);
     expect(serviceFinalState.loadRecentError).toBe('');
     expect(serviceFinalState.loading).toBe(false);
     expect(serviceFinalState.hasMore).toBe(true);
     expect(serviceFinalState.loadError).toBe('');
-    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 
@@ -191,7 +207,7 @@ describe('Messages', () => {
       of([message]).pipe(observeOn(asyncScheduler, 0))
     );
     const { service } = setup();
-    service.list.set([message2]);
+    setMessageList([message2]);
     service.loadError.set('Blah');
     service.load(chatId);
     const serviceLoadingState = getServiceState(service);
@@ -199,7 +215,6 @@ describe('Messages', () => {
     const serviceFinalState = getServiceState(service);
     expect(serviceLoadingState.loadError).toBe('');
     expect(serviceFinalState.loadError).toBe('');
-    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 
@@ -209,7 +224,7 @@ describe('Messages', () => {
       throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0))
     );
     const { service } = setup();
-    service.list.set([message]);
+    setMessageList([message]);
     service.hasMore.set(true);
     service.load(chatId);
     const serviceLoadingState = getServiceState(service);
@@ -227,7 +242,6 @@ describe('Messages', () => {
     expect(serviceErrorState.loadRecentError).toBe('');
     expect(serviceErrorState.loading).toBe(false);
     expect(serviceErrorState.hasMore).toBe(true);
-    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 
@@ -237,7 +251,7 @@ describe('Messages', () => {
       of([message, message2]).pipe(observeOn(asyncScheduler, 0))
     );
     const { service } = setup();
-    service.list.set([message3, message2]);
+    setMessageList([message3, message2]);
     service.loadRecent(chatId, message3.profileName);
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
@@ -248,41 +262,32 @@ describe('Messages', () => {
     expect(serviceLoadingState.loadError).toBe('');
     expect(serviceLoadingState.hasMore).toBe(false);
     expect(serviceLoadingState.list).toStrictEqual([message3, message2]);
-    expect(serviceFinalState.list).toStrictEqual([message3, message2, message]);
+    expect(serviceFinalState.list).toStrictEqual([message3, message2]);
     expect(serviceFinalState.loadingRecent).toBe(false);
     expect(serviceFinalState.loadRecentError).toBe('');
     expect(serviceFinalState.loading).toBe(false);
     expect(serviceFinalState.hasMore).toBe(false);
     expect(serviceFinalState.loadError).toBe('');
-    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 
-  it('should try to load recent messages again if, and only if, got messages', async () => {
-    vi.useFakeTimers();
-    chatsMock.getChatMessages.mockImplementation(() =>
-      of([message, message2]).pipe(observeOn(asyncScheduler, 0))
-    );
-    // The mock returns same messages for each call, so it won't be called for the 3rd time,
-    // because the 2nd time won't update the list
+  it('should try to load recent messages again if the recent response updated the message list', async () => {
+    chatsMock.updateActivatedChatMessages.mockImplementationOnce(() => true);
+    chatsMock.getChatMessages.mockImplementation(() => of([message]));
     const { service } = setup();
-    service.list.set([message3, message2]);
+    setMessageList([message3, message2]);
     service.loadRecent(chatId, message3.profileName);
-    vi.runAllTimers();
-    expect(chatsMock.getChatMessages).toHaveBeenCalledTimes(2);
-    chatsMock.getChatMessages.mockReset();
-    vi.useRealTimers();
+    await vi.waitFor(() => expect(chatsMock.getChatMessages).toHaveBeenCalledTimes(2));
   });
 
   it('should not try to load recent messages again if not got any messages', async () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() => of([]).pipe(observeOn(asyncScheduler, 0)));
     const { service } = setup();
-    service.list.set([message3, message2]);
+    setMessageList([message3, message2]);
     service.loadRecent(chatId, message3.profileName);
     vi.runAllTimers();
     expect(chatsMock.getChatMessages).toHaveBeenCalledTimes(1);
-    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 
@@ -292,7 +297,7 @@ describe('Messages', () => {
       throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0))
     );
     const { service } = setup();
-    service.list.set([message3, message2]);
+    setMessageList([message3, message2]);
     service.loadRecent(chatId, message3.profileName);
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
@@ -310,7 +315,6 @@ describe('Messages', () => {
     expect(serviceErrorState.hasMore).toBe(false);
     expect(serviceErrorState.loadError).toBe('');
     expect(chatsMock.getChatMessages.mock.calls[0][1].get('cursor')).toBe(message2.id);
-    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 
@@ -327,45 +331,38 @@ describe('Messages', () => {
     const serviceFinalState = getServiceState(service);
     expect(serviceLoadingState.loadRecentError).toBe('');
     expect(serviceFinalState.loadRecentError).toBe('');
-    chatsMock.getChatMessages.mockReset();
     vi.useRealTimers();
   });
 
   it('should use the recent, non-current-user message id for loading recent messages', async () => {
     chatsMock.getChatMessages.mockImplementation(() => of([message, message2]));
     const { service } = setup();
-    service.list.set([message3, message2]);
+    setMessageList([message3, message2]);
     service.loadRecent(chatId, message3.profileName);
-    expect(service.list()).toStrictEqual([message3, message2, message]);
     expect(chatsMock.getChatMessages.mock.calls[0][1].get('cursor')).toBe(message2.id);
-    chatsMock.getChatMessages.mockReset();
   });
 
   it('should use the recent message id for loading recent messages, if all messages from current user', async () => {
     chatsMock.getChatMessages.mockImplementation(() => of([message, message3]));
     const { service } = setup();
-    service.list.set([message2]);
+    setMessageList([message2, message2]);
     service.loadRecent(chatId, message2.profileName);
-    expect(service.list()).toStrictEqual([message3, message2, message]);
     expect(chatsMock.getChatMessages.mock.calls[0][1].get('cursor')).toBe(message2.id);
-    chatsMock.getChatMessages.mockReset();
   });
 
   it('should update the current message list with the newly created message', () => {
     chatsMock.createMessage.mockImplementation(() => of(message2));
     const { service } = setup();
-    service.list.set([message]);
     let createdMessage: unknown;
     service.create(chatId, newMessageData).subscribe((msg) => (createdMessage = msg));
-    expect(service.list()).toStrictEqual([createdMessage, message]);
+    expect(createdMessage).toStrictEqual(message2);
   });
 
   it('should not update the current message list if an error have been occurred', () => {
     chatsMock.createMessage.mockImplementation(() => throwError(() => new Error('create msg err')));
     const { service } = setup();
-    service.list.set([message]);
+    setMessageList([message]);
     service.create(chatId, newMessageData).subscribe({ error: () => undefined });
     expect(service.list()).toStrictEqual([message]);
-    chatsMock.createMessage.mockReset();
   });
 });

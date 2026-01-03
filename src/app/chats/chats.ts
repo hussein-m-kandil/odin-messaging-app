@@ -1,8 +1,8 @@
-import { inject, signal, DestroyRef, Injectable, computed } from '@angular/core';
 import { Chat, Message, NewChatData, NewMessageData, Profile, User } from './chats.types';
+import { inject, signal, computed, DestroyRef, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { defer, finalize, map, of, tap } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { defer, finalize, map, of, tap } from 'rxjs';
 import { environment } from '../../environments';
 import { createResErrorHandler } from '../utils';
 import { Router } from '@angular/router';
@@ -16,6 +16,8 @@ export class Chats {
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _router = inject(Router);
   private readonly _http = inject(HttpClient);
+
+  readonly activatedChat = signal<Chat | null>(null);
 
   readonly list = signal<Chat[]>([]);
   readonly loading = signal(false);
@@ -53,6 +55,7 @@ export class Chats {
   }
 
   reset() {
+    this.activatedChat.set(null);
     this.loadingMore.set(false);
     this.loadMoreError.set('');
     this.moreLoaded.set(false);
@@ -103,6 +106,10 @@ export class Chats {
     );
   }
 
+  activate(chat: ReturnType<typeof this.activatedChat>) {
+    this.activatedChat.set(chat);
+  }
+
   getChat(chatId: Chat['id']) {
     return defer(() => {
       const foundChat = this.list().find((chat) => chat.id === chatId);
@@ -136,6 +143,27 @@ export class Chats {
 
   getChatMessages(chatId: Chat['id'], params?: HttpParams) {
     return this._http.get<Message[]>(`${this.baseUrl}/${chatId}/messages`, { params });
+  }
+
+  updateActivatedChatMessages(newMessages: Message[]) {
+    let updated = false;
+    this.activatedChat.update((activatedChat) => {
+      if (activatedChat) {
+        const oldMessages = activatedChat.messages;
+        const updatedMessages = oldMessages
+          .filter((oldMsg) => !newMessages.some((newMsg) => newMsg.id === oldMsg.id))
+          .concat(newMessages)
+          .sort((a, b) => -1 * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+        updated = oldMessages.length !== updatedMessages.length;
+        const updatedChat = { ...activatedChat, messages: updatedMessages };
+        this.list.update((chats) =>
+          chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat))
+        );
+        return updatedChat;
+      }
+      return activatedChat;
+    });
+    return updated;
   }
 
   createMessage(chatId: Chat['id'], data: NewMessageData) {

@@ -88,6 +88,7 @@ const getServiceState = (service: Chats) => {
     loadingMore: service.loadingMore(),
     canLoadMore: service.canLoadMore(),
     loadMoreError: service.loadMoreError(),
+    activatedChat: service.activatedChat(),
   };
 };
 
@@ -95,6 +96,7 @@ describe('Chats', () => {
   it('should have the expected initial state', () => {
     const { service } = setup();
     const serviceInitialState = getServiceState(service);
+    expect(serviceInitialState.activatedChat).toBe(null);
     expect(serviceInitialState.canLoadMore).toBe(false);
     expect(serviceInitialState.loadingMore).toBe(false);
     expect(serviceInitialState.list).toStrictEqual([]);
@@ -102,6 +104,125 @@ describe('Chats', () => {
     expect(serviceInitialState.canLoad).toBe(true);
     expect(serviceInitialState.loadError).toBe('');
     expect(serviceInitialState.loading).toBe(false);
+  });
+
+  it('should reset to the initial state', () => {
+    const { service } = setup();
+    service.loadMoreError.set('blah');
+    service.activatedChat.set(chat);
+    service.loadingMore.set(true);
+    service.loadError.set('foo');
+    service.loading.set(true);
+    service.list.set([chat]);
+    service.reset();
+    const serviceInitialState = getServiceState(service);
+    expect(serviceInitialState.activatedChat).toBe(null);
+    expect(serviceInitialState.canLoadMore).toBe(false);
+    expect(serviceInitialState.loadingMore).toBe(false);
+    expect(serviceInitialState.list).toStrictEqual([]);
+    expect(serviceInitialState.loadMoreError).toBe('');
+    expect(serviceInitialState.canLoad).toBe(true);
+    expect(serviceInitialState.loadError).toBe('');
+    expect(serviceInitialState.loading).toBe(false);
+  });
+
+  it('should activate the given chat', () => {
+    const { service } = setup();
+    service.activate(chat);
+    expect(service.activatedChat()).toStrictEqual(chat);
+  });
+
+  it('should update and sort the activated chat messages, without duplications, and return `true`', () => {
+    const messages: Message[] = [];
+    for (let i = 0; i < 3; i++) {
+      messages[i] = {
+        createdAt: new Date(Date.now() - i).toISOString(),
+        id: crypto.randomUUID(),
+        body: 'blah',
+      } as Message;
+    }
+    const { service } = setup();
+    service.activate({ ...chat, messages: [messages[2], messages[0]] });
+    const updated = service.updateActivatedChatMessages([messages[0], messages[1]]);
+    expect(updated).toBe(true);
+    expect({ ...service.activatedChat(), messages: [] }).toStrictEqual(chat);
+    expect(service.activatedChat()!.messages).toStrictEqual(messages);
+  });
+
+  it('should sort the activated chat messages, without duplications, and return `false`', () => {
+    const messages: Message[] = [];
+    for (let i = 0; i < 3; i++) {
+      messages[i] = {
+        createdAt: new Date(Date.now() - i).toISOString(),
+        id: crypto.randomUUID(),
+        body: 'blah',
+      } as Message;
+    }
+    const { service } = setup();
+    service.activate({ ...chat, messages: [messages[2], messages[0], messages[1]] });
+    const updated = service.updateActivatedChatMessages([messages[0], messages[1]]);
+    expect(updated).toBe(false);
+    expect({ ...service.activatedChat(), messages: [] }).toStrictEqual(chat);
+    expect(service.activatedChat()!.messages).toStrictEqual(messages);
+  });
+
+  it('should not update the activated chat messages, and return `false`', () => {
+    const { service } = setup();
+    const updated = service.updateActivatedChatMessages([
+      {
+        createdAt: new Date().toISOString(),
+        id: crypto.randomUUID(),
+        body: 'blah',
+      } as Message,
+    ]);
+    expect(updated).toBe(false);
+    expect(service.activatedChat()).toStrictEqual(null);
+  });
+
+  it('should update the activated chat messages, and its corresponding chat in the chat list', () => {
+    const messages: Message[] = [];
+    for (let i = 0; i < 3; i++) {
+      messages[i] = {
+        createdAt: new Date(Date.now() - i).toISOString(),
+        id: crypto.randomUUID(),
+        body: 'blah',
+      } as Message;
+    }
+    const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
+    const { service } = setup();
+    service.list.set(chatList);
+    service.activate(chatList[0]);
+    const updated = service.updateActivatedChatMessages(messages);
+    const updatedChat = { ...chatList[0], messages };
+    expect(updated).toBe(true);
+    expect(service.activatedChat()).toStrictEqual(updatedChat);
+    expect(service.activatedChat()!.messages).toStrictEqual(messages);
+    expect(service.list()[0]!.messages).toStrictEqual(messages);
+    expect(service.list()[0]).toStrictEqual(updatedChat);
+    expect(service.list()[1]).toStrictEqual(chatList[1]);
+  });
+
+  it('should keep the activated chat updates in the chat list, after deactivating', () => {
+    const messages: Message[] = [];
+    for (let i = 0; i < 3; i++) {
+      messages[i] = {
+        createdAt: new Date(Date.now() - i).toISOString(),
+        id: crypto.randomUUID(),
+        body: 'blah',
+      } as Message;
+    }
+    const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
+    const { service } = setup();
+    service.list.set(chatList);
+    service.activate(chatList[0]);
+    const updated = service.updateActivatedChatMessages(messages);
+    const updatedChat = { ...chatList[0], messages };
+    service.activate(null);
+    expect(updated).toBe(true);
+    expect(service.activatedChat()).toBeNull();
+    expect(service.list()[0]!.messages).toStrictEqual(messages);
+    expect(service.list()[0]).toStrictEqual(updatedChat);
+    expect(service.list()[1]).toStrictEqual(chatList[1]);
   });
 
   it('should load the chats', () => {
