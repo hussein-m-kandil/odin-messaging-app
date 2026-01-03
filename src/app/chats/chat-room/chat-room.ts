@@ -23,7 +23,7 @@ import { Profiles } from '../../profiles';
 import { Ripple } from 'primeng/ripple';
 import { Spinner } from '../../spinner';
 import { Messages } from './messages';
-import { Chat } from '../chats.types';
+import { Chat, Message } from '../chats.types';
 
 @Component({
   templateUrl: './chat-room.html',
@@ -111,6 +111,26 @@ export class ChatRoom implements OnChanges {
     this._scrollDown();
     const chat = this.chat();
     if (chat) this.messages.loadRecent(chat.id, this.user().username);
+  }
+
+  protected hasBeenReceived(msg: Message) {
+    const chat = this.chat();
+    return (
+      chat &&
+      chat.profiles
+        .filter((p) => p.profileName !== this.user().username)
+        .every((p) => p.lastReceivedAt && new Date(msg.createdAt) <= new Date(p.lastReceivedAt))
+    );
+  }
+
+  protected hasBeenSeen(msg: Message) {
+    const chat = this.chat();
+    return (
+      chat &&
+      chat.profiles
+        .filter((p) => p.profileName !== this.user().username)
+        .every((p) => p.lastSeenAt && new Date(msg.createdAt) <= new Date(p.lastSeenAt))
+    );
   }
 
   ngOnChanges(changes: SimpleChanges<ChatRoom>) {

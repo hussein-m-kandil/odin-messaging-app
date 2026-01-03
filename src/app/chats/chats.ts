@@ -1,8 +1,8 @@
-import { inject, signal, DestroyRef, Injectable, computed, effect } from '@angular/core';
 import { Chat, Message, NewChatData, NewMessageData, Profile, User } from './chats.types';
+import { inject, signal, DestroyRef, Injectable, computed, effect } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { defer, finalize, map, of, tap } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { defer, finalize, map, of, tap } from 'rxjs';
 import { environment } from '../../environments';
 import { createResErrorHandler } from '../utils';
 import { Router } from '@angular/router';
