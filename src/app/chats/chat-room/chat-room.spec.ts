@@ -8,7 +8,7 @@ import { ChatRoom } from './chat-room';
 import { Observable, of } from 'rxjs';
 import { Messages } from './messages';
 
-const user = { id: crypto.randomUUID(), username: 'test_username' } as User;
+const user = { id: crypto.randomUUID(), username: 'test_user_1' } as User;
 const profile = { id: crypto.randomUUID() } as User['profile'];
 user.profile = profile;
 profile.user = user;
@@ -22,7 +22,7 @@ const messages: Message[] = [
     createdAt: now,
     updatedAt: now,
     id: crypto.randomUUID(),
-    profileName: 'test_user_1',
+    profileName: user.username,
   },
   {
     chatId,
@@ -34,7 +34,14 @@ const messages: Message[] = [
   },
 ];
 
-const chat = { id: chatId, messages } as Chat;
+const chat = {
+  id: chatId,
+  messages,
+  profiles: [
+    { lastReceivedAt: null, lastSeenAt: null, profileName: messages[0].profileName },
+    { lastReceivedAt: null, lastSeenAt: null, profileName: messages[1].profileName },
+  ],
+} as Chat;
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigateByUrl');
 
@@ -86,9 +93,12 @@ describe('ChatRoom', () => {
   it('should display a chat with messages, navbar, and message form', async () => {
     await renderComponent({ inputs: { user, chat, chatId } });
     expect(screen.getByRole('navigation')).toBeVisible();
-    expect(screen.getByRole('link', { name: /back/i })).toBeVisible();
-    expect(screen.getByRole('form', { name: /message/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /update/i })).toBeVisible();
+    expect(screen.getByRole('form', { name: /message/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /back/i })).toBeVisible();
+    expect(screen.getByLabelText(/sent/i)).toBeVisible();
+    expect(screen.queryByLabelText(/seen/i)).toBeNull();
+    expect(screen.queryByLabelText(/received/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /try/i })).toBeNull();
     expect(screen.queryByLabelText(/updating/i)).toBeNull();
     expect(screen.queryByLabelText(/loading/i)).toBeNull();
@@ -115,6 +125,40 @@ describe('ChatRoom', () => {
     profilesMock.list.mockImplementation(() => [profile]);
     await renderComponent({ inputs: { user, chat, profileId: profile.id } });
     expect(screen.getByText(profile.user.username)).toBeVisible();
+  });
+
+  it('should display a message-seen indicator', async () => {
+    const chatInput = {
+      ...chat,
+      profiles: chat.profiles.map((cp) =>
+        cp.profileName === user.username
+          ? cp
+          : {
+              ...cp,
+              lastReceivedAt: new Date(Date.now() + 9).toISOString(),
+              lastSeenAt: new Date(Date.now() + 10).toISOString(),
+            }
+      ),
+    };
+    await renderComponent({ inputs: { user, chat: chatInput, chatId } });
+    expect(screen.getByLabelText(/seen/i)).toBeVisible();
+    expect(screen.queryByLabelText(/sent/i)).toBeNull();
+    expect(screen.queryByLabelText(/received/i)).toBeNull();
+  });
+
+  it('should display a message-received indicator', async () => {
+    const chatInput = {
+      ...chat,
+      profiles: chat.profiles.map((cp) =>
+        cp.profileName === user.username
+          ? cp
+          : { ...cp, lastSeenAt: null, lastReceivedAt: new Date(Date.now() + 7).toISOString() }
+      ),
+    };
+    await renderComponent({ inputs: { user, chat: chatInput, chatId } });
+    expect(screen.getByLabelText(/received/i)).toBeVisible();
+    expect(screen.queryByLabelText(/seen/i)).toBeNull();
+    expect(screen.queryByLabelText(/sent/i)).toBeNull();
   });
 
   it('should navigate back when clicking the back button', async () => {
