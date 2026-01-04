@@ -114,6 +114,7 @@ export class ChatRoom implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges<ChatRoom>) {
-    if (changes.chat) this.messages.init(changes.chat.currentValue);
+    const chat = changes.chat?.currentValue;
+    if (chat) this.messages.init(chat, this.user().username);
   }
 }

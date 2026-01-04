@@ -21,18 +21,18 @@ export class Messages {
   readonly loadError = signal('');
 
   reset() {
-    this.chats.activate(null);
     this.loadingRecent.set(false);
     this.loadRecentError.set('');
     this.hasMore.set(false);
     this.loading.set(false);
     this.loadError.set('');
+    this.chats.deactivate();
   }
 
-  init(chat: ReturnType<typeof this.chats.activatedChat>) {
+  init(chat: Chat, currentProfileName: string) {
     this.reset();
-    this.chats.activate(chat);
     this.hasMore.set(!!chat?.messages.length);
+    this.chats.activate(chat, currentProfileName);
   }
 
   load(chatId: Chat['id']) {

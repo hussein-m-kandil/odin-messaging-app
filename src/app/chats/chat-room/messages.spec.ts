@@ -17,6 +17,7 @@ const chatsMock = {
   createMessage: vi.fn(),
   getChat: vi.fn(),
   activate: vi.fn(),
+  deactivate: vi.fn(),
   updateActivatedChatMessages: vi.fn(),
   activatedChat: vi.fn<() => { id: string; messages: Message[] }>(() => ({
     id: chatId,
@@ -47,6 +48,8 @@ const message3 = {
 } as Message;
 
 const newMessageData = { body: 'Hello!' } as NewMessageData;
+
+const profileName = message.profileName;
 
 const setup = () => {
   TestBed.configureTestingModule({
@@ -93,7 +96,7 @@ describe('Messages', () => {
   it('should init', () => {
     const { service } = setup();
     const chat = { id: chatId, messages: [message, message] } as Chat;
-    service.init(chat);
+    service.init(chat, profileName);
     const serviceFinalState = getServiceState(service);
     expect(serviceFinalState.loadError).toBe('');
     expect(serviceFinalState.hasMore).toBe(true);
@@ -101,9 +104,8 @@ describe('Messages', () => {
     expect(serviceFinalState.loadRecentError).toBe('');
     expect(serviceFinalState.loadingRecent).toBe(false);
     expect(serviceFinalState.list).toStrictEqual(chatsMock.activatedChat().messages);
-    expect(chatsMock.activate).toHaveBeenCalledTimes(2);
-    expect(chatsMock.activate).toHaveBeenNthCalledWith(1, null);
-    expect(chatsMock.activate).toHaveBeenNthCalledWith(2, chat);
+    expect(chatsMock.activate).toHaveBeenCalledExactlyOnceWith(chat, profileName);
+    expect(chatsMock.deactivate).toHaveBeenCalledOnce();
   });
 
   it('should load the messages', () => {

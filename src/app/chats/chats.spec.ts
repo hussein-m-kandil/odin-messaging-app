@@ -55,6 +55,8 @@ const chat: Chat = {
   id: chatId,
 };
 
+const profileName = profile.user.username;
+
 const { apiUrl } = environment;
 const chatsUrl = `${apiUrl}/chats`;
 
@@ -126,10 +128,57 @@ describe('Chats', () => {
     expect(serviceInitialState.loading).toBe(false);
   });
 
-  it('should activate the given chat', () => {
+  it('should activate chat even if it is not in the chat list', () => {
     const { service } = setup();
-    service.activate(chat);
+    service.activate(chat, profileName);
     expect(service.activatedChat()).toStrictEqual(chat);
+  });
+
+  it('should activate chat, and update the chat profile last-seen date', () => {
+    const { service, httpTesting } = setup();
+    service.list.set([chat]);
+    service.activate(chat, chat.profiles[0].profileName);
+    const req = httpTesting.expectOne(
+      { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
+      'Request to update the chat profile last-seen date.'
+    );
+    const lastSeenAt = new Date(Date.now() + 7).toISOString();
+    const updatedChat = {
+      ...chat,
+      profiles: [{ ...chat.profiles[0], lastSeenAt }, ...chat.profiles.slice(1)],
+    };
+    req.flush(lastSeenAt);
+    expect(service.activatedChat()).toStrictEqual(updatedChat);
+    expect(service.list()).toStrictEqual([updatedChat]);
+    httpTesting.verify();
+  });
+
+  it('should activate chat, and silently fail to update the chat profile last-seen date due to a network error', () => {
+    const { service, httpTesting } = setup();
+    service.list.set([chat]);
+    service.activate(chat, chat.profiles[0].profileName);
+    const req = httpTesting.expectOne(
+      { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
+      'Request to update the chat profile last-seen date.'
+    );
+    req.error(new ProgressEvent('Network error'));
+    expect(service.activatedChat()).toStrictEqual(chat);
+    expect(service.list()).toStrictEqual([chat]);
+    httpTesting.verify();
+  });
+
+  it('should activate chat, and silently fail to update the chat profile last-seen date due to a backend error', () => {
+    const { service, httpTesting } = setup();
+    service.list.set([chat]);
+    service.activate(chat, chat.profiles[0].profileName);
+    const req = httpTesting.expectOne(
+      { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
+      'Request to update the chat profile last-seen date.'
+    );
+    req.flush('Failed', { status: 500, statusText: 'Internal server error' });
+    expect(service.activatedChat()).toStrictEqual(chat);
+    expect(service.list()).toStrictEqual([chat]);
+    httpTesting.verify();
   });
 
   it('should update and sort the activated chat messages, without duplications, and return `true`', () => {
@@ -142,7 +191,7 @@ describe('Chats', () => {
       } as Message;
     }
     const { service } = setup();
-    service.activate({ ...chat, messages: [messages[2], messages[0]] });
+    service.activate({ ...chat, messages: [messages[2], messages[0]] }, profileName);
     const updated = service.updateActivatedChatMessages([messages[0], messages[1]]);
     expect(updated).toBe(true);
     expect({ ...service.activatedChat(), messages: [] }).toStrictEqual(chat);
@@ -159,7 +208,7 @@ describe('Chats', () => {
       } as Message;
     }
     const { service } = setup();
-    service.activate({ ...chat, messages: [messages[2], messages[0], messages[1]] });
+    service.activate({ ...chat, messages: [messages[2], messages[0], messages[1]] }, profileName);
     const updated = service.updateActivatedChatMessages([messages[0], messages[1]]);
     expect(updated).toBe(false);
     expect({ ...service.activatedChat(), messages: [] }).toStrictEqual(chat);
@@ -191,7 +240,7 @@ describe('Chats', () => {
     const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
     const { service } = setup();
     service.list.set(chatList);
-    service.activate(chatList[0]);
+    service.activate(chatList[0], profileName);
     const updated = service.updateActivatedChatMessages(messages);
     const updatedChat = { ...chatList[0], messages };
     expect(updated).toBe(true);
@@ -214,10 +263,10 @@ describe('Chats', () => {
     const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
     const { service } = setup();
     service.list.set(chatList);
-    service.activate(chatList[0]);
+    service.activate(chatList[0], profileName);
     const updated = service.updateActivatedChatMessages(messages);
     const updatedChat = { ...chatList[0], messages };
-    service.activate(null);
+    service.deactivate();
     expect(updated).toBe(true);
     expect(service.activatedChat()).toBeNull();
     expect(service.list()[0]!.messages).toStrictEqual(messages);

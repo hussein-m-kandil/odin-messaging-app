@@ -1,8 +1,16 @@
-import { Chat, Message, NewChatData, NewMessageData, Profile, User } from './chats.types';
+import {
+  Chat,
+  ChatProfile,
+  Message,
+  NewChatData,
+  NewMessageData,
+  Profile,
+  User,
+} from './chats.types';
 import { inject, signal, computed, DestroyRef, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { defer, finalize, map, of, tap } from 'rxjs';
+import { catchError, defer, finalize, map, of, tap } from 'rxjs';
 import { environment } from '../../environments';
 import { createResErrorHandler } from '../utils';
 import { Router } from '@angular/router';
@@ -106,8 +114,13 @@ export class Chats {
     );
   }
 
-  activate(chat: ReturnType<typeof this.activatedChat>) {
+  activate(chat: Chat, currentProfileName: string) {
     this.activatedChat.set(chat);
+    this.updateChatLastSeenDate(chat.id, currentProfileName);
+  }
+
+  deactivate() {
+    this.activatedChat.set(null);
   }
 
   getChat(chatId: Chat['id']) {
@@ -139,6 +152,33 @@ export class Chats {
         return Promise.resolve(false);
       })
     );
+  }
+
+  updateChatLastSeenDate(chatId: Chat['id'], currentProfileName: string) {
+    const updateChatProfileLastSeen = (chat: Chat, lastSeenAt: ChatProfile['lastSeenAt']) => {
+      if (chat.id === chatId) {
+        return {
+          ...chat,
+          profiles: chat.profiles.map((cp) =>
+            cp.profileName === currentProfileName ? { ...cp, lastSeenAt } : cp
+          ),
+        };
+      }
+      return chat;
+    };
+    this._http
+      .patch<ChatProfile['lastSeenAt']>(`${this.baseUrl}/${chatId}/seen`, '')
+      .pipe(catchError(() => of(null)))
+      .subscribe((lastSeenAt) => {
+        if (lastSeenAt) {
+          this.activatedChat.update((chat) =>
+            chat ? updateChatProfileLastSeen(chat, lastSeenAt) : chat
+          );
+          this.list.update((chats) =>
+            chats.map((chat) => updateChatProfileLastSeen(chat, lastSeenAt))
+          );
+        }
+      });
   }
 
   getChatMessages(chatId: Chat['id'], params?: HttpParams) {
