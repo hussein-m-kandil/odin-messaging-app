@@ -84,8 +84,8 @@
           >
             <!-- prettier-ignore -->
             @if (_fromCurrentUser) {
-            @let _received = hasBeenReceived(_msg);
-            @let _seen = hasBeenSeen(_msg);
+            @let _received = messages.hasBeenReceived(_msg, _chat, _user.username);
+            @let _seen = messages.hasBeenSeen(_msg, _chat, _user.username);
             <span
               [aria-label]="_seen ? 'seen' : _received ? 'received' : 'sent'"
               class="pi me-1.5"

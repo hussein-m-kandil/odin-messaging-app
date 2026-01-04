@@ -367,4 +367,66 @@ describe('Messages', () => {
     service.create(chatId, newMessageData).subscribe({ error: () => undefined });
     expect(service.list()).toStrictEqual([message]);
   });
+
+  it('should confirm that the message has not been received nor seen', () => {
+    const activatedChat = chatsMock.activatedChat();
+    const chat = {
+      ...activatedChat,
+      messages: [message2, message],
+      profiles: [
+        { profileName, lastReceivedAt: null, lastSeenAt: null },
+        { lastSeenAt: null, profileName: 'foo', lastReceivedAt: null },
+      ],
+    } as Chat;
+    chatsMock.activatedChat.mockImplementation(() => chat);
+    const { service } = setup();
+    const received = service.hasBeenReceived(message, chat, profileName);
+    const seen = service.hasBeenSeen(message, chat, profileName);
+    expect(received).toBe(false);
+    expect(seen).toBe(false);
+  });
+
+  it('should confirm that the message has been received and not seen', () => {
+    const activatedChat = chatsMock.activatedChat();
+    const chat = {
+      ...activatedChat,
+      messages: [message2, message],
+      profiles: [
+        { profileName, lastReceivedAt: null, lastSeenAt: null },
+        {
+          lastSeenAt: null,
+          profileName: 'foo',
+          lastReceivedAt: new Date(Date.now() + 9).toISOString(),
+        },
+      ],
+    } as Chat;
+    chatsMock.activatedChat.mockImplementation(() => chat);
+    const { service } = setup();
+    const received = service.hasBeenReceived(message, chat, profileName);
+    const seen = service.hasBeenSeen(message, chat, profileName);
+    expect(received).toBe(true);
+    expect(seen).toBe(false);
+  });
+
+  it('should confirm that the message has been received and seen', () => {
+    const activatedChat = chatsMock.activatedChat();
+    const chat = {
+      ...activatedChat,
+      messages: [message2, message],
+      profiles: [
+        { profileName, lastReceivedAt: null, lastSeenAt: null },
+        {
+          profileName: 'foo',
+          lastReceivedAt: new Date(Date.now() + 9).toISOString(),
+          lastSeenAt: new Date(Date.now() + 10).toISOString(),
+        },
+      ],
+    } as Chat;
+    chatsMock.activatedChat.mockImplementation(() => chat);
+    const { service } = setup();
+    const received = service.hasBeenReceived(message, chat, profileName);
+    const seen = service.hasBeenSeen(message, chat, profileName);
+    expect(received).toBe(true);
+    expect(seen).toBe(true);
+  });
 });

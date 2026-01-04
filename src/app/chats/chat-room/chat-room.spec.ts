@@ -48,8 +48,10 @@ const navigationSpy = vi.spyOn(Router.prototype, 'navigateByUrl');
 HTMLElement.prototype.scrollBy = vi.fn();
 
 const messagesMock = {
+  hasBeenReceived: vi.fn(() => false),
   loadingRecent: vi.fn(() => false),
   loadRecentError: vi.fn(() => ''),
+  hasBeenSeen: vi.fn(() => false),
   loadRecent: vi.fn<() => void>(),
   listUpdated: vi.fn(() => false),
   loading: vi.fn(() => false),
@@ -128,34 +130,16 @@ describe('ChatRoom', () => {
   });
 
   it('should display a message-seen indicator', async () => {
-    const chatInput = {
-      ...chat,
-      profiles: chat.profiles.map((cp) =>
-        cp.profileName === user.username
-          ? cp
-          : {
-              ...cp,
-              lastReceivedAt: new Date(Date.now() + 9).toISOString(),
-              lastSeenAt: new Date(Date.now() + 10).toISOString(),
-            }
-      ),
-    };
-    await renderComponent({ inputs: { user, chat: chatInput, chatId } });
+    messagesMock.hasBeenSeen.mockImplementation(() => true);
+    await renderComponent({ inputs: { user, chat, chatId } });
     expect(screen.getByLabelText(/seen/i)).toBeVisible();
     expect(screen.queryByLabelText(/sent/i)).toBeNull();
     expect(screen.queryByLabelText(/received/i)).toBeNull();
   });
 
   it('should display a message-received indicator', async () => {
-    const chatInput = {
-      ...chat,
-      profiles: chat.profiles.map((cp) =>
-        cp.profileName === user.username
-          ? cp
-          : { ...cp, lastSeenAt: null, lastReceivedAt: new Date(Date.now() + 7).toISOString() }
-      ),
-    };
-    await renderComponent({ inputs: { user, chat: chatInput, chatId } });
+    messagesMock.hasBeenReceived.mockImplementation(() => true);
+    await renderComponent({ inputs: { user, chat, chatId } });
     expect(screen.getByLabelText(/received/i)).toBeVisible();
     expect(screen.queryByLabelText(/seen/i)).toBeNull();
     expect(screen.queryByLabelText(/sent/i)).toBeNull();

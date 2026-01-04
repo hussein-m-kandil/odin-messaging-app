@@ -87,4 +87,26 @@ export class Messages {
       tap((message) => this.chats.updateActivatedChatMessages([message]))
     );
   }
+
+  private _checkMessage(
+    prop: 'lastSeenAt' | 'lastReceivedAt',
+    msg: Message,
+    chat: Chat,
+    currentProfileName: string
+  ) {
+    const check = (chat: Chat) =>
+      chat.profiles
+        .filter((p) => p.profileName !== currentProfileName)
+        .every((p) => p[prop] && new Date(msg.createdAt) <= new Date(p[prop]));
+    const activatedChat = this.chats.activatedChat();
+    return activatedChat ? check(activatedChat) || check(chat) : check(chat);
+  }
+
+  hasBeenReceived(msg: Message, chat: Chat, currentProfileName: string) {
+    return this._checkMessage('lastReceivedAt', msg, chat, currentProfileName);
+  }
+
+  hasBeenSeen(msg: Message, chat: Chat, currentProfileName: string) {
+    return this._checkMessage('lastSeenAt', msg, chat, currentProfileName);
+  }
 }
