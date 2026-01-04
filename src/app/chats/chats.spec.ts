@@ -136,20 +136,27 @@ describe('Chats', () => {
 
   it('should activate chat, and update the chat profile last-seen date', () => {
     const { service, httpTesting } = setup();
-    service.list.set([chat]);
+    const chats = [chat];
+    service.list.set(chats);
     service.activate(chat, chat.profiles[0].profileName);
     const req = httpTesting.expectOne(
       { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
       'Request to update the chat profile last-seen date.'
     );
     const lastSeenAt = new Date(Date.now() + 7).toISOString();
-    const updatedChat = {
-      ...chat,
-      profiles: [{ ...chat.profiles[0], lastSeenAt }, ...chat.profiles.slice(1)],
-    };
+    const updatedChats = [
+      {
+        ...chat,
+        profiles: [{ ...chat.profiles[0], lastSeenAt }, ...chat.profiles.slice(1)],
+      },
+    ];
     req.flush(lastSeenAt);
-    expect(service.activatedChat()).toStrictEqual(updatedChat);
-    expect(service.list()).toStrictEqual([updatedChat]);
+    expect(service.activatedChat()).toStrictEqual(updatedChats[0]);
+    expect(service.list()).toStrictEqual(updatedChats);
+    httpTesting.expectOne(
+      { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
+      'Request to update chats'
+    );
     httpTesting.verify();
   });
 
@@ -493,6 +500,104 @@ describe('Chats', () => {
     expect(serviceFinalState.loading).toBe(false);
     expect(serviceFinalState.canLoad).toBe(true);
     expect(serviceFinalState.loadError).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should load instead of update if the current chat list is empty', () => {
+    const { service, httpTesting } = setup();
+    service.updateChats();
+    const req = httpTesting.expectOne({ method: 'GET', url: chatsUrl }, 'Request to load chats');
+    req.flush([chat]);
+    expect(service.list()).toStrictEqual([chat]);
+    httpTesting.verify();
+  });
+
+  it('should update the current chats while keeping their order, and update the activated chat while keeping its messages', () => {
+    const { service, httpTesting } = setup();
+    const chats = [
+      {
+        ...chat,
+        id: crypto.randomUUID(),
+        messages: [
+          ...chat.messages,
+          {
+            ...message,
+            id: crypto.randomUUID(),
+            createdAt: new Date(Date.now() + 13).toISOString(),
+          },
+        ],
+      },
+      chat,
+    ];
+    service.activatedChat.set(chats[0]);
+    service.list.set(chats);
+    service.updateChats();
+    const req = httpTesting.expectOne(
+      { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
+      'Request to update chats'
+    );
+    const updatedMessages = [
+      {
+        ...message,
+        id: crypto.randomUUID(),
+        profileName: profile2.user.username,
+        createdAt: new Date(Date.now() + 17).toISOString(),
+      },
+      {
+        ...message,
+        id: crypto.randomUUID(),
+        profileName: profile.user.username,
+        createdAt: new Date(Date.now() + 15).toISOString(),
+      },
+      ...chats[0].messages,
+    ];
+    const updatedChats = [
+      {
+        ...chats[0],
+        profiles: chats[0].profiles.map((cp) => ({
+          ...cp,
+          lastSeenAt: new Date(),
+          lastReceivedAt: new Date(),
+        })),
+        messages: updatedMessages,
+      },
+      ...chats.slice(1),
+    ];
+    req.flush([
+      { ...chat, id: crypto.randomUUID() },
+      ...[
+        { ...updatedChats[0], messages: [...[...updatedMessages].reverse()] },
+        ...updatedChats.slice(1),
+      ].reverse(),
+    ]);
+    expect(service.activatedChat()).toStrictEqual(updatedChats[0]);
+    expect(service.list()).toStrictEqual(updatedChats);
+    httpTesting.verify();
+  });
+
+  it('should fail, silently, to update chats due to a network error', () => {
+    const { service, httpTesting } = setup();
+    service.list.set([chat]);
+    service.updateChats();
+    const req = httpTesting.expectOne(
+      { method: 'GET', url: `${chatsUrl}?limit=1` },
+      'Request to update chats'
+    );
+    req.error(new ProgressEvent('Network error'));
+    expect(service.list()).toStrictEqual([chat]);
+    httpTesting.verify();
+  });
+
+  it('should fail, silently, to update chats due to a server error', () => {
+    const { service, httpTesting } = setup();
+    service.list.set([chat]);
+    service.updateChats();
+    const req = httpTesting.expectOne(
+      { method: 'GET', url: `${chatsUrl}?limit=1` },
+      'Request to update chats'
+    );
+    req.flush('Failed', { status: 500, statusText: 'Internal server error' });
+    expect(service.list()).toStrictEqual([chat]);
     httpTesting.verify();
   });
 

@@ -56,6 +56,16 @@ export class Chats {
 
   readonly baseUrl = `${apiUrl}/chats`;
 
+  private _sortMessages(messages: Message[]) {
+    return messages.sort(
+      (a, b) => -1 * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    );
+  }
+
+  private _subtractMessages(messages: Message[], subRef: Message[]) {
+    return messages.filter((mA) => subRef.findIndex((mB) => mB.id === mA.id) < 0);
+  }
+
   private _findChatByAllMemberIds(chats: Chat[], memberIds: Profile['id'][]) {
     return chats.find((chat) =>
       chat.profiles.every((c) => c.profileId && memberIds.includes(c.profileId))
@@ -116,7 +126,7 @@ export class Chats {
 
   activate(chat: Chat, currentProfileName: string) {
     this.activatedChat.set(chat);
-    this.updateChatLastSeenDate(chat.id, currentProfileName);
+    this.updateChatLastSeenDate(chat.id, currentProfileName, () => this.updateChats());
   }
 
   deactivate() {
@@ -154,7 +164,44 @@ export class Chats {
     );
   }
 
-  updateChatLastSeenDate(chatId: Chat['id'], currentProfileName: string) {
+  updateChats() {
+    const limit = this.list().length;
+    if (limit) {
+      this._http
+        .get<Chat[]>(this.baseUrl, { params: { limit } })
+        .pipe(
+          takeUntilDestroyed(this._destroyRef),
+          catchError(() => of(null))
+        )
+        .subscribe((newChats) => {
+          if (newChats) {
+            this.list.update((oldChats) =>
+              oldChats.map((oldChat) => {
+                const newChat = newChats.find((newChat) => newChat.id === oldChat.id);
+                const activatedChat = this.activatedChat();
+                if (newChat && activatedChat && newChat.id === activatedChat.id) {
+                  const updatedChat = {
+                    ...newChat,
+                    messages: this._sortMessages(
+                      newChat.messages.concat(
+                        this._subtractMessages(oldChat.messages, newChat.messages)
+                      )
+                    ),
+                  };
+                  this.activatedChat.set(updatedChat);
+                  return updatedChat;
+                }
+                return newChat || oldChat;
+              })
+            );
+          }
+        });
+    } else {
+      this.load();
+    }
+  }
+
+  updateChatLastSeenDate(chatId: Chat['id'], currentProfileName: string, onUpdated?: () => void) {
     const updateChatProfileLastSeen = (chat: Chat, lastSeenAt: ChatProfile['lastSeenAt']) => {
       if (chat.id === chatId) {
         return {
@@ -168,7 +215,10 @@ export class Chats {
     };
     this._http
       .patch<ChatProfile['lastSeenAt']>(`${this.baseUrl}/${chatId}/seen`, '')
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        takeUntilDestroyed(this._destroyRef),
+        catchError(() => of(null))
+      )
       .subscribe((lastSeenAt) => {
         if (lastSeenAt) {
           this.activatedChat.update((chat) =>
@@ -177,6 +227,7 @@ export class Chats {
           this.list.update((chats) =>
             chats.map((chat) => updateChatProfileLastSeen(chat, lastSeenAt))
           );
+          onUpdated?.();
         }
       });
   }
@@ -190,15 +241,15 @@ export class Chats {
     this.activatedChat.update((activatedChat) => {
       if (activatedChat) {
         const oldMessages = activatedChat.messages;
-        const updatedMessages = oldMessages
-          .filter((oldMsg) => !newMessages.some((newMsg) => newMsg.id === oldMsg.id))
-          .concat(newMessages)
-          .sort((a, b) => -1 * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+        const updatedMessages = this._sortMessages(
+          newMessages.concat(this._subtractMessages(oldMessages, newMessages))
+        );
         updated = oldMessages.length !== updatedMessages.length;
         const updatedChat = { ...activatedChat, messages: updatedMessages };
         this.list.update((chats) =>
           chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat))
         );
+        if (!updated) this.updateChats();
         return updatedChat;
       }
       return activatedChat;
