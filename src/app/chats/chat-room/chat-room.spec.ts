@@ -38,8 +38,18 @@ const chat = {
   id: chatId,
   messages,
   profiles: [
-    { lastReceivedAt: null, lastSeenAt: null, profileName: messages[0].profileName },
-    { lastReceivedAt: null, lastSeenAt: null, profileName: messages[1].profileName },
+    {
+      lastReceivedAt: null,
+      lastSeenAt: null,
+      profileId: crypto.randomUUID(),
+      profileName: messages[0].profileName,
+    },
+    {
+      lastReceivedAt: null,
+      lastSeenAt: null,
+      profileId: crypto.randomUUID(),
+      profileName: messages[1].profileName,
+    },
   ],
 } as Chat;
 
@@ -111,22 +121,38 @@ describe('ChatRoom', () => {
   });
 
   it('should display "untitled" as the chat title', async () => {
-    await renderComponent({ inputs: { user, chat, chatId } });
-    expect(screen.getByText(/untitled/i)).toBeVisible();
+    const regex = /untitled/i;
+    await renderComponent({ inputs: { user, chat: null } });
+    expect(screen.getByText(regex)).toBeVisible();
+    expect(screen.queryByRole('link', { name: regex })).toBeNull();
   });
 
-  it('should display the given title as the chat title', async () => {
+  it('should display the given title as the chat title link', async () => {
     const title = 'Test Chat Title';
     messagesMock.chats.list.mockImplementation(() => [{ id: chatId }]);
     messagesMock.chats.generateTitle.mockImplementation(() => title);
-    await renderComponent({ inputs: { user, chat, chatId } });
-    expect(screen.getByText(title)).toBeVisible();
+    await renderComponent({ inputs: { user, chat } });
+    expect(screen.getByRole('link', { name: title })).toBeVisible();
   });
 
-  it('should display the given profile name as the chat title', async () => {
+  it('should display the given title as the chat title text', async () => {
+    const title = 'Test Chat Title';
+    messagesMock.chats.list.mockImplementation(() => [{ id: chatId }]);
+    messagesMock.chats.generateTitle.mockImplementation(() => title);
+    await renderComponent({
+      inputs: {
+        user,
+        chat: { ...chat, profiles: chat.profiles.map((cp) => ({ ...cp, profileId: null })) },
+      },
+    });
+    expect(screen.getByText(title)).toBeVisible();
+    expect(screen.queryByRole('link', { name: title })).toBeNull();
+  });
+
+  it('should display the given profile name as the chat title link', async () => {
     profilesMock.list.mockImplementation(() => [profile]);
-    await renderComponent({ inputs: { user, chat, profileId: profile.id } });
-    expect(screen.getByText(profile.user.username)).toBeVisible();
+    await renderComponent({ inputs: { user, chat: null, profileId: profile.id } });
+    expect(screen.getByRole('link', { name: profile.user.username })).toBeVisible();
   });
 
   it('should display a message-seen indicator', async () => {

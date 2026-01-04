@@ -21,13 +21,20 @@
         aria-label="Go back"
         icon="pi pi-arrow-left"
       ></a>
+
       <span
         [class]="`inline-block max-w-1/2 mx-auto truncate
         text-lg text-primary text-center font-bold tracking-wider
       `"
         [title]="_title"
       >
-        {{ _title }}
+        @if (_title.url) {
+        <a [routerLink]="_title.url">
+          {{ _title.label }}
+        </a>
+        } @else {
+        {{ _title.label }}
+        }
       </span>
       <button
         pButton

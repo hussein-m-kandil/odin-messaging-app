@@ -49,20 +49,21 @@ export class ChatRoom implements OnChanges {
 
   protected readonly messages = inject(Messages);
 
-  protected readonly title = computed<string>(() => {
-    const chatList = this.messages.chats.list();
+  protected readonly title = computed<{ url: string | null; label: string }>(() => {
     const profileList = this._profiles.list();
     const profileId = this.profileId();
-    const chatId = this.chatId();
+    const chat = this.chat();
     const user = this.user();
-    if (chatId) {
-      const chat = chatList.find((c) => c.id === chatId);
-      if (chat) return this.messages.chats.generateTitle(chat, user);
+    if (chat) {
+      const memberId = chat.profiles.filter((cp) => cp.profileName !== user.username)[0].profileId;
+      const url = memberId ? `/profiles/${memberId}` : null;
+      const label = this.messages.chats.generateTitle(chat, user);
+      return { label, url };
     } else if (profileId) {
       const profile = profileList.find((p) => p.id === profileId);
-      if (profile) return profile.user.username;
+      if (profile) return { label: profile.user.username, url: `${`/profiles/${profile.id}`}` };
     }
-    return 'Untitled';
+    return { label: 'Untitled', url: null };
   });
 
   readonly user = input.required<AuthData['user']>();
