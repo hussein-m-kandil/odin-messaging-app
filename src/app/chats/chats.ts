@@ -244,11 +244,11 @@ export class Chats {
         const updatedMessages = this._sortMessages(
           newMessages.concat(this._subtractMessages(oldMessages, newMessages))
         );
-        updated = oldMessages.length !== updatedMessages.length;
         const updatedChat = { ...activatedChat, messages: updatedMessages };
         this.list.update((chats) =>
           chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat))
         );
+        updated = oldMessages.length !== updatedMessages.length;
         if (!updated) this.updateChats();
         return updatedChat;
       }
@@ -258,9 +258,10 @@ export class Chats {
   }
 
   createMessage(chatId: Chat['id'], data: NewMessageData) {
-    return this._http
-      .post<Message>(`${this.baseUrl}/${chatId}/messages`, data)
-      .pipe(tap(() => this.load()));
+    return this._http.post<Message>(`${this.baseUrl}/${chatId}/messages`, data).pipe(
+      takeUntilDestroyed(this._destroyRef),
+      tap((message) => this.updateActivatedChatMessages([message]))
+    );
   }
 
   generateTitle(chat: Chat, currentUser: User) {

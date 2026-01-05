@@ -1069,13 +1069,20 @@ describe('Chats', () => {
 
   it('should create a message', () => {
     const { service, httpTesting } = setup();
-    const newMsg$ = service.createMessage(chatId, newMessageData);
+    const chats = [chat, { ...chat, id: crypto.randomUUID(), messages: [] }];
+    const activatedChat = chats[1];
+    service.list.set(chats);
+    service.activatedChat.set(activatedChat);
+    const newMsg$ = service.createMessage(activatedChat.id, newMessageData);
     let resData, resErr;
     newMsg$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
-    const reqInfo = { method: 'POST', url: `${chatsUrl}/${chatId}/messages` };
+    const reqInfo = { method: 'POST', url: `${chatsUrl}/${activatedChat.id}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a message');
+    const expectedChats = [chats[0], { ...chats[1], messages: [message] }];
+    const expectedActivatedChat = expectedChats[1];
     req.flush(message);
-    httpTesting.expectOne({ method: 'GET', url: chatsUrl }, 'Request to reload the chats');
+    expect(service.activatedChat()).toStrictEqual(expectedActivatedChat);
+    expect(service.list()).toStrictEqual(expectedChats);
     expect(resData).toStrictEqual(message);
     expect(resErr).toBeUndefined();
     httpTesting.verify();
@@ -1083,31 +1090,43 @@ describe('Chats', () => {
 
   it('should fail to create a message due to a server error', () => {
     const { service, httpTesting } = setup();
-    const newMsg$ = service.createMessage(chatId, newMessageData);
+    const chats = [chat, { ...chat, id: crypto.randomUUID(), messages: [] }];
+    const activatedChat = chats[1];
+    service.list.set(chats);
+    service.activatedChat.set(activatedChat);
+    const newMsg$ = service.createMessage(activatedChat.id, newMessageData);
     let resData, resErr;
     newMsg$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
-    const reqInfo = { method: 'POST', url: `${chatsUrl}/${chatId}/messages` };
+    const reqInfo = { method: 'POST', url: `${chatsUrl}/${activatedChat.id}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a message');
     const error = 'Failed';
     req.flush(error, { status: 500, statusText: 'Internal server error' });
+    expect(service.activatedChat()).toStrictEqual(activatedChat);
     expect(resErr).toBeInstanceOf(HttpErrorResponse);
     expect(resErr).toHaveProperty('error', error);
     expect(resErr).toHaveProperty('status', 500);
+    expect(service.list()).toStrictEqual(chats);
     expect(resData).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should fail to create a message due to a network error', () => {
     const { service, httpTesting } = setup();
-    const newMsg$ = service.createMessage(chatId, newMessageData);
+    const chats = [chat, { ...chat, id: crypto.randomUUID(), messages: [] }];
+    const activatedChat = chats[1];
+    service.list.set(chats);
+    service.activatedChat.set(activatedChat);
+    const newMsg$ = service.createMessage(activatedChat.id, newMessageData);
     let resData, resErr;
     newMsg$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
-    const reqInfo = { method: 'POST', url: `${chatsUrl}/${chatId}/messages` };
+    const reqInfo = { method: 'POST', url: `${chatsUrl}/${activatedChat.id}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a message');
     const error = new ProgressEvent('Network error');
     req.error(error);
+    expect(service.activatedChat()).toStrictEqual(activatedChat);
     expect(resErr).toBeInstanceOf(HttpErrorResponse);
     expect(resErr).toHaveProperty('error', error);
+    expect(service.list()).toStrictEqual(chats);
     expect(resErr).toHaveProperty('status', 0);
     expect(resData).toBeUndefined();
     httpTesting.verify();

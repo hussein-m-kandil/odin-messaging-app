@@ -5,7 +5,6 @@ import { ButtonDirective, ButtonIcon } from 'primeng/button';
 import { createResErrorHandler } from '../../../utils';
 import { TextareaModule } from 'primeng/textarea';
 import { Ripple } from 'primeng/ripple';
-import { Messages } from '../messages';
 import { Chats } from '../../chats';
 
 @Component({
@@ -18,7 +17,6 @@ export class MessageForm implements OnInit {
   private readonly _msgBodyInp = viewChild.required<ElementRef<HTMLTextAreaElement>>('msgBody');
 
   private readonly _chats = inject(Chats);
-  private readonly _messages = inject(Messages);
 
   readonly profileId = input<string>();
   readonly chatId = input<string>();
@@ -49,7 +47,7 @@ export class MessageForm implements OnInit {
       const chatId = this.chatId();
       let req$: Observable<unknown> | null = null;
       if (chatId) {
-        req$ = this._messages.create(chatId, newMessageData);
+        req$ = this._chats.createMessage(chatId, newMessageData);
       } else if (profileId) {
         req$ = this._chats.create({ profiles: [profileId], message: newMessageData });
       }

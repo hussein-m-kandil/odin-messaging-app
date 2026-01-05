@@ -2,7 +2,6 @@ import { screen, render, RenderComponentOptions } from '@testing-library/angular
 import { userEvent } from '@testing-library/user-event';
 import { asyncScheduler, observeOn, of, throwError } from 'rxjs';
 import { MessageForm } from './message-form';
-import { Messages } from '../messages';
 import { Chats } from '../../chats';
 
 const profileId = crypto.randomUUID();
@@ -11,16 +10,11 @@ const chatId = crypto.randomUUID();
 const newMessageData = { body: 'Hi!' };
 const newChatData = { profiles: [profileId], message: { body: 'Hi!' } };
 
-const messagesMock = { create: vi.fn() };
-const chatsMock = { create: vi.fn() };
+const chatsMock = { create: vi.fn(), createMessage: vi.fn() };
 
 const renderComponent = ({ providers, ...options }: RenderComponentOptions<MessageForm> = {}) => {
   return render(MessageForm, {
-    providers: [
-      { provide: Messages, useValue: messagesMock },
-      { provide: Chats, useValue: chatsMock },
-      ...(providers || []),
-    ],
+    providers: [{ provide: Chats, useValue: chatsMock }, ...(providers || [])],
     ...options,
   });
 };
@@ -56,13 +50,13 @@ describe('MessageForm', () => {
   });
 
   it('should create a message by clicking the send button', async () => {
-    messagesMock.create.mockImplementation(() => of(null));
+    chatsMock.createMessage.mockImplementation(() => of(null));
     const { click, type } = userEvent.setup();
     await renderComponent({ inputs: { chatId } });
     const { msgInp, sendBtn } = getFormElements();
     await type(msgInp, newMessageData.body);
     await click(sendBtn);
-    expect(messagesMock.create).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
+    expect(chatsMock.createMessage).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
     expect(msgInp).toHaveValue('');
     expect(msgInp).toHaveFocus();
   });
@@ -80,7 +74,7 @@ describe('MessageForm', () => {
   });
 
   it('should not submit again while submitting the message form', async () => {
-    messagesMock.create.mockImplementation(() => of(null).pipe(observeOn(asyncScheduler, 700)));
+    chatsMock.createMessage.mockImplementation(() => of(null).pipe(observeOn(asyncScheduler, 700)));
     const { click, type } = userEvent.setup();
     await renderComponent({ inputs: { chatId } });
     const { msgInp, sendBtn } = getFormElements();
@@ -88,7 +82,7 @@ describe('MessageForm', () => {
     await click(sendBtn);
     await click(sendBtn);
     await click(sendBtn);
-    expect(messagesMock.create).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
+    expect(chatsMock.createMessage).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
     expect(msgInp).toHaveValue(newMessageData.body);
     expect(sendBtn).toHaveFocus();
   });
@@ -108,13 +102,13 @@ describe('MessageForm', () => {
   });
 
   it('should display a create message error, then remove it on the first interaction', async () => {
-    messagesMock.create.mockImplementation(() => throwError(() => new Error('Test error')));
+    chatsMock.createMessage.mockImplementation(() => throwError(() => new Error('Test error')));
     const { click, type } = userEvent.setup();
     await renderComponent({ inputs: { chatId } });
     const { msgInp, sendBtn } = getFormElements();
     await type(msgInp, newMessageData.body);
     await click(sendBtn);
-    expect(messagesMock.create).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
+    expect(chatsMock.createMessage).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
     expect(screen.getByText(/failed/i)).toBeVisible();
     expect(msgInp).toHaveValue(newMessageData.body);
     expect(msgInp).toHaveFocus();

@@ -1,9 +1,9 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { asyncScheduler, observeOn, of, throwError } from 'rxjs';
-import { Chat, Message, NewMessageData } from '../chats.types';
 import { provideHttpClient } from '@angular/common/http';
 import { environment } from '../../../environments';
 import { TestBed } from '@angular/core/testing';
+import { Chat, Message } from '../chats.types';
 import { Messages } from './messages';
 import { Chats } from '../chats';
 
@@ -46,8 +46,6 @@ const message3 = {
   id: crypto.randomUUID(),
   body: 'Yes!',
 } as Message;
-
-const newMessageData = { body: 'Hello!' } as NewMessageData;
 
 const profileName = message.profileName;
 
@@ -350,22 +348,6 @@ describe('Messages', () => {
     setMessageList([message2, message2]);
     service.loadRecent(chatId, message2.profileName);
     expect(chatsMock.getChatMessages.mock.calls[0][1].get('cursor')).toBe(message2.id);
-  });
-
-  it('should update the current message list with the newly created message', () => {
-    chatsMock.createMessage.mockImplementation(() => of(message2));
-    const { service } = setup();
-    let createdMessage: unknown;
-    service.create(chatId, newMessageData).subscribe((msg) => (createdMessage = msg));
-    expect(createdMessage).toStrictEqual(message2);
-  });
-
-  it('should not update the current message list if an error have been occurred', () => {
-    chatsMock.createMessage.mockImplementation(() => throwError(() => new Error('create msg err')));
-    const { service } = setup();
-    setMessageList([message]);
-    service.create(chatId, newMessageData).subscribe({ error: () => undefined });
-    expect(service.list()).toStrictEqual([message]);
   });
 
   it('should confirm that the message has not been received nor seen', () => {

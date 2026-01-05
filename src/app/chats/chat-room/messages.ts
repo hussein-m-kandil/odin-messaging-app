@@ -1,10 +1,10 @@
 import { inject, signal, Injectable, DestroyRef, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Chat, Message, NewMessageData } from '../chats.types';
 import { createResErrorHandler } from '../../utils';
 import { HttpParams } from '@angular/common/http';
-import { finalize, tap } from 'rxjs';
+import { Chat, Message } from '../chats.types';
 import { Chats } from '../chats';
+import { finalize } from 'rxjs';
 
 @Injectable()
 export class Messages {
@@ -79,13 +79,6 @@ export class Messages {
           error: createResErrorHandler(this.loadRecentError, 'Failed to update chat messages.'),
         });
     }
-  }
-
-  create(chatId: Chat['id'], data: NewMessageData) {
-    return this.chats.createMessage(chatId, data).pipe(
-      takeUntilDestroyed(this._destroyRef),
-      tap((message) => this.chats.updateActivatedChatMessages([message]))
-    );
   }
 
   private _checkMessage(
