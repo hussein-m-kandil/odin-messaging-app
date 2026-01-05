@@ -74,6 +74,7 @@
         @let _messages = messages.list();
         @for (_msg of _messages; track _msg.id) {
         @let _fromCurrentUser = _msg.profileName === _user.username;
+        @if (_msg.body) {
         <div
           aria-label="Message"
           aria-atomic="true"
@@ -109,6 +110,7 @@
             </time>
           </div>
         </div>
+        }
         <!-- prettier-ignore -->
         @let _msgDayDate = _msg.createdAt | date : 'mediumDate';
         @let _nextMsgDayDate = $last ? '' : _messages[$index + 1].createdAt | date : 'mediumDate';
