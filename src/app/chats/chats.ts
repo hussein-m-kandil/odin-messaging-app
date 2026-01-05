@@ -236,31 +236,31 @@ export class Chats {
     return this._http.get<Message[]>(`${this.baseUrl}/${chatId}/messages`, { params });
   }
 
-  updateActivatedChatMessages(newMessages: Message[]) {
+  updateChatMessages(chatId: Chat['id'], newMessages: Message[]) {
     let updated = false;
-    this.activatedChat.update((activatedChat) => {
-      if (activatedChat) {
-        const oldMessages = activatedChat.messages;
-        const updatedMessages = this._sortMessages(
-          newMessages.concat(this._subtractMessages(oldMessages, newMessages))
-        );
-        const updatedChat = { ...activatedChat, messages: updatedMessages };
-        this.list.update((chats) =>
-          chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat))
-        );
-        updated = oldMessages.length !== updatedMessages.length;
-        if (!updated) this.updateChats();
-        return updatedChat;
-      }
-      return activatedChat;
-    });
+    const activatedChat = this.activatedChat();
+    const chatActivated = activatedChat && activatedChat.id === chatId;
+    const oldChat = chatActivated ? activatedChat : this.list().find((c) => c.id === chatId);
+    if (oldChat) {
+      const oldMessages = oldChat.messages;
+      const updatedMessages = this._sortMessages(
+        newMessages.concat(this._subtractMessages(oldMessages, newMessages))
+      );
+      const updatedChat = { ...oldChat, messages: updatedMessages };
+      if (chatActivated) this.activatedChat.set(updatedChat);
+      this.list.update((chats) => {
+        return chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat));
+      });
+      updated = oldMessages.length !== updatedMessages.length;
+      if (!updated) this.updateChats(); // Refresh after finishing updating messages
+    }
     return updated;
   }
 
   createMessage(chatId: Chat['id'], data: NewMessageData) {
     return this._http.post<Message>(`${this.baseUrl}/${chatId}/messages`, data).pipe(
       takeUntilDestroyed(this._destroyRef),
-      tap((message) => this.updateActivatedChatMessages([message]))
+      tap((message) => this.updateChatMessages(chatId, [message]))
     );
   }
 

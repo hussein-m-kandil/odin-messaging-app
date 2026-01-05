@@ -144,15 +144,15 @@ describe('Chats', () => {
       'Request to update the chat profile last-seen date.'
     );
     const lastSeenAt = new Date(Date.now() + 7).toISOString();
-    const updatedChats = [
+    const expectedChats = [
       {
         ...chat,
         profiles: [{ ...chat.profiles[0], lastSeenAt }, ...chat.profiles.slice(1)],
       },
     ];
     req.flush(lastSeenAt);
-    expect(service.activatedChat()).toStrictEqual(updatedChats[0]);
-    expect(service.list()).toStrictEqual(updatedChats);
+    expect(service.activatedChat()).toStrictEqual(expectedChats[0]);
+    expect(service.list()).toStrictEqual(expectedChats);
     httpTesting.expectOne(
       { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
       'Request to update chats'
@@ -199,7 +199,7 @@ describe('Chats', () => {
     }
     const { service } = setup();
     service.activate({ ...chat, messages: [messages[2], messages[0]] }, profileName);
-    const updated = service.updateActivatedChatMessages([messages[0], messages[1]]);
+    const updated = service.updateChatMessages(chatId, [messages[0], messages[1]]);
     expect(updated).toBe(true);
     expect({ ...service.activatedChat(), messages: [] }).toStrictEqual(chat);
     expect(service.activatedChat()!.messages).toStrictEqual(messages);
@@ -216,7 +216,7 @@ describe('Chats', () => {
     }
     const { service } = setup();
     service.activate({ ...chat, messages: [messages[2], messages[0], messages[1]] }, profileName);
-    const updated = service.updateActivatedChatMessages([messages[0], messages[1]]);
+    const updated = service.updateChatMessages(chatId, [messages[0], messages[1]]);
     expect(updated).toBe(false);
     expect({ ...service.activatedChat(), messages: [] }).toStrictEqual(chat);
     expect(service.activatedChat()!.messages).toStrictEqual(messages);
@@ -224,7 +224,7 @@ describe('Chats', () => {
 
   it('should not update the activated chat messages, and return `false`', () => {
     const { service } = setup();
-    const updated = service.updateActivatedChatMessages([
+    const updated = service.updateChatMessages(chatId, [
       {
         createdAt: new Date().toISOString(),
         id: crypto.randomUUID(),
@@ -248,14 +248,32 @@ describe('Chats', () => {
     const { service } = setup();
     service.list.set(chatList);
     service.activate(chatList[0], profileName);
-    const updated = service.updateActivatedChatMessages(messages);
+    const updated = service.updateChatMessages(chatId, messages);
     const updatedChat = { ...chatList[0], messages };
     expect(updated).toBe(true);
     expect(service.activatedChat()).toStrictEqual(updatedChat);
-    expect(service.activatedChat()!.messages).toStrictEqual(messages);
-    expect(service.list()[0]!.messages).toStrictEqual(messages);
     expect(service.list()[0]).toStrictEqual(updatedChat);
     expect(service.list()[1]).toStrictEqual(chatList[1]);
+  });
+
+  it('should not update the activated chat messages if it has been changed, instead, update its corresponding chat in the chat list', () => {
+    const messages: Message[] = [];
+    for (let i = 0; i < 3; i++) {
+      messages[i] = {
+        createdAt: new Date(Date.now() - i).toISOString(),
+        id: crypto.randomUUID(),
+        body: 'blah',
+      } as Message;
+    }
+    const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
+    const { service } = setup();
+    service.list.set(chatList);
+    service.activate(chatList[0], profileName);
+    const updated = service.updateChatMessages(chatList[1].id, messages);
+    expect(updated).toBe(true);
+    expect(service.list()[1]).toStrictEqual({ ...chatList[1], messages });
+    expect(service.activatedChat()).toStrictEqual(chatList[0]);
+    expect(service.list()[0]).toStrictEqual(chatList[0]);
   });
 
   it('should keep the activated chat updates in the chat list, after deactivating', () => {
@@ -271,14 +289,12 @@ describe('Chats', () => {
     const { service } = setup();
     service.list.set(chatList);
     service.activate(chatList[0], profileName);
-    const updated = service.updateActivatedChatMessages(messages);
-    const updatedChat = { ...chatList[0], messages };
+    const updated = service.updateChatMessages(chatId, messages);
     service.deactivate();
     expect(updated).toBe(true);
     expect(service.activatedChat()).toBeNull();
-    expect(service.list()[0]!.messages).toStrictEqual(messages);
-    expect(service.list()[0]).toStrictEqual(updatedChat);
     expect(service.list()[1]).toStrictEqual(chatList[1]);
+    expect(service.list()[0]).toStrictEqual({ ...chatList[0], messages });
   });
 
   it('should load the chats', () => {
@@ -536,7 +552,7 @@ describe('Chats', () => {
       { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
       'Request to update chats'
     );
-    const updatedMessages = [
+    const expectedMessages = [
       {
         ...message,
         id: crypto.randomUUID(),
@@ -551,7 +567,7 @@ describe('Chats', () => {
       },
       ...chats[0].messages,
     ];
-    const updatedChats = [
+    const expectedChats = [
       {
         ...chats[0],
         profiles: chats[0].profiles.map((cp) => ({
@@ -559,19 +575,19 @@ describe('Chats', () => {
           lastSeenAt: new Date(),
           lastReceivedAt: new Date(),
         })),
-        messages: updatedMessages,
+        messages: expectedMessages,
       },
       ...chats.slice(1),
     ];
     req.flush([
       { ...chat, id: crypto.randomUUID() },
       ...[
-        { ...updatedChats[0], messages: [...[...updatedMessages].reverse()] },
-        ...updatedChats.slice(1),
+        { ...expectedChats[0], messages: [...[...expectedMessages].reverse()] },
+        ...expectedChats.slice(1),
       ].reverse(),
     ]);
-    expect(service.activatedChat()).toStrictEqual(updatedChats[0]);
-    expect(service.list()).toStrictEqual(updatedChats);
+    expect(service.activatedChat()).toStrictEqual(expectedChats[0]);
+    expect(service.list()).toStrictEqual(expectedChats);
     httpTesting.verify();
   });
 

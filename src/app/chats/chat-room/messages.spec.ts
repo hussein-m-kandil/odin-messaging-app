@@ -18,7 +18,7 @@ const chatsMock = {
   getChat: vi.fn(),
   activate: vi.fn(),
   deactivate: vi.fn(),
-  updateActivatedChatMessages: vi.fn(),
+  updateChatMessages: vi.fn(),
   activatedChat: vi.fn<() => { id: string; messages: Message[] }>(() => ({
     id: chatId,
     messages: [],
@@ -130,7 +130,7 @@ describe('Messages', () => {
     expect(serviceFinalState.hasMore).toBe(true);
     expect(serviceFinalState.loadError).toBe('');
     expect(chatsMock.getChatMessages).toHaveBeenCalledOnce();
-    expect(chatsMock.updateActivatedChatMessages).toHaveBeenCalledOnce();
+    expect(chatsMock.updateChatMessages).toHaveBeenCalledOnce();
     vi.useRealTimers();
   });
 
@@ -272,7 +272,7 @@ describe('Messages', () => {
   });
 
   it('should try to load recent messages again if the recent response updated the message list', async () => {
-    chatsMock.updateActivatedChatMessages.mockImplementationOnce(() => true);
+    chatsMock.updateChatMessages.mockImplementationOnce(() => true);
     chatsMock.getChatMessages.mockImplementation(() => of([message]));
     const { service } = setup();
     setMessageList([message3, message2]);

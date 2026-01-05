@@ -50,7 +50,7 @@ export class Messages {
       .subscribe({
         next: (olderList) => {
           this.hasMore.set(!!olderList.length);
-          if (this.hasMore()) this.chats.updateActivatedChatMessages(olderList);
+          if (this.hasMore()) this.chats.updateChatMessages(chatId, olderList);
         },
         error: createResErrorHandler(this.loadError, 'Failed to load any messages.'),
       });
@@ -73,7 +73,7 @@ export class Messages {
         )
         .subscribe({
           next: (newerList) => {
-            const updated = this.chats.updateActivatedChatMessages(newerList.reverse());
+            const updated = this.chats.updateChatMessages(chatId, newerList.reverse());
             if (updated) this.loadRecent(chatId, currentProfileName);
           },
           error: createResErrorHandler(this.loadRecentError, 'Failed to update chat messages.'),
