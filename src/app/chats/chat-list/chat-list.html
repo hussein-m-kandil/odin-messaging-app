@@ -1,13 +1,8 @@
+<!-- prettier-ignore -->
+@let _chatList = chats.list();
+@let _listIsEmpty = !_chatList.length; @let _suffix = _listIsEmpty ? '' : ' more';
 <div class="relative size-full overflow-auto" (scroll)="flushLoadMoreBtnWhenVisible()">
-  @if (chats.loading()) {
-  <app-spinner ariaLabel="Loading chats..." />
-  } @else if (chats.loadError(); as _loadError) {
-  <app-error-message [message]="_loadError" (retry)="chats.load()" />
-  } @else {
-  <!-- prettier-ignore -->
-  @let _chatList = chats.list();
-  <!-- prettier-ignore -->
-  @if (_chatList.length > 0) {
+  @if (!_listIsEmpty) {
   <p-menu
     [model]="_chatList"
     ariaLabel="Chat list"
@@ -41,21 +36,19 @@
         </span>
       </a>
     </ng-template>
-    <ng-template #end>
-      @if(chats.canLoadMore()) { @if(chats.loadingMore()) {
-      <app-spinner ariaLabel="Loading more chats..." />
-      } @else if (chats.loadMoreError(); as _loadMoreError) {
-      <app-error-message [message]="_loadMoreError" (retry)="chats.loadMore()" />
-      } @else {
-      <div class="text-center">
-        <button text outlined pButton pRipple #loadMoreBtn type="button" (click)="chats.loadMore()">
-          Load more
-        </button>
-      </div>
-      } }
-    </ng-template>
   </p-menu>
-  } @else {
-  <p class="text-muted-color">There are no chats.</p>
-  } }
+  }
+  <div class="mt-2 p-1 text-center">
+    @if(chats.loading()) {
+    <app-spinner [ariaLabel]="`Loading${_suffix} chats...`" />
+    } @else if (chats.loadError(); as _loadError) {
+    <app-error-message [message]="_loadError" (retry)="chats.load()" />
+    } @else if (chats.hasMore()) {
+    <button text outlined pButton pRipple #loadMoreBtn type="button" (click)="chats.load()">
+      Load{{ _suffix }}
+    </button>
+    } @else if (_listIsEmpty) {
+    <p class="text-muted-color">There are no chats.</p>
+    }
+  </div>
 </div>

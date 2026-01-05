@@ -5,16 +5,12 @@ import { User } from '../chats.types';
 import { Chats } from '../chats';
 
 const chatsMock = {
-  load: vi.fn<() => void>(),
+  load: vi.fn(),
+  reset: vi.fn(),
   loadError: vi.fn(() => ''),
   loading: vi.fn(() => false),
-  loadMore: vi.fn<() => void>(),
-  loadMoreError: vi.fn(() => ''),
-  moreLoaded: vi.fn(() => false),
-  loadingMore: vi.fn(() => false),
-  canLoadMore: vi.fn(() => false),
+  hasMore: vi.fn(() => false),
   generateTitle: vi.fn(() => ''),
-  hasAnyLoadError: vi.fn(() => false),
   list: vi.fn<() => unknown[]>(() => []),
 };
 
@@ -39,6 +35,14 @@ const renderComponent = ({
 
 describe('ChatList', () => {
   afterEach(vi.resetAllMocks);
+
+  it('should reset and load the chats on every render', async () => {
+    const { rerender } = await renderComponent();
+    await rerender();
+    await rerender();
+    expect(chatsMock.load).toHaveBeenCalledTimes(3);
+    expect(chatsMock.reset).toHaveBeenCalledTimes(3);
+  });
 
   it('should display a list of named chats', async () => {
     const title = 'Test chat title';
@@ -102,43 +106,44 @@ describe('ChatList', () => {
 
   it('should invoke the load-more method automatically if can load more', async () => {
     chatsMock.list.mockImplementation(() => chats);
-    chatsMock.canLoadMore.mockImplementation(() => true);
+    chatsMock.hasMore.mockImplementation(() => true);
     await renderComponent();
-    expect(chatsMock.loadMore).toHaveBeenCalled();
+    expect(chatsMock.load).toHaveBeenCalled();
   });
 
   it('should display load-more button that invoke load-more method', async () => {
     chatsMock.list.mockImplementation(() => chats);
-    chatsMock.canLoadMore.mockImplementation(() => true);
+    chatsMock.hasMore.mockImplementation(() => true);
     const { click } = userEvent.setup();
     await renderComponent();
-    chatsMock.loadMore.mockClear();
+    chatsMock.load.mockClear();
     const loadMoreBtn = screen.getByRole('button', { name: /load more/i });
     await click(loadMoreBtn);
     expect(loadMoreBtn).toBeVisible();
-    expect(chatsMock.loadMore).toHaveBeenCalledOnce();
+    expect(chatsMock.load).toHaveBeenCalledOnce();
     expect(screen.queryByLabelText(/loading more/i)).toBeNull();
     expect(screen.queryByLabelText(/loading chats/i)).toBeNull();
   });
 
   it('should display load-more error and a retry-button that reloads more chats', async () => {
     const errMsg = 'Test error';
-    chatsMock.loadMoreError.mockImplementation(() => errMsg);
-    chatsMock.canLoadMore.mockImplementation(() => true);
+    chatsMock.loadError.mockImplementation(() => errMsg);
+    chatsMock.hasMore.mockImplementation(() => true);
     chatsMock.list.mockImplementation(() => chats);
     const { click } = userEvent.setup();
     await renderComponent();
+    chatsMock.load.mockClear();
     await click(screen.getByRole('button', { name: /retry/i }));
     expect(screen.getByText(errMsg)).toBeVisible();
-    expect(chatsMock.loadMore).toHaveBeenCalledOnce();
+    expect(chatsMock.load).toHaveBeenCalledOnce();
     expect(screen.queryByLabelText(/loading more/i)).toBeNull();
     expect(screen.queryByLabelText(/loading chats/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 
   it('should display loading-more indicator', async () => {
-    chatsMock.loadingMore.mockImplementation(() => true);
-    chatsMock.canLoadMore.mockImplementation(() => true);
+    chatsMock.loading.mockImplementation(() => true);
+    chatsMock.hasMore.mockImplementation(() => true);
     chatsMock.list.mockImplementation(() => chats);
     await renderComponent();
     expect(screen.getByLabelText(/loading more/i)).toBeVisible();

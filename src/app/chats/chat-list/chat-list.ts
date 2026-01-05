@@ -4,7 +4,6 @@ import {
   effect,
   Injector,
   OnChanges,
-  OnDestroy,
   untracked,
   viewChild,
   Component,
@@ -36,37 +35,34 @@ import { Chats } from '../chats';
   templateUrl: './chat-list.html',
   styles: ``,
 })
-export class ChatList implements OnChanges, OnDestroy {
+export class ChatList implements OnChanges {
+  private readonly _loadMoreBtn = viewChild<ElementRef<HTMLButtonElement>>('loadMoreBtn');
+  private readonly _injector = inject(Injector);
+
   readonly user = input.required<AuthData['user']>();
 
-  private readonly _injector = inject(Injector);
-  protected chats = inject(Chats);
+  protected readonly chats = inject(Chats);
 
-  private readonly _loadMoreBtn = viewChild<ElementRef<HTMLButtonElement>>('loadMoreBtn');
-
-  private readonly _listEffect = effect(() => {
-    this.chats.list();
-    untracked(() => {
-      afterNextRender(() => this.flushLoadMoreBtnWhenVisible(), { injector: this._injector });
+  constructor() {
+    effect(() => {
+      this.chats.list();
+      untracked(() => {
+        afterNextRender(() => this.flushLoadMoreBtnWhenVisible(), { injector: this._injector });
+      });
     });
-  });
+  }
 
   protected flushLoadMoreBtnWhenVisible() {
     const loadMoreBtn = this._loadMoreBtn()?.nativeElement;
     if (loadMoreBtn) {
       const loadMoreBtnRect = loadMoreBtn.getBoundingClientRect();
       const loadMoreBtnVisible = loadMoreBtnRect.top <= window.innerHeight;
-      if (loadMoreBtnVisible && this.chats.canLoadMore() && !this.chats.hasAnyLoadError()) {
-        this.chats.loadMore();
-      }
+      if (loadMoreBtnVisible) this.chats.load();
     }
   }
 
   ngOnChanges() {
+    this.chats.reset();
     this.chats.load();
-  }
-
-  ngOnDestroy() {
-    this._listEffect.destroy();
   }
 }

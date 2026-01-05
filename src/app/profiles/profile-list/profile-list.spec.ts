@@ -2,17 +2,14 @@ import { render, RenderComponentOptions, screen } from '@testing-library/angular
 import { userEvent } from '@testing-library/user-event';
 import { ProfileList } from './profile-list';
 import { Profiles } from '../profiles';
+import { User } from '../../app.types';
 
 const profilesMock = {
-  load: vi.fn<() => void>(),
+  load: vi.fn(),
+  reset: vi.fn(),
   loadError: vi.fn(() => ''),
   loading: vi.fn(() => false),
-  loadMore: vi.fn<() => void>(),
-  loadMoreError: vi.fn(() => ''),
-  moreLoaded: vi.fn(() => false),
-  loadingMore: vi.fn(() => false),
-  canLoadMore: vi.fn(() => false),
-  hasAnyLoadError: vi.fn(() => false),
+  hasMore: vi.fn(() => false),
   list: vi.fn<() => unknown[]>(() => []),
 };
 
@@ -21,15 +18,30 @@ const profiles = [
   { id: crypto.randomUUID(), user: { username: 'test_user_02' } },
 ];
 
-const renderComponent = ({ providers, ...options }: RenderComponentOptions<ProfileList> = {}) => {
+const user = { id: crypto.randomUUID() } as User;
+
+const renderComponent = ({
+  providers,
+  inputs,
+  ...options
+}: RenderComponentOptions<ProfileList> = {}) => {
   return render(ProfileList, {
     providers: [{ provide: Profiles, useValue: profilesMock }, ...(providers || [])],
+    inputs: { user, ...inputs },
     ...options,
   });
 };
 
 describe('ProfileList', () => {
   afterEach(vi.resetAllMocks);
+
+  it('should reset and load the profiles on every render', async () => {
+    const { rerender } = await renderComponent();
+    await rerender();
+    await rerender();
+    expect(profilesMock.load).toHaveBeenCalledTimes(3);
+    expect(profilesMock.reset).toHaveBeenCalledTimes(3);
+  });
 
   it('should display a list of named profiles', async () => {
     profilesMock.list.mockImplementation(() => profiles);
@@ -75,43 +87,44 @@ describe('ProfileList', () => {
 
   it('should invoke the load-more method automatically if can load more', async () => {
     profilesMock.list.mockImplementation(() => profiles);
-    profilesMock.canLoadMore.mockImplementation(() => true);
+    profilesMock.hasMore.mockImplementation(() => true);
     await renderComponent();
-    expect(profilesMock.loadMore).toHaveBeenCalled();
+    expect(profilesMock.load).toHaveBeenCalled();
   });
 
   it('should display load-more button that invoke load-more method', async () => {
     profilesMock.list.mockImplementation(() => profiles);
-    profilesMock.canLoadMore.mockImplementation(() => true);
+    profilesMock.hasMore.mockImplementation(() => true);
     const { click } = userEvent.setup();
     await renderComponent({ autoDetectChanges: false });
-    profilesMock.loadMore.mockClear();
+    profilesMock.load.mockClear();
     const loadMoreBtn = screen.getByRole('button', { name: /load more/i });
     await click(loadMoreBtn);
     expect(loadMoreBtn).toBeVisible();
-    expect(profilesMock.loadMore).toHaveBeenCalledOnce();
+    expect(profilesMock.load).toHaveBeenCalledOnce();
     expect(screen.queryByLabelText(/loading more/i)).toBeNull();
     expect(screen.queryByLabelText(/loading profiles/i)).toBeNull();
   });
 
   it('should display load-more error and a retry-button that reloads more profiles', async () => {
     const errMsg = 'Test error';
-    profilesMock.loadMoreError.mockImplementation(() => errMsg);
-    profilesMock.canLoadMore.mockImplementation(() => true);
+    profilesMock.loadError.mockImplementation(() => errMsg);
+    profilesMock.hasMore.mockImplementation(() => true);
     profilesMock.list.mockImplementation(() => profiles);
     const { click } = userEvent.setup();
     await renderComponent({ autoDetectChanges: false });
+    profilesMock.load.mockClear();
     await click(screen.getByRole('button', { name: /retry/i }));
     expect(screen.getByText(errMsg)).toBeVisible();
-    expect(profilesMock.loadMore).toHaveBeenCalledOnce();
+    expect(profilesMock.load).toHaveBeenCalledOnce();
     expect(screen.queryByLabelText(/loading more/i)).toBeNull();
     expect(screen.queryByLabelText(/loading profiles/i)).toBeNull();
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 
   it('should display loading-more indicator', async () => {
-    profilesMock.loadingMore.mockImplementation(() => true);
-    profilesMock.canLoadMore.mockImplementation(() => true);
+    profilesMock.loading.mockImplementation(() => true);
+    profilesMock.hasMore.mockImplementation(() => true);
     profilesMock.list.mockImplementation(() => profiles);
     await renderComponent();
     expect(screen.getByLabelText(/loading more/i)).toBeVisible();

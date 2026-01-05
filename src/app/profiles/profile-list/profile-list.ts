@@ -1,10 +1,11 @@
 import {
+  input,
   effect,
   inject,
   Injector,
   viewChild,
   untracked,
-  OnDestroy,
+  OnChanges,
   Component,
   ElementRef,
   afterNextRender,
@@ -12,6 +13,7 @@ import {
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { ErrorMessage } from '../../error-message';
 import { ButtonDirective } from 'primeng/button';
+import { AuthData } from '../../auth/auth.types';
 import { AvatarModule } from 'primeng/avatar';
 import { MenuModule } from 'primeng/menu';
 import { Spinner } from '../../spinner';
@@ -33,36 +35,34 @@ import { Profiles } from '../profiles';
   templateUrl: './profile-list.html',
   styles: ``,
 })
-export class ProfileList implements OnDestroy {
+export class ProfileList implements OnChanges {
+  private readonly _loadMoreBtn = viewChild<ElementRef<HTMLButtonElement>>('loadMoreBtn');
   private readonly _injector = inject(Injector);
 
-  private readonly _loadMoreBtn = viewChild<ElementRef<HTMLButtonElement>>('loadMoreBtn');
-
-  private readonly _listEffect = effect(() => {
-    this.profiles.list();
-    untracked(() => {
-      afterNextRender(this.flushLoadMoreBtnWhenVisible, { injector: this._injector });
-    });
-  });
+  readonly user = input.required<AuthData['user']>();
 
   protected readonly profiles = inject(Profiles);
 
   constructor() {
-    this.profiles.load();
+    effect(() => {
+      this.profiles.list();
+      untracked(() => {
+        afterNextRender(() => this.flushLoadMoreBtnWhenVisible(), { injector: this._injector });
+      });
+    });
   }
 
-  protected flushLoadMoreBtnWhenVisible = () => {
+  protected flushLoadMoreBtnWhenVisible() {
     const loadMoreBtn = this._loadMoreBtn()?.nativeElement;
     if (loadMoreBtn) {
       const loadMoreBtnRect = loadMoreBtn.getBoundingClientRect();
       const loadMoreBtnVisible = loadMoreBtnRect.top <= window.innerHeight;
-      if (loadMoreBtnVisible && this.profiles.canLoadMore() && !this.profiles.hasAnyLoadError()) {
-        this.profiles.loadMore();
-      }
+      if (loadMoreBtnVisible) this.profiles.load();
     }
-  };
+  }
 
-  ngOnDestroy() {
-    this._listEffect.destroy();
+  ngOnChanges() {
+    this.profiles.reset();
+    this.profiles.load();
   }
 }

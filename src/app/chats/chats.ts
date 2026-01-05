@@ -1,16 +1,16 @@
 import {
   Chat,
-  ChatProfile,
+  User,
   Message,
+  Profile,
+  ChatProfile,
   NewChatData,
   NewMessageData,
-  Profile,
-  User,
 } from './chats.types';
-import { inject, signal, computed, DestroyRef, Injectable } from '@angular/core';
+import { inject, signal, DestroyRef, Injectable } from '@angular/core';
+import { catchError, defer, finalize, map, of, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { catchError, defer, finalize, map, of, tap } from 'rxjs';
 import { environment } from '../../environments';
 import { createResErrorHandler } from '../utils';
 import { Router } from '@angular/router';
@@ -29,30 +29,8 @@ export class Chats {
 
   readonly list = signal<Chat[]>([]);
   readonly loading = signal(false);
-  readonly loadError = signal('');
-
-  readonly loadingMore = signal(false);
-  readonly loadMoreError = signal('');
-  readonly moreLoaded = signal(false);
   readonly hasMore = signal(false);
-
-  readonly hasAnyLoadError = computed(() => {
-    const loadError = this.loadError();
-    const loadMoreError = this.loadMoreError();
-    return !!loadError || !!loadMoreError;
-  });
-
-  readonly canLoad = computed(() => {
-    const loadingMore = this.loadingMore();
-    const loading = this.loading();
-    return !loading && !loadingMore;
-  });
-
-  readonly canLoadMore = computed(() => {
-    const canLoad = this.canLoad();
-    const hasMore = this.hasMore();
-    return canLoad && !!hasMore;
-  });
+  readonly loadError = signal('');
 
   readonly baseUrl = `${apiUrl}/chats`;
 
@@ -74,45 +52,31 @@ export class Chats {
 
   reset() {
     this.activatedChat.set(null);
-    this.loadingMore.set(false);
-    this.loadMoreError.set('');
-    this.moreLoaded.set(false);
     this.hasMore.set(false);
     this.loading.set(false);
     this.loadError.set('');
     this.list.set([]);
   }
 
-  load(cursor?: Chat['id']) {
-    const loadingMore = !!cursor;
-    const options = loadingMore ? { params: { cursor } } : {};
-    if (!loadingMore) this.list.set([]);
-    this.loadingMore.set(loadingMore);
-    this.loading.set(!loadingMore);
-    this.loadMoreError.set('');
+  load() {
+    this.loading.set(true);
     this.loadError.set('');
+    const list = this.list();
+    const cursor = list[list.length - 1]?.id;
+    const options = cursor ? { params: { cursor } } : {};
     return this._http
       .get<Chat[]>(this.baseUrl, options)
       .pipe(
         takeUntilDestroyed(this._destroyRef),
-        finalize(() => (loadingMore ? this.loadingMore.set(false) : this.loading.set(false)))
+        finalize(() => this.loading.set(false))
       )
       .subscribe({
-        next: (newList) => {
-          this.hasMore.set(!!newList.length);
-          if (loadingMore) this.list.update((list) => [...list, ...newList]);
-          else this.list.set(newList);
+        next: (olderList) => {
+          this.hasMore.set(!!olderList.length);
+          if (this.hasMore()) this.list.update((list) => [...list, ...olderList]);
         },
-        error: loadingMore
-          ? createResErrorHandler(this.loadMoreError, 'Failed to load more chats.')
-          : createResErrorHandler(this.loadError, 'Failed to load any chats.'),
+        error: createResErrorHandler(this.loadError, 'Failed to load any chats.'),
       });
-  }
-
-  loadMore() {
-    const list = this.list();
-    const cursor: Chat['id'] | undefined = list[list.length - 1]?.id;
-    this.load(cursor);
   }
 
   create(newChatData: NewChatData) {

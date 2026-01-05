@@ -1,12 +1,8 @@
+<!-- prettier-ignore -->
+@let _profileList = profiles.list();
+@let _listIsEmpty = !_profileList.length; @let _suffix = _listIsEmpty ? '' : ' more';
 <div class="relative size-full overflow-auto" (scroll)="flushLoadMoreBtnWhenVisible()">
-  @if (profiles.loading()) {
-  <app-spinner ariaLabel="Loading profiles..." />
-  } @else if (profiles.loadError(); as _loadError) {
-  <app-error-message [message]="_loadError" (retry)="profiles.load()" />
-  } @else {
-  <!-- prettier-ignore -->
-  @let _profileList = profiles.list();
-  @if (_profileList.length > 0) {
+  @if (!_listIsEmpty) {
   <p-menu
     [model]="_profileList"
     ariaLabel="Profile list"
@@ -34,21 +30,19 @@
         </span>
       </a>
     </ng-template>
-    <ng-template #end>
-      @if(profiles.canLoadMore()) { @if(profiles.loadingMore()) {
-      <app-spinner ariaLabel="Loading more profiles..." />
-      } @else if (profiles.loadMoreError(); as _loadMoreError) {
-      <app-error-message [message]="_loadMoreError" (retry)="profiles.loadMore()" />
-      } @else {
-      <div class="text-center">
-        <button text outlined pButton #loadMoreBtn type="button" (click)="profiles.loadMore()">
-          Load more
-        </button>
-      </div>
-      } }
-    </ng-template>
   </p-menu>
-  } @else {
-  <p class="text-muted-color">There are no profiles.</p>
-  } }
+  }
+  <div class="mt-2 p-1 text-center">
+    @if(profiles.loading()) {
+    <app-spinner [ariaLabel]="`Loading${_suffix} profiles...`" />
+    } @else if (profiles.loadError(); as _loadError) {
+    <app-error-message [message]="_loadError" (retry)="profiles.load()" />
+    } @else if (profiles.hasMore()) {
+    <button text outlined pButton pRipple #loadMoreBtn type="button" (click)="profiles.load()">
+      Load{{ _suffix }}
+    </button>
+    } @else if (_listIsEmpty) {
+    <p class="text-muted-color">There are no profiles.</p>
+    }
+  </div>
 </div>
