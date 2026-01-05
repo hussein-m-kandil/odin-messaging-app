@@ -56,14 +56,14 @@ export class Chats {
 
   readonly baseUrl = `${apiUrl}/chats`;
 
-  private _sortMessages(messages: Message[]) {
-    return messages.sort(
+  private _sort<T extends { createdAt: string }>(items: T[]): T[] {
+    return [...items].sort(
       (a, b) => -1 * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     );
   }
 
-  private _subtractMessages(messages: Message[], subRef: Message[]) {
-    return messages.filter((mA) => subRef.findIndex((mB) => mB.id === mA.id) < 0);
+  private _subtract<T extends { id: unknown }>(items: T[], itemsToSubtract: T[]): T[] {
+    return items.filter((x) => !itemsToSubtract.some((xToSub) => xToSub.id === x.id));
   }
 
   private _findChatByAllMemberIds(chats: Chat[], memberIds: Profile['id'][]) {
@@ -182,10 +182,8 @@ export class Chats {
                 if (newChat && activatedChat && newChat.id === activatedChat.id) {
                   const updatedChat = {
                     ...newChat,
-                    messages: this._sortMessages(
-                      newChat.messages.concat(
-                        this._subtractMessages(oldChat.messages, newChat.messages)
-                      )
+                    messages: this._sort(
+                      newChat.messages.concat(this._subtract(oldChat.messages, newChat.messages))
                     ),
                   };
                   this.activatedChat.set(updatedChat);
@@ -243,8 +241,8 @@ export class Chats {
     const oldChat = chatActivated ? activatedChat : this.list().find((c) => c.id === chatId);
     if (oldChat) {
       const oldMessages = oldChat.messages;
-      const updatedMessages = this._sortMessages(
-        newMessages.concat(this._subtractMessages(oldMessages, newMessages))
+      const updatedMessages = this._sort(
+        newMessages.concat(this._subtract(oldMessages, newMessages))
       );
       const updatedChat = { ...oldChat, messages: updatedMessages };
       if (chatActivated) this.activatedChat.set(updatedChat);
