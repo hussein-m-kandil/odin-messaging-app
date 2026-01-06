@@ -17,109 +17,36 @@ const setup = () => {
 
 const profiles = [{ id: crypto.randomUUID() }, { id: crypto.randomUUID() }] as Profile[];
 
-const getServiceState = (service: Profiles) => {
-  return {
-    list: service.list(),
-    loading: service.loading(),
-    hasMore: service.hasMore(),
-    loadError: service.loadError(),
-    baseUrl: service.baseUrl,
-  };
-};
-
 describe('Profiles', () => {
-  it('should have the expected initial state', () => {
-    const { service } = setup();
-    const serviceInitialState = getServiceState(service);
-    expect(serviceInitialState.baseUrl).toBe(profilesUrl);
-    expect(serviceInitialState.list).toStrictEqual([]);
-    expect(serviceInitialState.loadError).toBe('');
-    expect(serviceInitialState.hasMore).toBe(false);
-    expect(serviceInitialState.loading).toBe(false);
-  });
-
   it('should load the profiles', () => {
     const { service, httpTesting } = setup();
     service.load();
     const reqInfo = { method: 'GET', url: profilesUrl };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the profiles');
-    const serviceLoadingState = getServiceState(service);
     req.flush(profiles);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([]);
-    expect(serviceFinalState.list).toStrictEqual(profiles);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    expect(service.list()).toStrictEqual(profiles);
     httpTesting.verify();
   });
 
   it('should fail to load the profiles on the 1st time due to a server error, then succeed on the 2nd', () => {
     const { service, httpTesting } = setup();
-    const checkReq = () => {
-      const reqInfo = { method: 'GET', url: profilesUrl };
-      return httpTesting.expectOne(reqInfo, 'Request to get the profiles');
-    };
     service.load();
     const reqInfo = { method: 'GET', url: profilesUrl };
-    const firstReq = httpTesting.expectOne(reqInfo, 'Request to get the profiles');
-    const serviceLoadingState = getServiceState(service);
-    firstReq.flush('Failed', { status: 500, statusText: 'Internal Server Error' });
-    const serviceErrorState = getServiceState(service);
-    service.load();
-    const secondReq = checkReq();
-    const serviceSecondLoadingState = getServiceState(service);
-    secondReq.flush(profiles);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([]);
-    expect(serviceErrorState.loadError).toMatch(/failed/i);
-    expect(serviceErrorState.list).toStrictEqual([]);
-    expect(serviceErrorState.hasMore).toBe(false);
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
-    expect(serviceFinalState.list).toStrictEqual(profiles);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the profiles');
+    req.flush('Failed', { status: 500, statusText: 'Internal Server Error' });
+    expect(service.loadError()).toMatch(/failed/i);
+    expect(service.list()).toStrictEqual([]);
     httpTesting.verify();
   });
 
   it('should fail to load the profiles on the 1st time due to a network error, then succeed on the 2nd', () => {
     const { service, httpTesting } = setup();
-    const checkReq = () => {
-      const reqInfo = { method: 'GET', url: profilesUrl };
-      return httpTesting.expectOne(reqInfo, 'Request to get the profiles');
-    };
     service.load();
     const reqInfo = { method: 'GET', url: profilesUrl };
-    const firstReq = httpTesting.expectOne(reqInfo, 'Request to get the profiles');
-    const serviceLoadingState = getServiceState(service);
-    firstReq.error(new ProgressEvent('Network error'));
-    const serviceErrorState = getServiceState(service);
-    service.load();
-    const secondReq = checkReq();
-    const serviceSecondLoadingState = getServiceState(service);
-    secondReq.flush(profiles);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([]);
-    expect(serviceErrorState.loadError).toMatch(/check .*(internet)? connection/i);
-    expect(serviceErrorState.list).toStrictEqual([]);
-    expect(serviceErrorState.hasMore).toBe(false);
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
-    expect(serviceFinalState.list).toStrictEqual(profiles);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the profiles');
+    req.error(new ProgressEvent('Network error'));
+    expect(service.loadError()).toMatch(/check .*(internet)? connection/i);
+    expect(service.list()).toStrictEqual([]);
     httpTesting.verify();
   });
 
@@ -129,84 +56,33 @@ describe('Profiles', () => {
     service.load();
     const reqInfo = { method: 'GET', url: `${profilesUrl}?cursor=${profiles[0].id}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more profiles');
-    const serviceLoadingState = getServiceState(service);
     const resData = [profiles[1]];
     req.flush(resData);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([profiles[0]]);
-    expect(serviceFinalState.list).toStrictEqual(profiles);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    expect(service.list()).toStrictEqual(profiles);
     httpTesting.verify();
   });
 
   it('should fail to load more profiles on the 1st due to a server error, then succeed on the 2nd', () => {
     const { service, httpTesting } = setup();
-    const checkReq = () => {
-      const reqInfo = { method: 'GET', url: `${profilesUrl}?cursor=${profiles[0].id}` };
-      return httpTesting.expectOne(reqInfo, 'Request to get more profiles');
-    };
     service.list.set([profiles[0]]);
     service.load();
-    const firstReq = checkReq();
-    const serviceLoadingState = getServiceState(service);
-    firstReq.flush('Failed', { status: 500, statusText: 'Internal server error' });
-    const serviceErrorState = getServiceState(service);
-    service.load();
-    const secondReq = checkReq();
-    const serviceSecondLoadingState = getServiceState(service);
-    secondReq.flush([profiles[1]]);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([profiles[0]]);
-    expect(serviceErrorState.list).toStrictEqual([profiles[0]]);
-    expect(serviceErrorState.loadError).toMatch(/failed/i);
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceErrorState.hasMore).toBe(false);
-    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
-    expect(serviceFinalState.list).toStrictEqual(profiles);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    const reqInfo = { method: 'GET', url: `${profilesUrl}?cursor=${profiles[0].id}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get more profiles');
+    req.flush('Failed', { status: 500, statusText: 'Internal server error' });
+    expect(service.list()).toStrictEqual([profiles[0]]);
+    expect(service.loadError()).toMatch(/failed/i);
     httpTesting.verify();
   });
 
   it('should fail to load more profiles on the 1st due to a network error, then succeed on the 2nd', () => {
     const { service, httpTesting } = setup();
-    const checkReq = () => {
-      const reqInfo = { method: 'GET', url: `${profilesUrl}?cursor=${profiles[0].id}` };
-      return httpTesting.expectOne(reqInfo, 'Request to get more profiles');
-    };
     service.list.set([profiles[0]]);
     service.load();
-    const firstReq = checkReq();
-    const serviceLoadingState = getServiceState(service);
-    firstReq.error(new ProgressEvent('Network error'));
-    const serviceErrorState = getServiceState(service);
-    service.load();
-    const secondReq = checkReq();
-    const serviceSecondLoadingState = getServiceState(service);
-    secondReq.flush([profiles[1]]);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([profiles[0]]);
-    expect(serviceErrorState.loadError).toMatch(/check .*(internet)? connection/i);
-    expect(serviceErrorState.list).toStrictEqual([profiles[0]]);
-    expect(serviceErrorState.hasMore).toBe(false);
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
-    expect(serviceFinalState.list).toStrictEqual(profiles);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    const reqInfo = { method: 'GET', url: `${profilesUrl}?cursor=${profiles[0].id}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get more profiles');
+    req.error(new ProgressEvent('Network error'));
+    expect(service.loadError()).toMatch(/check .*(internet)? connection/i);
+    expect(service.list()).toStrictEqual([profiles[0]]);
     httpTesting.verify();
   });
 

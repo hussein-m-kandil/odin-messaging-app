@@ -1,53 +1,31 @@
-import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DestroyRef, inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
-import { createResErrorHandler } from '../utils';
-import { defer, finalize, of } from 'rxjs';
+import { ListStore } from '../list/list-store';
 import { Profile } from '../app.types';
+import { defer, of } from 'rxjs';
 
 const { apiUrl } = environment;
 
 @Injectable({
   providedIn: 'root',
 })
-export class Profiles {
+export class Profiles extends ListStore<Profile> {
   private readonly _destroyRef = inject(DestroyRef);
   private _http = inject(HttpClient);
 
-  readonly list = signal<Profile[]>([]);
-  readonly loadError = signal('');
-  readonly loading = signal(false);
-  readonly hasMore = signal(false);
+  protected override loadErrorMessage = 'Failed to load any profiles.';
 
   readonly baseUrl = `${apiUrl}/profiles`;
 
-  reset() {
-    this.hasMore.set(false);
-    this.loading.set(false);
-    this.loadError.set('');
-    this.list.set([]);
-  }
-
-  load() {
-    this.loading.set(true);
-    this.loadError.set('');
-    const list = this.list();
-    const cursor = list[list.length - 1]?.id;
+  protected override getMore() {
+    const profiles = this.list();
+    const cursor = profiles[profiles.length - 1]?.id;
     const options = cursor ? { params: { cursor } } : {};
-    this._http
+    return this._http
       .get<Profile[]>(this.baseUrl, options)
-      .pipe(
-        takeUntilDestroyed(this._destroyRef),
-        finalize(() => this.loading.set(false))
-      )
-      .subscribe({
-        next: (olderList) => {
-          this.hasMore.set(!!olderList.length);
-          if (this.hasMore()) this.list.update((list) => [...list, ...olderList]);
-        },
-        error: createResErrorHandler(this.loadError, 'Failed to load any profiles.'),
-      });
+      .pipe(takeUntilDestroyed(this._destroyRef));
   }
 
   getProfile(id: Profile['id']) {

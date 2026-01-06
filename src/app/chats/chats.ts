@@ -7,12 +7,13 @@ import {
   NewChatData,
   NewMessageData,
 } from './chats.types';
+import { sort, subtract, findChatByAllMemberIds } from './chats.utils';
 import { inject, signal, DestroyRef, Injectable } from '@angular/core';
-import { catchError, defer, finalize, map, of, tap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { catchError, defer, map, of, tap } from 'rxjs';
 import { environment } from '../../environments';
-import { createResErrorHandler } from '../utils';
+import { ListStore } from '../list/list-store';
 import { Router } from '@angular/router';
 
 const { apiUrl } = environment;
@@ -20,63 +21,27 @@ const { apiUrl } = environment;
 @Injectable({
   providedIn: 'root',
 })
-export class Chats {
+export class Chats extends ListStore<Chat> {
   private readonly _destroyRef = inject(DestroyRef);
-  private readonly _router = inject(Router);
   private readonly _http = inject(HttpClient);
+  private readonly _router = inject(Router);
+
+  protected override loadErrorMessage = 'Failed to load any chats.';
 
   readonly activatedChat = signal<Chat | null>(null);
 
-  readonly list = signal<Chat[]>([]);
-  readonly loading = signal(false);
-  readonly hasMore = signal(false);
-  readonly loadError = signal('');
-
   readonly baseUrl = `${apiUrl}/chats`;
 
-  private _sort<T extends { createdAt: string }>(items: T[]): T[] {
-    return [...items].sort(
-      (a, b) => -1 * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-    );
-  }
-
-  private _subtract<T extends { id: unknown }>(items: T[], itemsToSubtract: T[]): T[] {
-    return items.filter((x) => !itemsToSubtract.some((xToSub) => xToSub.id === x.id));
-  }
-
-  private _findChatByAllMemberIds(chats: Chat[], memberIds: Profile['id'][]) {
-    return chats.find((chat) =>
-      chat.profiles.every((c) => c.profileId && memberIds.includes(c.profileId))
-    );
-  }
-
-  reset() {
-    this.activatedChat.set(null);
-    this.hasMore.set(false);
-    this.loading.set(false);
-    this.loadError.set('');
-    this.list.set([]);
-  }
-
-  load() {
-    this.loading.set(true);
-    this.loadError.set('');
+  protected override getMore() {
     const list = this.list();
     const cursor = list[list.length - 1]?.id;
     const options = cursor ? { params: { cursor } } : {};
-    return this._http
-      .get<Chat[]>(this.baseUrl, options)
-      .pipe(
-        takeUntilDestroyed(this._destroyRef),
-        finalize(() => this.loading.set(false))
-      )
-      .subscribe({
-        next: (olderList) => {
-          this.hasMore.set(!!olderList.length);
-          if (this.hasMore()) this.list.update((list) => [...list, ...olderList]);
-        },
-        error: createResErrorHandler(this.loadError, 'Failed to load any chats.'),
-      });
+    return this._http.get<Chat[]>(this.baseUrl, options).pipe(takeUntilDestroyed(this._destroyRef));
+  }
+
+  override reset() {
+    this.activatedChat.set(null);
+    super.reset();
   }
 
   create(newChatData: NewChatData) {
@@ -107,14 +72,12 @@ export class Chats {
 
   getChatByMemberProfileId(memberProfileId: Profile['id'], userProfileId: Profile['id']) {
     return defer(() => {
-      const foundChat = this._findChatByAllMemberIds(this.list(), [memberProfileId, userProfileId]);
+      const foundChat = findChatByAllMemberIds(this.list(), [memberProfileId, userProfileId]);
       if (foundChat) return of(foundChat);
       return this._http
         .get<Chat[]>(`${this.baseUrl}/members/${memberProfileId}`)
         .pipe(
-          map(
-            (chats) => this._findChatByAllMemberIds(chats, [memberProfileId, userProfileId]) || null
-          )
+          map((chats) => findChatByAllMemberIds(chats, [memberProfileId, userProfileId]) || null)
         );
     });
   }
@@ -146,8 +109,8 @@ export class Chats {
                 if (newChat && activatedChat && newChat.id === activatedChat.id) {
                   const updatedChat = {
                     ...newChat,
-                    messages: this._sort(
-                      newChat.messages.concat(this._subtract(oldChat.messages, newChat.messages))
+                    messages: sort(
+                      newChat.messages.concat(subtract(oldChat.messages, newChat.messages))
                     ),
                   };
                   this.activatedChat.set(updatedChat);
@@ -205,9 +168,7 @@ export class Chats {
     const oldChat = chatActivated ? activatedChat : this.list().find((c) => c.id === chatId);
     if (oldChat) {
       const oldMessages = oldChat.messages;
-      const updatedMessages = this._sort(
-        newMessages.concat(this._subtract(oldMessages, newMessages))
-      );
+      const updatedMessages = sort(newMessages.concat(subtract(oldMessages, newMessages)));
       const updatedChat = { ...oldChat, messages: updatedMessages };
       if (chatActivated) this.activatedChat.set(updatedChat);
       this.list.update((chats) => {

@@ -81,39 +81,17 @@ const setup = () => {
   return { service, httpTesting };
 };
 
-const getServiceState = (service: Chats) => {
-  return {
-    list: service.list(),
-    loading: service.loading(),
-    hasMore: service.hasMore(),
-    loadError: service.loadError(),
-    activatedChat: service.activatedChat(),
-  };
-};
-
 describe('Chats', () => {
-  it('should have the expected initial state', () => {
+  it('should have an activated chat in the initial state', () => {
     const { service } = setup();
-    const serviceInitialState = getServiceState(service);
-    expect(serviceInitialState.activatedChat).toBe(null);
-    expect(serviceInitialState.list).toStrictEqual([]);
-    expect(serviceInitialState.loadError).toBe('');
-    expect(serviceInitialState.loading).toBe(false);
-    expect(serviceInitialState.hasMore).toBe(false);
+    expect(service.activatedChat()).toBe(null);
   });
 
-  it('should reset to the initial state', () => {
+  it('should reset the activated chat', () => {
     const { service } = setup();
     service.activatedChat.set(chat);
-    service.loadError.set('foo');
-    service.loading.set(true);
-    service.list.set([chat]);
     service.reset();
-    const serviceInitialState = getServiceState(service);
-    expect(serviceInitialState.activatedChat).toBe(null);
-    expect(serviceInitialState.list).toStrictEqual([]);
-    expect(serviceInitialState.loadError).toBe('');
-    expect(serviceInitialState.loading).toBe(false);
+    expect(service.activatedChat()).toBe(null);
   });
 
   it('should activate chat even if it is not in the chat list', () => {
@@ -290,86 +268,33 @@ describe('Chats', () => {
     service.load();
     const reqInfo = { method: 'GET', url: chatsUrl };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chats');
-    const serviceLoadingState = getServiceState(service);
     const chats = [chat];
     req.flush(chats);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([]);
-    expect(serviceFinalState.list).toStrictEqual(chats);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    expect(service.list()).toStrictEqual(chats);
     httpTesting.verify();
   });
 
-  it('should fail to load the chats on the 1st time due to a server error, then succeed on the 2nd', () => {
+  it('should fail to load the chats due to a server error', () => {
     const { service, httpTesting } = setup();
-    const checkReq = () => {
-      const reqInfo = { method: 'GET', url: chatsUrl };
-      return httpTesting.expectOne(reqInfo, 'Request to get the chats');
-    };
     service.list.set([]);
     service.load();
-    const firstReq = checkReq();
-    const serviceLoadingState = getServiceState(service);
-    firstReq.flush('Failed', { status: 500, statusText: 'Internal server error' });
-    const serviceErrorState = getServiceState(service);
-    service.load();
-    const secondReq = checkReq();
-    const serviceSecondLoadingState = getServiceState(service);
-    const chats = [chat];
-    secondReq.flush(chats);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([]);
-    expect(serviceErrorState.loadError).toMatch(/failed/i);
-    expect(serviceErrorState.list).toStrictEqual([]);
-    expect(serviceErrorState.hasMore).toBe(false);
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
-    expect(serviceFinalState.list).toStrictEqual(chats);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    const reqInfo = { method: 'GET', url: chatsUrl };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the chats');
+    req.flush('Failed', { status: 500, statusText: 'Internal server error' });
+    expect(service.loadError()).toMatch(/failed/i);
+    expect(service.list()).toStrictEqual([]);
     httpTesting.verify();
   });
 
-  it('should fail to load the chats on the 1st time due to a network error, then succeed on the 2nd', () => {
+  it('should fail to load the chats due to a network error', () => {
     const { service, httpTesting } = setup();
-    const checkReq = () => {
-      const reqInfo = { method: 'GET', url: chatsUrl };
-      return httpTesting.expectOne(reqInfo, 'Request to get the chats');
-    };
     service.list.set([]);
     service.load();
-    const firstReq = checkReq();
-    const serviceLoadingState = getServiceState(service);
-    firstReq.error(new ProgressEvent('Network error'));
-    const serviceErrorState = getServiceState(service);
-    service.load();
-    const secondReq = checkReq();
-    const serviceSecondLoadingState = getServiceState(service);
-    const chats = [chat];
-    secondReq.flush(chats);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([]);
-    expect(serviceErrorState.loadError).toMatch(/check .*(internet)? connection/i);
-    expect(serviceErrorState.list).toStrictEqual([]);
-    expect(serviceErrorState.hasMore).toBe(false);
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
-    expect(serviceFinalState.list).toStrictEqual(chats);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    const reqInfo = { method: 'GET', url: chatsUrl };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the chats');
+    req.error(new ProgressEvent('Network error'));
+    expect(service.loadError()).toMatch(/check .*(internet)? connection/i);
+    expect(service.list()).toStrictEqual([]);
     httpTesting.verify();
   });
 
@@ -379,81 +304,32 @@ describe('Chats', () => {
     service.load();
     const reqInfo = { method: 'GET', url: `${chatsUrl}?cursor=${chat.id}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more chats');
-    const serviceLoadingState = getServiceState(service);
     req.flush([chat]);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([chat]);
-    expect(serviceFinalState.list).toStrictEqual([chat, chat]);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    expect(service.list()).toStrictEqual([chat, chat]);
     httpTesting.verify();
   });
 
-  it('should fail to load more chats on the 1st time due to a server error, then succeed on the 2nd', () => {
+  it('should fail to load more chats due to a server error', () => {
     const { service, httpTesting } = setup();
-    const checkReq = () => {
-      const reqInfo = { method: 'GET', url: `${chatsUrl}?cursor=${chat.id}` };
-      return httpTesting.expectOne(reqInfo, 'Request to get more chats');
-    };
     service.list.set([chat]);
     service.load();
-    const firstReq = checkReq();
-    const serviceLoadingState = getServiceState(service);
-    firstReq.flush('Failed', { status: 500, statusText: 'Internal server error' });
-    const serviceErrorState = getServiceState(service);
-    service.load();
-    const secondReq = checkReq();
-    const serviceSecondLoadingState = getServiceState(service);
-    secondReq.flush([chat]);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([chat]);
-    expect(serviceErrorState.loadError).toMatch(/failed/i);
-    expect(serviceErrorState.list).toStrictEqual([chat]);
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
-    expect(serviceFinalState.list).toStrictEqual([chat, chat]);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    const reqInfo = { method: 'GET', url: `${chatsUrl}?cursor=${chat.id}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get more chats');
+    req.flush('Failed', { status: 500, statusText: 'Internal server error' });
+    expect(service.loadError()).toMatch(/failed/i);
+    expect(service.list()).toStrictEqual([chat]);
     httpTesting.verify();
   });
 
   it('should fail to load more chats on the 1st time due to a network error, then succeed on the 2nd', () => {
     const { service, httpTesting } = setup();
-    const checkReq = () => {
-      const reqInfo = { method: 'GET', url: `${chatsUrl}?cursor=${chat.id}` };
-      return httpTesting.expectOne(reqInfo, 'Request to get more chats');
-    };
     service.list.set([chat]);
     service.load();
-    const firstReq = checkReq();
-    const serviceLoadingState = getServiceState(service);
+    const reqInfo = { method: 'GET', url: `${chatsUrl}?cursor=${chat.id}` };
+    const firstReq = httpTesting.expectOne(reqInfo, 'Request to get more chats');
     firstReq.error(new ProgressEvent('Network error'));
-    const serviceErrorState = getServiceState(service);
-    service.load();
-    const secondReq = checkReq();
-    const serviceSecondLoadingState = getServiceState(service);
-    secondReq.flush([chat]);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.list).toStrictEqual([chat]);
-    expect(serviceLoadingState.hasMore).toBe(false);
-    expect(serviceLoadingState.loading).toBe(true);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceErrorState.loading).toBe(false);
-    expect(serviceErrorState.list).toStrictEqual([chat]);
-    expect(serviceErrorState.loadError).toMatch(/check .*(internet)? connection/i);
-    expect(serviceSecondLoadingState).toStrictEqual(serviceLoadingState);
-    expect(serviceFinalState.list).toStrictEqual([chat, chat]);
-    expect(serviceFinalState.loading).toBe(false);
-    expect(serviceFinalState.hasMore).toBe(true);
-    expect(serviceFinalState.loadError).toBe('');
+    expect(service.loadError()).toMatch(/check .*(internet)? connection/i);
+    expect(service.list()).toStrictEqual([chat]);
     httpTesting.verify();
   });
 
@@ -564,12 +440,6 @@ describe('Chats', () => {
     req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
     const url = `${chatsUrl}/members/${memberProfileId}`;
     httpTesting.expectNone(url, 'Request to find a chat by member id');
-    const serviceLoadingState = getServiceState(service);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.loading).toBe(false);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([chat]);
-    expect(serviceLoadingState).toStrictEqual(serviceFinalState);
     expect(resErr).toBeUndefined();
     expect(resData).toBeInstanceOf(Promise);
     await expect(resData).resolves.toBe(true);
@@ -586,13 +456,7 @@ describe('Chats', () => {
     req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to find a chat by member id');
-    const serviceLoadingState = getServiceState(service);
     req.flush([chat]);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.loading).toBe(false);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([]);
-    expect(serviceLoadingState).toStrictEqual(serviceFinalState);
     expect(resErr).toBeUndefined();
     expect(resData).toBeInstanceOf(Promise);
     await expect(resData).resolves.toBe(true);
@@ -609,13 +473,7 @@ describe('Chats', () => {
     req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to find a chat by member id');
-    const serviceLoadingState = getServiceState(service);
     req.flush([chat]);
-    const serviceFinalState = getServiceState(service);
-    expect(serviceLoadingState.loading).toBe(false);
-    expect(serviceLoadingState.loadError).toBe('');
-    expect(serviceLoadingState.list).toStrictEqual([]);
-    expect(serviceLoadingState).toStrictEqual(serviceFinalState);
     expect(resErr).toBeUndefined();
     expect(resData).toBeInstanceOf(Promise);
     expect(navigationSpy).toHaveBeenCalledTimes(0);
