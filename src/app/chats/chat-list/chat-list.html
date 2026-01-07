@@ -1,54 +1,28 @@
-<!-- prettier-ignore -->
-@let _chatList = chats.list();
-@let _listIsEmpty = !_chatList.length; @let _suffix = _listIsEmpty ? '' : ' more';
-<div class="relative size-full overflow-auto" (scroll)="flushLoadMoreBtnWhenVisible()">
-  @if (!_listIsEmpty) {
-  <p-menu
-    [model]="_chatList"
-    ariaLabel="Chat list"
-    styleClass="rounded-none border-none"
-    [pt]="{ list: { class: 'gap-0' } }"
+<ng-template #li let-_chat>
+  @let _title = chats.generateTitle(_chat, user());
+  <a
+    pRipple
+    [title]="_title"
+    ariaCurrentWhenActive="page"
+    routerLinkActive="bg-highlight"
+    [routerLink]="['/chats', _chat.id]"
+    [routerLinkActiveOptions]="{ exact: true }"
+    class="size-full py-4 px-2 border-surface border-b flex items-center"
   >
-    <ng-template #item let-_chat>
-      @let _title = chats.generateTitle(_chat, user());
-      <a
-        pRipple
-        [title]="_title"
-        ariaCurrentWhenActive="page"
-        routerLinkActive="bg-highlight"
-        [routerLink]="['/chats', _chat.id]"
-        [routerLinkActiveOptions]="{ exact: true }"
-        class="size-full py-4 px-2 border-surface border-b flex items-center"
-      >
-        <p-avatar
-          label="{{ _title[0]?.toUpperCase() }}"
-          class="shrink-0 me-2 text-center"
-          shape="circle"
-          size="large"
-        />
-        <span class="block grow w-[calc(100%-56px)] **:truncate">
-          <span class="block w-full text-lg font-semibold tracking-wider">
-            {{ _title || 'Anonymous' }}
-          </span>
-          <span class="block w-full text-muted-color text-sm font-light tracking-tighter">
-            {{ _chat.messages[0]?.body || 'Empty chat!' }}
-          </span>
-        </span>
-      </a>
-    </ng-template>
-  </p-menu>
-  }
-  <div class="mt-2 p-1 text-center">
-    @if(chats.loading()) {
-    <app-spinner [ariaLabel]="`Loading${_suffix} chats...`" />
-    } @else if (chats.loadError(); as _loadError) {
-    <app-error-message [message]="_loadError" (retry)="chats.load()" />
-    } @else if (chats.hasMore()) {
-    <button text outlined pButton pRipple #loadMoreBtn type="button" (click)="chats.load()">
-      Load{{ _suffix }}
-    </button>
-    } @else if (_listIsEmpty) {
-    <p class="text-muted-color">There are no chats.</p>
-    }
-  </div>
-</div>
+    <p-avatar
+      label="{{ _title[0]?.toUpperCase() }}"
+      class="shrink-0 me-2 text-center"
+      shape="circle"
+      size="large"
+    />
+    <span class="block grow w-[calc(100%-56px)] **:truncate">
+      <span class="block w-full text-lg font-semibold tracking-wider">
+        {{ _title || 'Anonymous' }}
+      </span>
+      <span class="block w-full text-muted-color text-sm font-light tracking-tighter">
+        {{ _chat.messages[0]?.body || 'Empty chat!' }}
+      </span>
+    </span>
+  </a>
+</ng-template>
+<app-list [store]="chats" singularLabel="Chat" pluralLabel="Chats" [itemFragment]="li" />

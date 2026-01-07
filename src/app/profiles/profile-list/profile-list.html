@@ -1,48 +1,22 @@
-<!-- prettier-ignore -->
-@let _profileList = profiles.list();
-@let _listIsEmpty = !_profileList.length; @let _suffix = _listIsEmpty ? '' : ' more';
-<div class="relative size-full overflow-auto" (scroll)="flushLoadMoreBtnWhenVisible()">
-  @if (!_listIsEmpty) {
-  <p-menu
-    [model]="_profileList"
-    ariaLabel="Profile list"
-    styleClass="rounded-none border-none"
-    [pt]="{ list: { class: 'gap-0' } }"
+<ng-template #li let-_profile>
+  <a
+    pRipple
+    ariaCurrentWhenActive="page"
+    routerLinkActive="bg-highlight"
+    [title]="_profile.user.username"
+    [routerLink]="['/profiles', _profile.id]"
+    [routerLinkActiveOptions]="{ exact: true }"
+    class="size-full p-4 border-surface border-b flex items-center"
   >
-    <ng-template #item let-_profile>
-      <a
-        pRipple
-        ariaCurrentWhenActive="page"
-        routerLinkActive="bg-highlight"
-        [title]="_profile.user.username"
-        [routerLink]="['/profiles', _profile.id]"
-        [routerLinkActiveOptions]="{ exact: true }"
-        class="size-full p-4 border-surface border-b flex items-center"
-      >
-        <p-avatar
-          label="{{ _profile.user.username[0].toUpperCase() }}"
-          class="shrink-0 me-2 text-center"
-          shape="circle"
-          size="normal"
-        />
-        <span class="font-semibold tracking-wider truncate">
-          {{ _profile.user.username || 'Anonymous' }}
-        </span>
-      </a>
-    </ng-template>
-  </p-menu>
-  }
-  <div class="mt-2 p-1 text-center">
-    @if(profiles.loading()) {
-    <app-spinner [ariaLabel]="`Loading${_suffix} profiles...`" />
-    } @else if (profiles.loadError(); as _loadError) {
-    <app-error-message [message]="_loadError" (retry)="profiles.load()" />
-    } @else if (profiles.hasMore()) {
-    <button text outlined pButton pRipple #loadMoreBtn type="button" (click)="profiles.load()">
-      Load{{ _suffix }}
-    </button>
-    } @else if (_listIsEmpty) {
-    <p class="text-muted-color">There are no profiles.</p>
-    }
-  </div>
-</div>
+    <p-avatar
+      label="{{ _profile.user.username[0].toUpperCase() }}"
+      class="shrink-0 me-2 text-center"
+      shape="circle"
+      size="normal"
+    />
+    <span class="font-semibold tracking-wider truncate">
+      {{ _profile.user.username || 'Anonymous' }}
+    </span>
+  </a>
+</ng-template>
+<app-list [store]="profiles" singularLabel="Profile" pluralLabel="Profiles" [itemFragment]="li" />
