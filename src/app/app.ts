@@ -1,5 +1,5 @@
 import { Router, RouterLink, RouterOutlet, NavigationEnd, RouterLinkActive } from '@angular/router';
-import { inject, signal, Component, OnInit, HostListener } from '@angular/core';
+import { inject, signal, Component, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
 import { Navigator } from './navigation/navigator';
@@ -28,8 +28,8 @@ import { filter } from 'rxjs';
     Toast,
   ],
   templateUrl: './app.html',
-  styles: ``,
   providers: [MessageService],
+  host: { '(window:resize)': 'handleWindowResize()' },
 })
 export class App implements OnInit {
   private readonly _router = inject(Router);
@@ -82,7 +82,6 @@ export class App implements OnInit {
     this.singularViewEnabled.update((enabled) => !enabled);
   }
 
-  @HostListener('window:resize')
   protected handleWindowResize() {
     this.vpWidth.set(window.innerWidth);
   }
