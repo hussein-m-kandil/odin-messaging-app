@@ -1,6 +1,6 @@
 import { render, RenderComponentOptions, screen } from '@testing-library/angular';
+import { Chat, Profile, User } from '../chats.types';
 import { ChatList } from './chat-list';
-import { User } from '../chats.types';
 import { Chats } from '../chats';
 
 const chatsMock = {
@@ -13,12 +13,58 @@ const chatsMock = {
   list: vi.fn<() => unknown[]>(() => []),
 };
 
-const chats = [
-  { id: crypto.randomUUID(), messages: [{ body: 'Hi!' }] },
-  { id: crypto.randomUUID(), messages: [{ body: 'Hi!' }] },
-];
+const now = new Date().toISOString();
+const profile = {
+  id: crypto.randomUUID(),
+  tangible: true,
+  lastSeen: now,
+  visible: true,
+} as Profile;
+const user: User = {
+  bio: 'From the testing with love',
+  id: crypto.randomUUID(),
+  username: 'test_user',
+  fullname: 'Test User',
+  createdAt: now,
+  updatedAt: now,
+  isAdmin: false,
+  profile,
+};
+profile.user = user;
 
-const user = { id: crypto.randomUUID() } as User;
+const profile2 = { ...profile, id: crypto.randomUUID() } as Profile;
+const user2: User = {
+  ...user,
+  profile: profile2,
+  id: crypto.randomUUID(),
+  username: 'test_user_2',
+  fullname: 'Test User II',
+};
+profile2.user = user2;
+
+const chatId = crypto.randomUUID();
+const chat: Chat = {
+  profiles: [
+    { profileName: user.username, profileId: profile.id, joinedAt: now, profile, chatId },
+    {
+      profileName: user2.username,
+      profileId: profile2.id,
+      profile: profile2,
+      joinedAt: now,
+      chatId,
+    },
+  ],
+  createdAt: now,
+  updatedAt: now,
+  managers: [],
+  messages: [],
+  id: chatId,
+};
+
+const chats = [
+  { ...chat, messages: [{ body: 'Hi!' }] },
+  { ...chat, id: crypto.randomUUID(), messages: [{ body: 'Hi!' }] },
+];
 
 const renderComponent = ({
   providers,
@@ -65,5 +111,23 @@ describe('ChatList', () => {
     for (let i = 0; i < chatLinks.length; i++) {
       expect(chatLinks[i].href).toMatch(new RegExp(`chats/${chats[i].id}$`));
     }
+  });
+
+  it('should have some new-messages badges', async () => {
+    chatsMock.list.mockImplementation(() => chats);
+    await renderComponent();
+    expect(screen.getAllByLabelText(/new messages/i).length).toBeGreaterThan(0);
+  });
+
+  it('should not have any new-messages badges', async () => {
+    const lastReceivedAt = new Date(Date.now() + 7).toISOString();
+    const lastSeenAt = lastReceivedAt;
+    const updatedChats = chats.map((c) => ({
+      ...c,
+      profiles: c.profiles.map((cp) => ({ ...cp, lastReceivedAt, lastSeenAt })),
+    }));
+    chatsMock.list.mockImplementation(() => updatedChats);
+    await renderComponent();
+    expect(screen.queryByLabelText(/new messages/i)).toBeNull();
   });
 });

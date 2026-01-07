@@ -9,12 +9,21 @@
     [routerLinkActiveOptions]="{ exact: true }"
     class="size-full py-4 px-2 border-surface border-b flex items-center"
   >
-    <p-avatar
-      label="{{ _title[0]?.toUpperCase() }}"
-      class="shrink-0 me-2 text-center"
-      shape="circle"
-      size="large"
-    />
+    <div class="shrink-0 me-2 text-center">
+      @if (countNewMessages(_chat); as _newMessagesCount) {
+      <p-overlay-badge
+        styleClass="transform -translate-y-1/2 translate-x-1/4 p-1"
+        [value]="_newMessagesCount < 100 ? _newMessagesCount : '+99'"
+        aria-label="New messages"
+        severity="danger"
+        badgeSize="small"
+      >
+        <p-avatar label="{{ _title[0]?.toUpperCase() }}" shape="circle" size="large" />
+      </p-overlay-badge>
+      } @else {
+      <p-avatar label="{{ _title[0]?.toUpperCase() }}" shape="circle" size="large" />
+      }
+    </div>
     <span class="block grow w-[calc(100%-56px)] **:truncate">
       <span class="block w-full text-lg font-semibold tracking-wider">
         {{ _title || 'Anonymous' }}
