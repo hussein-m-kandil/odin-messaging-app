@@ -163,19 +163,21 @@ export class Chats extends ListStore<Chat> {
 
   updateChatMessages(chatId: Chat['id'], newMessages: Message[]) {
     let updated = false;
-    const activatedChat = this.activatedChat();
-    const chatActivated = activatedChat && activatedChat.id === chatId;
-    const oldChat = chatActivated ? activatedChat : this.list().find((c) => c.id === chatId);
-    if (oldChat) {
-      const oldMessages = oldChat.messages;
-      const updatedMessages = sort(newMessages.concat(subtract(oldMessages, newMessages)));
-      const updatedChat = { ...oldChat, messages: updatedMessages };
-      if (chatActivated) this.activatedChat.set(updatedChat);
-      this.list.update((chats) => {
-        return chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat));
-      });
-      updated = oldMessages.length !== updatedMessages.length;
-      if (!updated) this.updateChats(); // Refresh after finishing updating messages
+    if (newMessages.length) {
+      const activatedChat = this.activatedChat();
+      const chatActivated = activatedChat && activatedChat.id === chatId;
+      const oldChat = chatActivated ? activatedChat : this.list().find((c) => c.id === chatId);
+      if (oldChat) {
+        const oldMessages = oldChat.messages;
+        const updatedMessages = sort(newMessages.concat(subtract(oldMessages, newMessages)));
+        const updatedChat = { ...oldChat, messages: updatedMessages };
+        if (chatActivated) this.activatedChat.set(updatedChat);
+        this.list.update((chats) => {
+          return chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat));
+        });
+        updated = oldMessages.length !== updatedMessages.length;
+        if (!updated) this.updateChats(); // Refresh after finishing updating messages
+      }
     }
     return updated;
   }
