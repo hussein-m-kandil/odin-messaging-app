@@ -12,6 +12,15 @@ export abstract class ListStore<ItemType> {
 
   protected abstract getMore(): Observable<ItemType[]>;
 
+  protected prepareLoad() {
+    this.loading.set(true);
+    this.loadError.set('');
+  }
+
+  protected finalizeLoad() {
+    this.loading.set(false);
+  }
+
   reset() {
     this.hasMore.set(false);
     this.loading.set(false);
@@ -20,10 +29,9 @@ export abstract class ListStore<ItemType> {
   }
 
   load() {
-    this.loading.set(true);
-    this.loadError.set('');
+    this.prepareLoad();
     this.getMore()
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(finalize(() => this.finalizeLoad()))
       .subscribe({
         next: (moreItems) => {
           this.hasMore.set(!!moreItems.length);
