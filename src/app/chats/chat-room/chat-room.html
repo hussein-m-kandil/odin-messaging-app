@@ -54,7 +54,6 @@
     #messagesContainer
     aria-live="assertive"
     aria-label="Messages"
-    (scroll)="flushLoadMoreBtnWhenVisible()"
     [class]="`overflow-auto absolute w-full left-0 top-10 bottom-22 px-4
       flex flex-col-reverse
     `"
@@ -124,27 +123,14 @@
         <!-- prettier-ignore -->
         }
         <div class="min-h-8 text-center">
-          @if(messages.hasMore()) {
-          <!-- prettier-ignore -->
-          @if(messages.loading()) {
-          <app-spinner ariaLabel="Loading more messages..." />
-          } @else if (messages.loadError(); as _loadError) {
-          <app-error-message [message]="_loadError" (retry)="messages.load(_chat.id)" />
-          } @else {
-          <button
-            #loadMoreBtn
-            pButton
-            pRipple
-            text
-            outlined
-            type="button"
-            (click)="messages.load(_chat.id)"
-          >
-            Load more
-          </button>
-          }
-          <!-- prettier-ignore -->
-          }
+          <app-list-loader
+            pluralLabel="Messages"
+            [listSize]="_messages.length"
+            [loadError]="messages.loadError()"
+            [loading]="messages.loading()"
+            [hasMore]="messages.hasMore()"
+            (loaded)="messages.load()"
+          />
         </div>
       </div>
     </div>

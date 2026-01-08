@@ -1,32 +1,64 @@
-import { inject, signal, Injectable, DestroyRef, computed } from '@angular/core';
+import { inject, signal, Injectable, DestroyRef, linkedSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { createResErrorHandler } from '../../utils';
 import { HttpParams } from '@angular/common/http';
+import { ListStore } from '../../list/list-store';
 import { Chat, Message } from '../chats.types';
+import { finalize, of } from 'rxjs';
 import { Chats } from '../chats';
-import { finalize } from 'rxjs';
 
 @Injectable()
-export class Messages {
+export class Messages extends ListStore<Message> {
   private readonly _destroyRef = inject(DestroyRef);
+
+  protected override loadErrorMessage = 'Failed to load any messages.';
 
   readonly chats = inject(Chats);
 
-  readonly list = computed<Message[]>(() => this.chats.activatedChat()?.messages || []);
+  override readonly list = linkedSignal(() => this.chats.activatedChat()?.messages || []);
 
   readonly loadingRecent = signal(false);
   readonly loadRecentError = signal('');
-  readonly hasMore = signal(false);
-  readonly loading = signal(false);
-  readonly loadError = signal('');
 
-  reset() {
+  protected override prepareLoad(): void {
+    super.prepareLoad();
+  }
+
+  protected override getMore() {
+    const activatedChat = this.chats.activatedChat();
+    if (activatedChat) {
+      const list = this.list();
+      const cursor = list[list.length - 1]?.id;
+      const params = new HttpParams({ fromObject: { cursor, sort: 'desc' } });
+      return this.chats.getChatMessages(activatedChat.id, params);
+    }
+    return of([]);
+  }
+
+  override reset() {
+    super.reset();
     this.loadingRecent.set(false);
     this.loadRecentError.set('');
-    this.hasMore.set(false);
-    this.loading.set(false);
-    this.loadError.set('');
     this.chats.deactivate();
+  }
+
+  override load() {
+    this.prepareLoad();
+    this.getMore()
+      .pipe(
+        takeUntilDestroyed(this._destroyRef),
+        finalize(() => this.finalizeLoad())
+      )
+      .subscribe({
+        next: (olderList) => {
+          this.hasMore.set(!!olderList.length);
+          if (this.hasMore()) {
+            const { chatId } = olderList[0];
+            this.chats.updateChatMessages(chatId, olderList);
+          }
+        },
+        error: createResErrorHandler(this.loadError, this.loadErrorMessage),
+      });
   }
 
   init(chat: Chat, currentProfileName: string) {
@@ -35,33 +67,12 @@ export class Messages {
     this.chats.activate(chat, currentProfileName);
   }
 
-  load(chatId: Chat['id']) {
-    this.loading.set(true);
-    this.loadError.set('');
-    const list = this.list();
-    const cursor = list[list.length - 1]?.id;
-    const params = new HttpParams({ fromObject: { cursor, sort: 'desc' } });
-    this.chats
-      .getChatMessages(chatId, params)
-      .pipe(
-        takeUntilDestroyed(this._destroyRef),
-        finalize(() => this.loading.set(false))
-      )
-      .subscribe({
-        next: (olderList) => {
-          this.hasMore.set(!!olderList.length);
-          if (this.hasMore()) this.chats.updateChatMessages(chatId, olderList);
-        },
-        error: createResErrorHandler(this.loadError, 'Failed to load any messages.'),
-      });
-  }
-
   loadRecent(chatId: Chat['id'], currentProfileName: Message['profileName']) {
     this.loadingRecent.set(true);
     this.loadRecentError.set('');
     const list = this.list();
     if (list.length < 1) {
-      this.load(chatId);
+      this.load();
     } else {
       const recentOtherMemberMessage = list.find((m) => m.profileName !== currentProfileName);
       const cursor = recentOtherMemberMessage?.id || list[0].id;
@@ -73,8 +84,10 @@ export class Messages {
         )
         .subscribe({
           next: (newerList) => {
-            const updated = this.chats.updateChatMessages(chatId, newerList.reverse());
-            if (updated) this.loadRecent(chatId, currentProfileName);
+            if (newerList.length) {
+              const updated = this.chats.updateChatMessages(chatId, newerList.reverse());
+              if (updated) this.loadRecent(chatId, currentProfileName);
+            }
           },
           error: createResErrorHandler(this.loadRecentError, 'Failed to update chat messages.'),
         });

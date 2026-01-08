@@ -3,15 +3,13 @@ import {
   inject,
   effect,
   computed,
-  Injector,
   viewChild,
   Component,
-  untracked,
   OnChanges,
   ElementRef,
   SimpleChanges,
-  afterNextRender,
 } from '@angular/core';
+import { ListLoader } from '../../list/list-loader';
 import { ErrorMessage } from '../../error-message';
 import { AuthData } from '../../auth/auth.types';
 import { ButtonDirective } from 'primeng/button';
@@ -34,6 +32,7 @@ import { Chat } from '../chats.types';
     ErrorMessage,
     MessageForm,
     RouterLink,
+    ListLoader,
     DatePipe,
     Spinner,
     Ripple,
@@ -41,11 +40,9 @@ import { Chat } from '../chats.types';
   providers: [Messages],
 })
 export class ChatRoom implements OnChanges {
-  private readonly _injector = inject(Injector);
   private readonly _profiles = inject(Profiles);
 
   private readonly _messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
-  private readonly _loadMoreBtn = viewChild<ElementRef<HTMLButtonElement>>('loadMoreBtn');
 
   protected readonly messages = inject(Messages);
 
@@ -73,17 +70,6 @@ export class ChatRoom implements OnChanges {
 
   constructor() {
     effect(() => {
-      this.messages.list();
-      untracked(() => {
-        afterNextRender(
-          () => {
-            this.flushLoadMoreBtnWhenVisible();
-          },
-          { injector: this._injector }
-        );
-      });
-    });
-    effect(() => {
       const loadingRecentFinished = !this.messages.loadingRecent();
       if (loadingRecentFinished) this._scrollDown();
     });
@@ -92,20 +78,6 @@ export class ChatRoom implements OnChanges {
   private _scrollDown() {
     const messagesContainer = this._messagesContainer()?.nativeElement;
     messagesContainer?.scrollBy(0, messagesContainer.scrollHeight);
-  }
-
-  protected flushLoadMoreBtnWhenVisible() {
-    const messagesContainer = this._messagesContainer()?.nativeElement;
-    const loadMoreBtn = this._loadMoreBtn()?.nativeElement;
-    const chatId = this.chatId();
-    if (messagesContainer && loadMoreBtn && chatId) {
-      const loadMoreBtnRect = loadMoreBtn.getBoundingClientRect();
-      const messagesContainerRect = messagesContainer.getBoundingClientRect();
-      const loadMoreBtnVisible = loadMoreBtnRect.bottom >= messagesContainerRect.top;
-      if (loadMoreBtnVisible && !this.messages.loading() && !this.messages.loadError()) {
-        this.messages.load(chatId);
-      }
-    }
   }
 
   protected update() {

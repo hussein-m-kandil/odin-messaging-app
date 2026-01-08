@@ -113,7 +113,7 @@ describe('Messages', () => {
     );
     const { service } = setup();
     setMessageList([message]);
-    service.load(chatId);
+    service.load();
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
     const serviceFinalState = getServiceState(service);
@@ -141,7 +141,7 @@ describe('Messages', () => {
     );
     const { service } = setup();
     service.loadError.set('Blah');
-    service.load(chatId);
+    service.load();
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
     const serviceFinalState = getServiceState(service);
@@ -156,7 +156,7 @@ describe('Messages', () => {
       throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0))
     );
     const { service } = setup();
-    service.load(chatId);
+    service.load();
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
     const serviceErrorState = getServiceState(service);
@@ -182,7 +182,7 @@ describe('Messages', () => {
     );
     const { service } = setup();
     setMessageList([message2, message3]);
-    service.load(chatId);
+    service.load();
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
     const serviceFinalState = getServiceState(service);
@@ -209,7 +209,7 @@ describe('Messages', () => {
     const { service } = setup();
     setMessageList([message2]);
     service.loadError.set('Blah');
-    service.load(chatId);
+    service.load();
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
     const serviceFinalState = getServiceState(service);
@@ -226,7 +226,7 @@ describe('Messages', () => {
     const { service } = setup();
     setMessageList([message]);
     service.hasMore.set(true);
-    service.load(chatId);
+    service.load();
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
     const serviceErrorState = getServiceState(service);

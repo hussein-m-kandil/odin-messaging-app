@@ -231,23 +231,14 @@ describe('ChatRoom', () => {
     }
   });
 
-  it('should load more messages automatically while the load-more button is visible', async () => {
-    messagesMock.hasMore.mockImplementation(() => true);
-    await renderComponent({ inputs: { user, chat, chatId } });
-    const loadMoreBtn = screen.getByRole('button', { name: /load more/i });
-    expect(loadMoreBtn).toBeVisible();
-    expect(messagesMock.load).toHaveBeenCalledExactlyOnceWith(chatId);
-  });
-
   it('should display load-more button, that invokes the load-more method', async () => {
     const { click } = userEvent.setup();
     messagesMock.hasMore.mockImplementation(() => true);
     await renderComponent({ inputs: { user, chat, chatId } });
-    messagesMock.load.mockClear();
     const loadMoreBtn = screen.getByRole('button', { name: /load more/i });
     await click(loadMoreBtn);
     expect(loadMoreBtn).toBeVisible();
-    expect(messagesMock.load).toHaveBeenCalledExactlyOnceWith(chatId);
+    expect(messagesMock.load).toHaveBeenCalledExactlyOnceWith();
   });
 
   it('should display more-messages load error, and a button to retry loading more messages', async () => {
@@ -261,7 +252,7 @@ describe('ChatRoom', () => {
     expect(retryBtn).toBeVisible();
     expect(screen.getByText(errMsg)).toBeVisible();
     expect(screen.queryByLabelText(/loading more/i)).toBeNull();
-    expect(messagesMock.load).toHaveBeenCalledExactlyOnceWith(chatId);
+    expect(messagesMock.load).toHaveBeenCalledExactlyOnceWith();
     for (const msg of messages) {
       expect(screen.getByText(msg.body)).toBeVisible();
     }
