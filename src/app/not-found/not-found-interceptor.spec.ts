@@ -27,11 +27,25 @@ const setup = () => {
 };
 
 describe('notFoundInterceptor', () => {
-  it('should navigate to the not-found route on a response with 404 status', async () => {
+  it('should navigate to the not-found route on a response with 404 status if it is a GET request', async () => {
     const { http, httpTesting } = setup();
     let reqCompleted = false;
     const completeReq = () => setTimeout(() => (reqCompleted = true), 0);
-    for (const method of httpMethods) {
+    http.get(url).subscribe({ next: completeReq, error: completeReq });
+    const req = httpTesting.expectOne({ method: 'GET', url });
+    req.flush('Failed', { status: 404, statusText: 'Not found' });
+    httpTesting.verify();
+    await vi.waitUntil(() => reqCompleted);
+    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/not-found'], { replaceUrl: true });
+    navigationSpy.mockClear();
+  });
+
+  it('should not navigate to the not-found route on a response with 404 status if it is a non-GET request', async () => {
+    const { http, httpTesting } = setup();
+    let reqCompleted = false;
+    const completeReq = () => setTimeout(() => (reqCompleted = true), 0);
+    const nonGetHttpMethods = httpMethods.filter((m) => m !== 'GET');
+    for (const method of nonGetHttpMethods) {
       http
         .request(new HttpRequest(method, url, null))
         .subscribe({ next: completeReq, error: completeReq });
@@ -39,7 +53,7 @@ describe('notFoundInterceptor', () => {
       req.flush('Failed', { status: 404, statusText: 'Not found' });
       httpTesting.verify();
       await vi.waitUntil(() => reqCompleted);
-      expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/not-found'], { replaceUrl: true });
+      expect(navigationSpy).toHaveBeenCalledTimes(0);
       navigationSpy.mockClear();
     }
   });
