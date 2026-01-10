@@ -8,25 +8,11 @@ import { ChatRoom } from './chats/chat-room';
 import { ChatList } from './chats/chat-list';
 import { Profile } from './profiles/profile';
 import { AuthForm } from './auth/auth-form';
-import { Route, Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { NotFound } from './not-found';
 
 const { title } = environment;
 const titleize = (s: string) => `${s} | ${title}`;
-
-const chatRoute: Route = {
-  path: ':chatId',
-  component: ChatRoom,
-  title: titleize('Chat'),
-  resolve: { chat: chatResolver },
-};
-
-const profileRoute = {
-  path: ':profileId',
-  component: Profile,
-  title: titleize('Profile'),
-  resolve: { profile: profileResolver },
-};
 
 export const routes: Routes = [
   { path: 'not-found', component: NotFound, title: titleize('Not Found') },
@@ -45,15 +31,36 @@ export const routes: Routes = [
             path: 'chats',
             children: [
               { path: '', outlet: 'mainMenu', component: ChatList, title: titleize('Chats') },
-              { ...chatRoute, path: ':chatId' },
+              {
+                path: ':chatId',
+                component: ChatRoom,
+                title: titleize('Chat'),
+                resolve: { chat: chatResolver },
+              },
             ],
           },
           {
             path: 'profiles',
             children: [
               { path: '', outlet: 'mainMenu', component: ProfileList, title: titleize('Profiles') },
-              { ...chatRoute, path: ':profileId/chat' },
-              { ...profileRoute, path: ':profileId' },
+              {
+                path: ':profileId/chat',
+                component: ChatRoom,
+                title: titleize('Chat'),
+                resolve: { chat: chatResolver },
+              },
+              {
+                path: ':profileId/edit',
+                component: AuthForm,
+                title: titleize('Edit Profile'),
+                resolve: { profile: profileResolver },
+              },
+              {
+                path: ':profileId',
+                component: Profile,
+                title: titleize('Profile'),
+                resolve: { profile: profileResolver },
+              },
             ],
           },
         ],

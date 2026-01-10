@@ -1,61 +1,15 @@
-@let _narrowScreen = vpWidth() < 720; @let _singularViewEnabled = singularViewEnabled();
+@let _narrowScreen = vpWidth() < 720;
 <div>
   @let _user = auth.user();
-  <header
-    [class]="`absolute top-0 left-0 right-0 h-16 overflow-auto bg-primary
-      flex flex-wrap justify-center items-center border-surface border-b px-2
-    `"
-  >
-    <h1 class="text-primary-contrast text-2xl text-center font-bold p-2">
-      <a routerLink="/">{{ title }}</a>
-    </h1>
-    <div class="ms-auto space-x-2 *:text-xs">
-      <!-- prettier-ignore -->
-      @let _scheme = colorScheme.scheme();
-      @let _SchemeTitle= `${_scheme.value[0].toUpperCase()}${_scheme.value.slice(1)}`;
-      <button
-        pButton
-        pRipple
-        rounded
-        size="small"
-        type="button"
-        [icon]="_scheme.icon"
-        (click)="colorScheme.switch()"
-        aria-label="Switch color scheme. {{ _SchemeTitle }} selected."
-      ></button>
-      @if (_user) { @if (!_narrowScreen) {
-      <!-- prettier-ignore -->
-      @let _viewSwitchLabel = _singularViewEnabled ? 'Open main menu' : 'Close main menu';
-      <button
-        pButton
-        pRipple
-        rounded
-        size="small"
-        type="button"
-        (click)="toggleSingularView()"
-        aria-label="{{ _viewSwitchLabel }}"
-        icon="{{ _singularViewEnabled ? 'pi pi-tablet' : 'pi pi-th-large' }}"
-      ></button>
-      }
-      <button
-        pButton
-        pRipple
-        rounded
-        size="small"
-        type="button"
-        icon="pi pi-sign-out"
-        aria-label="Sign Out"
-        (click)="signOut()"
-      ></button>
-      }
-    </div>
+  <header class="absolute top-0 left-0 right-0 h-16">
+    <app-mainbar [togglableView]="!_narrowScreen" />
   </header>
   <main [class]="`absolute top-16 left-0 right-0 bottom-0 overflow-auto`">
     @if (navigation.isInitial()) {
     <app-navigator />
     } @else if (_user) {
     <ng-container
-      [ngTemplateOutlet]="_narrowScreen || _singularViewEnabled ? _singularView : _compoundView"
+      [ngTemplateOutlet]="_narrowScreen || singularView.enabled() ? _singularView : _compoundView"
     />
     } @else {
     <ng-container [ngTemplateOutlet]="_mainContent" />
