@@ -100,13 +100,24 @@ export class Auth {
       .pipe(map(this._saveValidAuthDataAndGetUserOrThrow));
   }
 
+  signOut() {
+    this._setAuthData(null);
+  }
+
   signUp(data: SignupData) {
     return this._http
       .post<AuthData>(`${apiUrl}/users`, data)
       .pipe(map(this._saveValidAuthDataAndGetUserOrThrow));
   }
 
-  signOut() {
-    this._setAuthData(null);
+  edit(id: AuthData['user']['id'], data: Partial<SignupData>) {
+    const reqBody: Record<string, string> = {};
+    const dataEntries = Object.entries(data);
+    for (const [k, v] of dataEntries) {
+      if (data[k as keyof SignupData]) reqBody[k] = v;
+    }
+    return this._http
+      .patch<AuthData>(`${apiUrl}/users/${id}`, reqBody)
+      .pipe(map(this._saveValidAuthDataAndGetUserOrThrow));
   }
 }

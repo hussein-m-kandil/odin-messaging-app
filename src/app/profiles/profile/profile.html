@@ -1,6 +1,6 @@
-@let _profile = profile();
+@let _profile = profile(); @let _isCurrentProfile = profiles.isCurrentProfile(_profile.id);
 <section class="size-full flex flex-col justify-center">
-  <nav class="px-4 p-2">
+  <nav class="p-2 flex justify-between">
     <a
       pButton
       pRipple
@@ -13,14 +13,32 @@
       class="**:leading-0!"
       icon="pi pi-arrow-left"
     ></a>
+    @if(_isCurrentProfile) {
+    <a
+      pButton
+      pRipple
+      text
+      rounded
+      outlined
+      size="small"
+      routerLink="./edit"
+      aria-label="Edit Profile"
+      class="**:leading-0!"
+      icon="pi pi-cog"
+    ></a>
+    }
   </nav>
-  <div class="my-auto space-y-4 text-center">
+  <div class="my-auto text-center">
     <p-avatar [label]="_profile.user.username[0].toUpperCase()" size="xlarge" />
-    <h2 class="text-xl font-bold leading-tight">
-      {{ _profile.user.fullname }}
-      <br />
-      <span class="text-sm text-muted-color font-light">@{{ _profile.user.username }}</span>
-    </h2>
+    <div class="my-4 **:leading-tight">
+      <h2 class="text-xl font-bold">
+        {{ _profile.user.fullname }}
+      </h2>
+      <p class="text-sm text-muted-color font-light">@{{ _profile.user.username }}</p>
+      <p class="mt-2 text-muted-color-emphasis tracking-wider">
+        {{ _profile.user.bio }}
+      </p>
+    </div>
     <div>
       <a
         pButton
@@ -28,7 +46,7 @@
         rounded
         icon="pi pi-send"
         routerLink="chat"
-        aria-label="Chat with {{ _profile.user.username }}"
+        aria-label="Chat with {{ _isCurrentProfile ? 'yourself' : _profile.user.username }}"
       ></a>
     </div>
   </div>
