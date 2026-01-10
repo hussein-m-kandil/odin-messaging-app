@@ -26,7 +26,7 @@ describe('ColorScheme', () => {
   it('should have the first scheme initially, and not use the app storage', () => {
     const { service } = setup();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[0]);
+    expect(service.selectedScheme()).toBe(SCHEMES[0]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
@@ -36,7 +36,7 @@ describe('ColorScheme', () => {
     vi.stubGlobal('matchMedia', undefined);
     const { service } = setup();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[0]);
+    expect(service.selectedScheme()).toBe(SCHEMES[0]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
@@ -50,7 +50,7 @@ describe('ColorScheme', () => {
     const matchMediaSpy = vi.spyOn(window, 'matchMedia');
     const { service } = setup();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[0]);
+    expect(service.selectedScheme()).toBe(SCHEMES[0]);
     expect(matchMediaSpy).toHaveBeenCalledTimes(1);
     expect(addEventListener).toHaveBeenCalledTimes(1);
     expect(removeEventListener).toHaveBeenCalledTimes(0);
@@ -70,7 +70,7 @@ describe('ColorScheme', () => {
     const { service } = setup();
     TestBed.tick();
     matchMediaChangeHandler({ matches: false });
-    expect(service.scheme()).toBe(SCHEMES[0]);
+    expect(service.selectedScheme()).toBe(SCHEMES[0]);
     expect(matchMediaSpy).toHaveBeenCalledTimes(1);
     expect(addEventListener).toHaveBeenCalledTimes(1);
     expect(removeEventListener).toHaveBeenCalledTimes(0);
@@ -90,7 +90,7 @@ describe('ColorScheme', () => {
     TestBed.tick();
     service.switch();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[1]);
+    expect(service.selectedScheme()).toBe(SCHEMES[1]);
     expect(matchMediaSpy).toHaveBeenCalledTimes(1);
     expect(addEventListener).toHaveBeenCalledTimes(1);
     expect(removeEventListener).toHaveBeenCalledTimes(1);
@@ -101,28 +101,11 @@ describe('ColorScheme', () => {
     vi.unstubAllGlobals();
   });
 
-  it('should apply the dark scheme', () => {
-    const { service } = setup();
-    TestBed.tick();
-    expect(document.querySelector(`.${DARK_SCHEME_CN}`)).toBeNull();
-    service.apply(true);
-    TestBed.tick();
-    expect(document.querySelector(`.${DARK_SCHEME_CN}`)).toBeTruthy();
-  });
-
-  it('should apply the light scheme', () => {
-    const { service } = setup();
-    TestBed.tick();
-    service.apply(false);
-    TestBed.tick();
-    expect(document.querySelector(`.${DARK_SCHEME_CN}`)).toBeNull();
-  });
-
   it('should restore a saved scheme on app initialization', () => {
     appStorageMock.getItem.mockImplementation(() => SCHEMES[2].value);
     const { service } = setup({ providers: [provideAppInitializer(initColorScheme)] });
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[2]);
+    expect(service.selectedScheme()).toBe(SCHEMES[2]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(1);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
@@ -131,7 +114,7 @@ describe('ColorScheme', () => {
   it('should not restore a saved scheme on app initialization if nothing is saved', () => {
     const { service } = setup({ providers: [provideAppInitializer(initColorScheme)] });
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[0]);
+    expect(service.selectedScheme()).toBe(SCHEMES[0]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(1);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
@@ -141,7 +124,7 @@ describe('ColorScheme', () => {
     appStorageMock.getItem.mockImplementation(() => 'invalid-scheme-value');
     const { service } = setup({ providers: [provideAppInitializer(initColorScheme)] });
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[0]);
+    expect(service.selectedScheme()).toBe(SCHEMES[0]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(1);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(1);
@@ -152,11 +135,23 @@ describe('ColorScheme', () => {
     TestBed.tick();
     service.save();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[0]);
+    expect(service.selectedScheme()).toBe(SCHEMES[0]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(1);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.setItem.mock.calls[0][1]).toBe(SCHEMES[0].value);
+  });
+
+  it('should select the given scheme', () => {
+    const { service } = setup();
+    TestBed.tick();
+    service.select(SCHEMES[1]);
+    TestBed.tick();
+    expect(service.selectedScheme()).toBe(SCHEMES[1]);
+    expect(appStorageMock.setItem).toHaveBeenCalledTimes(1);
+    expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
+    expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
+    expect(appStorageMock.setItem.mock.calls[0][1]).toBe(SCHEMES[1].value);
   });
 
   it('should have the second scheme after switching once', () => {
@@ -164,7 +159,7 @@ describe('ColorScheme', () => {
     TestBed.tick();
     service.switch();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[1]);
+    expect(service.selectedScheme()).toBe(SCHEMES[1]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(1);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
@@ -178,7 +173,7 @@ describe('ColorScheme', () => {
     TestBed.tick();
     service.switch();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[2]);
+    expect(service.selectedScheme()).toBe(SCHEMES[2]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(2);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
@@ -194,7 +189,7 @@ describe('ColorScheme', () => {
     TestBed.tick();
     service.switch();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[0]);
+    expect(service.selectedScheme()).toBe(SCHEMES[0]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(3);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
@@ -213,7 +208,7 @@ describe('ColorScheme', () => {
     TestBed.tick();
     service.switch();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[1]);
+    expect(service.selectedScheme()).toBe(SCHEMES[1]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(4);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
@@ -235,7 +230,7 @@ describe('ColorScheme', () => {
     TestBed.tick();
     service.switch();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[2]);
+    expect(service.selectedScheme()).toBe(SCHEMES[2]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(5);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
@@ -260,7 +255,7 @@ describe('ColorScheme', () => {
     TestBed.tick();
     service.switch();
     TestBed.tick();
-    expect(service.scheme()).toBe(SCHEMES[0]);
+    expect(service.selectedScheme()).toBe(SCHEMES[0]);
     expect(appStorageMock.setItem).toHaveBeenCalledTimes(6);
     expect(appStorageMock.getItem).toHaveBeenCalledTimes(0);
     expect(appStorageMock.removeItem).toHaveBeenCalledTimes(0);
