@@ -5,6 +5,7 @@ import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
 import { Profile } from '../app.types';
 import { defer, of } from 'rxjs';
+import { Auth } from '../auth';
 
 const { apiUrl } = environment;
 
@@ -14,6 +15,7 @@ const { apiUrl } = environment;
 export class Profiles extends ListStore<Profile> {
   private readonly _destroyRef = inject(DestroyRef);
   private _http = inject(HttpClient);
+  private _auth = inject(Auth);
 
   protected override loadErrorMessage = 'Failed to load any profiles.';
 
@@ -34,5 +36,10 @@ export class Profiles extends ListStore<Profile> {
       if (foundProfile) return of(foundProfile);
       return this._http.get<Profile>(`${this.baseUrl}/${id}`);
     });
+  }
+
+  isCurrentProfile(id: Profile['id']) {
+    const currentUser = this._auth.user();
+    return !!currentUser && currentUser.profile.id === id;
   }
 }

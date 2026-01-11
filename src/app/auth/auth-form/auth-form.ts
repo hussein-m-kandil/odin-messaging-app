@@ -7,11 +7,12 @@ import {
   ValidationErrors,
   ReactiveFormsModule,
 } from '@angular/forms';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, input, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FloatLabelModule } from 'primeng/floatlabel';
+import { AuthData, SignupData } from '../auth.types';
 import { InputTextModule } from 'primeng/inputtext';
 import { NgTemplateOutlet } from '@angular/common';
 import { TextareaModule } from 'primeng/textarea';
@@ -19,7 +20,8 @@ import { DividerModule } from 'primeng/divider';
 import { MessageModule } from 'primeng/message';
 import { ButtonModule } from 'primeng/button';
 import { MessageService } from 'primeng/api';
-import { SignupData } from '../auth.types';
+import { Profile } from '../../app.types';
+import { Observable } from 'rxjs';
 import { Auth } from '../auth';
 
 export const passwordsMatchValidator: ValidatorFn = (
@@ -49,7 +51,10 @@ export const passwordsMatchValidator: ValidatorFn = (
   ],
   templateUrl: './auth-form.html',
 })
-export class AuthForm {
+export class AuthForm implements OnInit {
+  protected readonly SIGN_IN_LABEL = 'Sign In';
+  protected readonly SIGN_UP_LABEL = 'Sign Up';
+  protected readonly EDIT_LABEL = 'Edit Profile';
   protected readonly passwordHidden = signal(true);
   protected readonly confirmHidden = signal(true);
 
@@ -58,11 +63,39 @@ export class AuthForm {
   private readonly _router = inject(Router);
   private readonly _auth = inject(Auth);
 
-  protected readonly signingIn = this._activatedRoute.snapshot.url.at(-1)?.path === 'signin';
-  protected readonly formType = this.signingIn
-    ? { verb: 'Sign', suffix: 'In', oppositeSuffix: 'Up' }
-    : { verb: 'Sign', suffix: 'Up', oppositeSuffix: 'In' };
+  readonly profile = input<Profile>();
 
+  private readonly _activatedPath = this._activatedRoute.snapshot.url.at(-1)?.path || '';
+
+  protected readonly info = this._activatedPath.endsWith('signup')
+    ? ({
+        type: 'signup',
+        label: this.SIGN_UP_LABEL,
+        success: { summary: 'Welcome!', detail: 'You have signed-up successfully.' },
+        error: { summary: 'Submission failed!', detail: 'Failed to sign you up.' },
+      } as const)
+    : this._activatedPath.endsWith('edit')
+    ? ({
+        type: 'edit',
+        label: this.EDIT_LABEL,
+        success: {
+          summary: 'Profile edited!',
+          detail: 'You have successfully edited your profile data.',
+        },
+        error: { summary: 'Submission failed!', detail: 'Failed to edit your profile data.' },
+      } as const)
+    : ({
+        type: 'signin',
+        label: this.SIGN_IN_LABEL,
+        success: { summary: 'Welcome back!', detail: 'You have signed-in successfully.' },
+        error: { summary: 'Submission failed!', detail: 'Failed to sign you in.' },
+      } as const);
+
+  protected readonly signingIn = this.info.type === 'signin';
+  protected readonly signingUp = this.info.type === 'signup';
+  protected readonly editing = this.info.type === 'edit';
+
+  private _fieldValidators = this.editing ? [] : [Validators.required];
   protected readonly form = new FormGroup<{
     username: FormControl<string>;
     password: FormControl<string>;
@@ -71,23 +104,23 @@ export class AuthForm {
     bio?: FormControl<string>;
   }>(
     {
-      username: new FormControl('', { validators: [Validators.required], nonNullable: true }),
-      password: new FormControl('', { validators: [Validators.required], nonNullable: true }),
-      ...(this.signingIn
-        ? {}
-        : {
-            fullname: new FormControl('', { validators: [Validators.required], nonNullable: true }),
-            confirm: new FormControl('', { validators: [Validators.required], nonNullable: true }),
+      username: new FormControl('', { validators: this._fieldValidators, nonNullable: true }),
+      password: new FormControl('', { validators: this._fieldValidators, nonNullable: true }),
+      ...(this.signingUp || this.editing
+        ? {
+            fullname: new FormControl('', { validators: this._fieldValidators, nonNullable: true }),
+            confirm: new FormControl('', { validators: this._fieldValidators, nonNullable: true }),
             bio: new FormControl('', { nonNullable: true }),
-          }),
+          }
+        : {}),
     },
     { validators: passwordsMatchValidator }
   );
 
-  protected changeForm() {
+  protected navigate(url: string[]) {
     if (this.form.enabled) {
       const { queryParams } = this._router.routerState.snapshot.root;
-      this._router.navigate(this.signingIn ? ['/signup'] : ['/signin'], { queryParams });
+      this._router.navigate(url, { queryParams, relativeTo: this._activatedRoute });
     }
   }
 
@@ -101,18 +134,23 @@ export class AuthForm {
     this.form.setErrors(null);
     if (this.form.enabled && this.form.valid) {
       this.form.disable();
-      const { username, password, ...formValues } = this.form.getRawValue();
-      const authReq$ = this.signingIn
-        ? this._auth.signIn({ username, password })
-        : this._auth.signUp({ username, password, ...formValues } as SignupData);
-      authReq$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-        next: (user) => {
-          this.form.reset();
-          this._toast.add({
-            severity: 'success',
-            summary: `Welcome ${this.signingIn ? 'back' : ''}, ${user.username}`,
-            detail: `You have signed-${this.formType.suffix.toLowerCase()} successfully.`,
-          });
+      const profile = this.profile();
+      const formValues = this.form.getRawValue();
+      let req$: Observable<AuthData['user']>;
+      if (this.signingUp) {
+        req$ = this._auth.signUp(formValues as SignupData);
+      } else if (this.editing && profile) {
+        req$ = this._auth.edit(profile.user.id, formValues);
+      } else if (this.signingIn) {
+        req$ = this._auth.signIn(formValues);
+      } else {
+        return;
+      }
+      req$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
+        next: () => {
+          this.form.enable();
+          this._toast.add({ ...this.info.success, severity: 'success' });
+          if (this.editing) this.navigate(['..']);
         },
         error: (data) => {
           this.form.enable();
@@ -146,11 +184,7 @@ export class AuthForm {
             }
           }
           if (this.form.valid) this.form.setErrors({ global: message });
-          this._toast.add({
-            severity: 'error',
-            summary: 'Submission failed',
-            detail: `Failed to sign you ${this.formType.suffix.toLowerCase()}.`,
-          });
+          this._toast.add({ ...this.info.error, severity: 'error' });
         },
       });
     }
@@ -178,5 +212,16 @@ export class AuthForm {
 
   protected toggleConfirmVisibility() {
     this.confirmHidden.update((hidden) => !hidden);
+  }
+
+  ngOnInit() {
+    if (this.editing) {
+      const profile = this.profile();
+      if (profile) {
+        this.form.controls.username.setValue(profile.user.username);
+        this.form.controls.fullname?.setValue(profile.user.fullname);
+        this.form.controls.bio?.setValue(profile.user.bio);
+      }
+    }
   }
 }

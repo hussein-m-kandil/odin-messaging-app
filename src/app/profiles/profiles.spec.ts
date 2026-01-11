@@ -2,20 +2,46 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
 import { TestBed } from '@angular/core/testing';
-import { Profile } from '../app.types';
+import { Profile, User } from '../app.types';
 import { Profiles } from './profiles';
+import { Auth } from '../auth';
 
 const { apiUrl } = environment;
 const profilesUrl = `${apiUrl}/profiles`;
 
+const user = {
+  id: crypto.randomUUID(),
+  username: 'test_user',
+  fullname: 'Test User',
+  bio: 'Test bio.',
+} as User;
+const profile = { id: crypto.randomUUID(), user } as unknown as Profile;
+user.profile = profile;
+const user2 = {
+  id: crypto.randomUUID(),
+  username: 'test_user_2',
+  fullname: 'Test User 2',
+  bio: 'Test bio 2.',
+} as User;
+const profile2 = { id: crypto.randomUUID(), user: user2 } as unknown as Profile;
+user2.profile = profile2;
+
+const profiles = [profile, profile2] as Profile[];
+
+const authMock = { user: vi.fn(() => null as typeof user | null) };
+
 const setup = () => {
-  TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+  TestBed.configureTestingModule({
+    providers: [
+      provideHttpClient(),
+      provideHttpClientTesting(),
+      { provide: Auth, useValue: authMock },
+    ],
+  });
   const httpTesting = TestBed.inject(HttpTestingController);
   const service = TestBed.inject(Profiles);
   return { service, httpTesting };
 };
-
-const profiles = [{ id: crypto.randomUUID() }, { id: crypto.randomUUID() }] as Profile[];
 
 describe('Profiles', () => {
   it('should load the profiles', () => {
@@ -148,5 +174,23 @@ describe('Profiles', () => {
     expect(resError).toHaveProperty('status', 0);
     expect(resData).toBeUndefined();
     httpTesting.verify();
+  });
+
+  it('should be the current profile', () => {
+    authMock.user.mockImplementationOnce(() => user);
+    const { service } = setup();
+    expect(service.isCurrentProfile(profile.id)).toBe(true);
+  });
+
+  it('should not be the current profile', () => {
+    authMock.user.mockImplementationOnce(() => user2);
+    const { service } = setup();
+    expect(service.isCurrentProfile(profile.id)).toBe(false);
+  });
+
+  it('should not be the current profile if unauthenticated', () => {
+    authMock.user.mockImplementationOnce(() => null);
+    const { service } = setup();
+    expect(service.isCurrentProfile(profile.id)).toBe(false);
   });
 });
