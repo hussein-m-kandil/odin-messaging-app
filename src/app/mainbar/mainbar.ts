@@ -54,8 +54,8 @@ export class Mainbar {
   protected readonly title = environment.title;
 
   protected signOut() {
-    this.auth.signOut();
     const user = this.auth.user();
+    this.auth.signOut();
     this._toast.add({
       severity: 'info',
       summary: `Bye${user ? ', ' + user.username : ''}`,
