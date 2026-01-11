@@ -14,14 +14,13 @@ import { ErrorMessage } from '../../error-message';
 import { AuthData } from '../../auth/auth.types';
 import { ButtonDirective } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
+import { Chat, Profile } from '../chats.types';
 import { MessageForm } from './message-form';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
-import { Profiles } from '../../profiles';
 import { Ripple } from 'primeng/ripple';
 import { Spinner } from '../../spinner';
 import { Messages } from './messages';
-import { Chat } from '../chats.types';
 
 @Component({
   templateUrl: './chat-room.html',
@@ -40,15 +39,12 @@ import { Chat } from '../chats.types';
   providers: [Messages],
 })
 export class ChatRoom implements OnChanges {
-  private readonly _profiles = inject(Profiles);
-
   private readonly _messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
 
   protected readonly messages = inject(Messages);
 
   protected readonly title = computed<{ url: string | null; label: string }>(() => {
-    const profileList = this._profiles.list();
-    const profileId = this.profileId();
+    const profile = this.profile();
     const chat = this.chat();
     const user = this.user();
     if (chat) {
@@ -56,15 +52,15 @@ export class ChatRoom implements OnChanges {
       const url = memberId ? `/profiles/${memberId}` : null;
       const label = this.messages.chats.generateTitle(chat, user);
       return { label, url };
-    } else if (profileId) {
-      const profile = profileList.find((p) => p.id === profileId);
-      if (profile) return { label: profile.user.username, url: `${`/profiles/${profile.id}`}` };
+    } else if (profile) {
+      return { label: profile.user.username, url: `${`/profiles/${profile.id}`}` };
     }
     return { label: 'Untitled', url: null };
   });
 
   readonly user = input.required<AuthData['user']>();
   readonly chat = input.required<Chat | null>();
+  readonly profile = input<Profile | null>();
   readonly profileId = input<string>();
   readonly chatId = input<string>();
 

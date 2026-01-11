@@ -47,7 +47,7 @@ export const routes: Routes = [
                 path: ':profileId/chat',
                 component: ChatRoom,
                 title: titleize('Chat'),
-                resolve: { chat: chatResolver },
+                resolve: { chat: chatResolver, profile: profileResolver },
               },
               {
                 path: ':profileId/edit',
