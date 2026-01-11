@@ -1,6 +1,7 @@
 import { render, RenderComponentOptions, screen } from '@testing-library/angular';
-import { Chat, Profile, User } from '../chats.types';
+import { Profile, User } from '../../app.types';
 import { ChatList } from './chat-list';
+import { Chat } from '../chats.types';
 import { Chats } from '../chats';
 
 const chatsMock = {

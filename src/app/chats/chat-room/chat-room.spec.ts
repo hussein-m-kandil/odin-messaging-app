@@ -1,9 +1,10 @@
 import { render, RenderComponentOptions } from '@testing-library/angular';
 import { provideRouter, Router } from '@angular/router';
 import { userEvent } from '@testing-library/user-event';
-import { Chat, Message, User } from '../chats.types';
+import { Chat, Message } from '../chats.types';
 import { screen } from '@testing-library/dom';
 import { Profiles } from '../../profiles';
+import { User } from '../../app.types';
 import { ChatRoom } from './chat-room';
 import { Observable, of } from 'rxjs';
 import { Messages } from './messages';

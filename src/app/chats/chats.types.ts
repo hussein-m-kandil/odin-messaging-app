@@ -1,6 +1,4 @@
-import { Image, Profile, User } from '../app.types';
-
-export type { Profile, User };
+import { Image, Profile } from '../app.types';
 
 export interface Message {
   id: string;

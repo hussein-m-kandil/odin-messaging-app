@@ -1,12 +1,4 @@
-import {
-  Chat,
-  User,
-  Message,
-  Profile,
-  ChatProfile,
-  NewChatData,
-  NewMessageData,
-} from './chats.types';
+import { Chat, Message, ChatProfile, NewChatData, NewMessageData } from './chats.types';
 import { sort, subtract, findChatByAllMemberIds } from './chats.utils';
 import { inject, signal, DestroyRef, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -14,6 +6,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, defer, map, of, tap } from 'rxjs';
 import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
+import { User, Profile } from '../app.types';
 import { Router } from '@angular/router';
 
 const { apiUrl } = environment;

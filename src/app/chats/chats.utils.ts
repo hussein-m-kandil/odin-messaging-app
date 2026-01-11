@@ -1,4 +1,5 @@
-import { Chat, Profile } from './chats.types';
+import { Profile } from '../app.types';
+import { Chat } from './chats.types';
 
 export const sort = <T extends { createdAt: string }>(items: T[]): T[] => {
   return [...items].sort(

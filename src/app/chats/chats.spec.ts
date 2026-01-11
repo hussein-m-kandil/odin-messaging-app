@@ -1,9 +1,10 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpErrorResponse, HttpParams, provideHttpClient } from '@angular/common/http';
-import { Chat, Profile, User, Message, NewMessageData } from './chats.types';
+import { Chat, Message, NewMessageData } from './chats.types';
 import { provideRouter, Router } from '@angular/router';
 import { environment } from '../../environments';
 import { TestBed } from '@angular/core/testing';
+import { Profile, User } from '../app.types';
 import { Component } from '@angular/core';
 import { Chats } from './chats';
 

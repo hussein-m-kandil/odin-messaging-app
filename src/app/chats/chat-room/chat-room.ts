@@ -14,13 +14,14 @@ import { ErrorMessage } from '../../error-message';
 import { AuthData } from '../../auth/auth.types';
 import { ButtonDirective } from 'primeng/button';
 import { MessageModule } from 'primeng/message';
-import { Chat, Profile } from '../chats.types';
 import { MessageForm } from './message-form';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { Profile } from '../../app.types';
 import { Ripple } from 'primeng/ripple';
 import { Spinner } from '../../spinner';
 import { Messages } from './messages';
+import { Chat } from '../chats.types';
 
 @Component({
   templateUrl: './chat-room.html',
