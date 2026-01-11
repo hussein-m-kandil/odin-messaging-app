@@ -12,6 +12,14 @@ const setup = async () => {
 };
 
 describe('Navigation', () => {
+  it('should have the expected initial state', async () => {
+    const { service } = await setup();
+    expect(service.error()).toBeNull();
+    expect(service.current()).toBeNull();
+    expect(service.isInitial()).toBe(true);
+    expect(service.navigating()).toBe(false);
+  });
+
   it('should have the current navigation while navigating', async () => {
     const { service, routerHarness } = await setup();
     const routerNavigation = routerHarness.navigateByUrl('/');
@@ -63,13 +71,32 @@ describe('Navigation', () => {
     try {
       await routerHarness.navigateByUrl(randomUrl);
     } catch {
-      await expect(service.retry.bind(service)).rejects.toThrowError();
+      const navigationPromise = service.retry();
+      expect(service.error()).toBeNull();
+      await expect(navigationPromise).rejects.toThrowError();
       expect(service.error()).toBeTruthy();
       expect(service.isInitial()).toBe(true);
       expect(service.error()!.url).toBe(randomUrl);
       expect(service.error()!.message).toMatch(/failed/i);
       expect(routerSpy).toHaveBeenCalledTimes(2);
       expect(routerSpy.mock.calls[0][0]).toStrictEqual(routerSpy.mock.calls[1][0]);
+    }
+  });
+
+  it('should remove the error after a successful navigation', async () => {
+    const { service, router, routerHarness } = await setup();
+    const routerSpy = vi.spyOn(router, 'navigateByUrl');
+    try {
+      await routerHarness.navigateByUrl('/blah');
+    } catch {
+      const navigationPromise = routerHarness.navigateByUrl('/');
+      expect(service.error()).toBeNull();
+      await expect(navigationPromise).resolves.toBeNull();
+      expect(service.error()).toBeNull();
+      expect(service.current()).toBeNull();
+      expect(service.isInitial()).toBe(false);
+      expect(service.navigating()).toBe(false);
+      expect(routerSpy).toHaveBeenCalledTimes(2);
     }
   });
 });

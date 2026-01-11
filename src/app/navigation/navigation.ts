@@ -20,17 +20,19 @@ export class Navigation {
 
   constructor() {
     this._router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
-      if (event instanceof NavigationError) this.error.set({ url: event.url, message });
-      else if (event instanceof NavigationEnd) this.isInitial.set(false);
+      if (event instanceof NavigationError) {
+        this.error.set({ url: event.url, message });
+      } else {
+        this.error.set(null);
+        if (event instanceof NavigationEnd) this.isInitial.set(false);
+      }
     });
   }
 
   retry() {
     const error = this.error();
-    if (error) {
-      this.error.set(null);
-      return this._router.navigateByUrl(error.url);
-    }
-    return Promise.resolve(false);
+    this.error.set(null);
+    if (!error) return Promise.resolve(false);
+    return this._router.navigateByUrl(error.url);
   }
 }
