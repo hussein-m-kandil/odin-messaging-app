@@ -4,14 +4,14 @@ import {
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
+import { provideRouter, TitleStrategy, withComponentInputBinding } from '@angular/router';
 import { notFoundInterceptor } from './not-found/not-found-interceptor';
 import { initColorScheme, DARK_SCHEME_CN } from './color-scheme';
 import { retryingInterceptor } from './retrying-interceptor';
+import { RouteTitleStrategy, routes } from './app.routes';
 import { authInterceptor } from './auth/auth-interceptor';
 import { default as Aura } from '@primeuix/themes/aura';
 import { providePrimeNG } from 'primeng/config';
-import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -35,5 +35,6 @@ export const appConfig: ApplicationConfig = {
         },
       },
     }),
+    { provide: TitleStrategy, useClass: RouteTitleStrategy },
   ],
 };
