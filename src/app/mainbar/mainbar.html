@@ -1,9 +1,9 @@
 @let _user = auth.user();
-<div class="h-full bg-primary flex flex-wrap justify-center items-center p-4">
+<div class="h-full bg-primary flex flex-wrap justify-center items-center px-2">
   <h1 class="text-primary-contrast text-2xl text-center font-bold">
     <a routerLink="/">{{ title }}</a>
   </h1>
-  <ul class="ms-auto flex gap-2">
+  <ul class="ms-auto flex items-center">
     <li>
       @let _selectedScheme = colorScheme.selectedScheme();
       <button
@@ -50,8 +50,8 @@
         text
         rounded
         outlined
-        class="p-0"
         type="button"
+        class="p-0 ms-2.5"
         aria-label="Toggle profile menu"
         (click)="profileMenu.toggle($event)"
       >
