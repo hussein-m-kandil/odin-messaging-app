@@ -26,6 +26,9 @@
 </ng-template>
 
 <ng-template #_compoundView>
+  @if (notFoundRouteActivated()) {
+  <ng-container [ngTemplateOutlet]="_mainContent" />
+  } @else {
   <div class="size-full *:h-full *:relative flex">
     <div class="shrink-0 w-82 border-surface border-r">
       <ng-container [ngTemplateOutlet]="_mainMenu" />
@@ -34,6 +37,7 @@
       <ng-container [ngTemplateOutlet]="_mainContent" />
     </div>
   </div>
+  }
 </ng-template>
 
 <ng-template #_mainMenu>

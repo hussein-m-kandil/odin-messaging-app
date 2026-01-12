@@ -28,7 +28,6 @@ export class RouteTitleStrategy extends TitleStrategy {
 }
 
 export const routes: Routes = [
-  { path: 'not-found', component: NotFound, title: 'Not Found' },
   { path: 'signin', canActivate: [authGuard], component: AuthForm, title: 'Sing In' },
   { path: 'signup', canActivate: [authGuard], component: AuthForm, title: 'Sing Up' },
   {
@@ -37,6 +36,7 @@ export const routes: Routes = [
     resolve: { user: userResolver },
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'chats' },
+      { path: 'not-found', component: NotFound, title: 'Not Found' },
       {
         path: 'chats',
         children: [

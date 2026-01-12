@@ -44,8 +44,14 @@ class ChatRoomMock {
   static TITLE = 'Test Chat Room';
   protected title = ChatRoomMock.TITLE;
 }
+@Component({ selector: 'app-not-found', template: `<div>{{ title }}</div>` })
+class NotFoundMock {
+  static TITLE = 'Test Not Found';
+  protected title = NotFoundMock.TITLE;
+}
 
 const testRoutes = [
+  { path: 'not-found', component: NotFoundMock },
   {
     path: '',
     resolve,
@@ -161,6 +167,28 @@ describe('App', () => {
     await vi.waitFor(() => expect(screen.getByText(ChatListMock.TITLE)).toBeVisible());
     expect(screen.getByRole('link', { name: /profiles/i })).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('link', { name: /chats/i })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('should display the not-found page content alone on a narrow screen', async () => {
+    const originalVPWidth = window.innerWidth;
+    window.innerWidth = 320;
+    await renderComponent({ initialRoute: '/not-found' });
+    expect(screen.getByText(NotFoundMock.TITLE)).toBeVisible();
+    expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
+    expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
+    expect(screen.queryByText(ProfileListMock.TITLE)).toBeNull();
+    window.innerWidth = originalVPWidth;
+  });
+
+  it('should display the not-found page content alone on a wide screen', async () => {
+    const originalVPWidth = window.innerWidth;
+    window.innerWidth = 720;
+    await renderComponent({ initialRoute: '/not-found' });
+    expect(screen.getByText(NotFoundMock.TITLE)).toBeVisible();
+    expect(screen.queryByText(ChatRoomMock.TITLE)).toBeNull();
+    expect(screen.queryByText(ChatListMock.TITLE)).toBeNull();
+    expect(screen.queryByText(ProfileListMock.TITLE)).toBeNull();
+    window.innerWidth = originalVPWidth;
   });
 
   const urls = ['/chats', '/chats/test-chat-id', '/profiles', '/profiles/test-profile-id'];

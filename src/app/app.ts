@@ -42,6 +42,7 @@ export class App implements OnInit {
 
   protected readonly vpWidth = signal(0);
   protected readonly activeMenuIndex = signal(0);
+  protected readonly notFoundRouteActivated = signal(this._router.url === '/not-found');
   protected readonly mainMenuRouteActivated = signal(this._isMainMenuUrl(this._router.url));
 
   constructor() {
@@ -51,6 +52,7 @@ export class App implements OnInit {
         filter((event): event is NavigationEnd => event instanceof NavigationEnd)
       )
       .subscribe((event) => {
+        this.notFoundRouteActivated.set(event.urlAfterRedirects === '/not-found');
         this.mainMenuRouteActivated.set(this._isMainMenuUrl(event.urlAfterRedirects));
         this.activeMenuIndex.set(
           this.mainNavItems.findIndex(({ route }) => event.urlAfterRedirects.startsWith(route))
