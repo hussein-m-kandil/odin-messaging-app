@@ -1,15 +1,7 @@
 @let _user = user(); @let _title = title();
-<div class="absolute size-full overflow-auto" [aria-label]="`${_title} chat room`">
-  <nav
-    [class]="`absolute top-0 left-0 w-full h-10 z-30 px-2 overflow-auto
-      bg-(--p-content-background) border-surface border-b
-    `"
-  >
-    <div
-      [class]="`size-full absolute top-1/2 left-1/2 -translate-1/2 px-1 *:align-middle
-        flex justify-between items-center *:odd:min-w-max *:odd:aspect-square
-      `"
-    >
+<div class="relative size-full overflow-auto flex flex-col" [aria-label]="`${_title} chat room`">
+  <nav class="bg-(--p-content-background) border-surface border-b">
+    <div class="size-full flex justify-between items-center">
       <a
         pButton
         pRipple
@@ -21,20 +13,19 @@
         aria-label="Go back"
         icon="pi pi-arrow-left"
       ></a>
-
-      <span
-        [class]="`inline-block max-w-1/2 mx-auto truncate
-        text-lg text-primary text-center font-bold tracking-wider
-      `"
-        [title]="_title"
-      >
-        @if (_title.url) {
-        <a [routerLink]="_title.url">
+      <span class="grow relative h-full">
+        <span
+          class="absolute top-0 left-0 size-full truncate text-lg text-primary text-center font-bold tracking-wider"
+          [title]="_title"
+        >
+          @if (_title.url) {
+          <a [routerLink]="_title.url">
+            {{ _title.label }}
+          </a>
+          } @else {
           {{ _title.label }}
-        </a>
-        } @else {
-        {{ _title.label }}
-        }
+          }
+        </span>
       </span>
       <button
         pButton
@@ -54,9 +45,7 @@
     #messagesContainer
     aria-live="assertive"
     aria-label="Messages"
-    [class]="`overflow-auto absolute w-full left-0 top-10 bottom-22 px-4
-      flex flex-col-reverse
-    `"
+    class="grow overflow-auto flex flex-col-reverse px-2"
   >
     @if (chat(); as _chat) {
     <div>
@@ -135,29 +124,21 @@
       </div>
     </div>
     }@else {
-    <p class="text-center absolute top-1/2 left-1/2 -translate-1/2 z-30 text-muted-color">
-      New chat!
-    </p>
+    <div class="size-full flex flex-col justify-center">
+      <p class="text-center text-muted-color leading-tight tracking-widest">New chat!</p>
+    </div>
     }
   </div>
   <!-- prettier-ignore -->
   @let _chatId = chatId(); @let _profileId = profileId();
   @if (_chatId || _profileId) {
-  <div class="absolute bottom-0 left-0 w-full h-20">
+  <div class="p-2">
     @if (_chatId && messages.chats.isDeadChat(_chatId, _user)) {
-    <p-message
-      severity="info"
-      class="block absolute size-full overflow-auto text-center **:text-xs **:font-bold **:tracking-wider"
-      styleClass="rounded-none *:absolute *:w-full *:max-h-full *:top-1/2 *:left-1/2 *:-translate-1/2"
-    >
+    <p-message severity="info" class="**:text-xs **:tracking-wider">
       This chat cannot receive new messages because the other member's profile have been deleted.
     </p-message>
     } @else {
-    <app-message-form
-      [chatId]="_chatId"
-      [profileId]="_profileId"
-      class="block absolute size-full px-2 pb-2"
-    />
+    <app-message-form [chatId]="_chatId" [profileId]="_profileId" />
     }
   </div>
   }

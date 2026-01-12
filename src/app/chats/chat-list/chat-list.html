@@ -12,7 +12,7 @@
     <div class="shrink-0 me-2 text-center">
       @if (countNewMessages(_chat); as _newMessagesCount) {
       <p-overlay-badge
-        styleClass="transform -translate-y-1/2 translate-x-1/4 p-1"
+        styleClass="transform-[translate(25%,-50%)] p-1"
         [value]="_newMessagesCount < 100 ? _newMessagesCount : '+99'"
         aria-label="New messages"
         severity="danger"

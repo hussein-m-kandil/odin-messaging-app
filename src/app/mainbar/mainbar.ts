@@ -5,10 +5,10 @@ import { ButtonDirective } from 'primeng/button';
 import { environment } from '../../environments';
 import { SingularView } from './singular-view';
 import { AvatarModule } from 'primeng/avatar';
+import { RouterLink } from '@angular/router';
 import { MenuModule } from 'primeng/menu';
 import { Ripple } from 'primeng/ripple';
 import { Auth } from '../auth';
-import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-mainbar',

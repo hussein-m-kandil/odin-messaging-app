@@ -1,8 +1,6 @@
-<div class="absolute size-full overflow-auto p-4">
+<div class="min-h-full p-4 flex flex-col justify-center">
   <div
-    [class]="`w-full max-w-md mx-auto p-4 pb-8 overflow-auto space-y-4
-      rounded-2xl border border-surface
-    `"
+    class="w-full max-w-md mx-auto p-4 overflow-auto space-y-4 rounded-2xl border border-surface"
   >
     <form
       class="space-y-4"
@@ -12,7 +10,7 @@
     >
       <h2
         id="auth-form-label"
-        class="text-center text-2xl font-bold text-color"
+        class="text-center text-2xl font-semibold text-color leading-tight tracking-wider"
         [class]="{ 'text-muted-color': form.disabled }"
       >
         {{ info.label }}
@@ -85,7 +83,7 @@
       type="solid"
       align="center"
       [pt]="{
-        content: { class: `font-bold ${form.disabled ? 'text-muted-color' : '' }` }
+        content: { class: `font-semibold tracking-wider ${form.disabled ? 'text-muted-color' : '' }` }
       }"
     >
       Or
@@ -165,7 +163,7 @@
       [icon]="`pi pi-eye${_passVisible ? '-slash' : ''}`"
       ariaLabel="{{`${_passVisible ? 'Hide' : 'Show'} ${fieldLabel.toLowerCase()} content`}}"
       (onClick)="fieldId === 'confirm' ? toggleConfirmVisibility() : togglePasswordVisibility()"
-      styleClass="absolute top-1/2 -translate-y-1/2 right-2 text-(--p-form-field-icon-color)"
+      styleClass="absolute top-1/2 right-2 transform-[translateY(-50%)] text-(--p-form-field-icon-color)"
     />
     } }
   </p-float-label>

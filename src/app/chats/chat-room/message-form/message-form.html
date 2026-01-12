@@ -1,14 +1,18 @@
-<form [formGroup]="form" (ngSubmit)="submit()" aria-label="New Message" class="relative size-full">
+<form [formGroup]="form" (ngSubmit)="submit()" aria-label="New Message" class="flex items-center">
   <textarea
-    #msgBody
+    #msgInp
     pTextarea
+    rows="1"
+    pSize="small"
     variant="filled"
     id="message-body"
+    [autoResize]="true"
     aria-label="Message"
     formControlName="body"
     placeholder="Message..."
-    [class]="`resize-none size-full text-sm font-semibold tracking-wider
-      ps-4 pt-4 pe-18 pb-2 rounded-4xl`"
+    (onResize)="showScrollbarAsNeeded()"
+    [class]="`grow align-middle max-h-[50vh] rounded-2xl
+      text-sm font-semibold tracking-wider placeholder-shown:font-normal`"
   ></textarea>
   <button
     pButton
@@ -16,14 +20,7 @@
     rounded
     type="submit"
     aria-label="Send"
-    class="block absolute right-2 top-1/2 -translate-y-1/2 size-14"
-  >
-    <i
-      pButtonIcon
-      aria-hidden="true"
-      [class]="`pi pi-send text-xl
-        absolute top-1/2 left-1/2 -translate-1/2
-        before:relative before:top-px before:right-px`"
-    ></i>
-  </button>
+    icon="pi pi-send"
+    class="ms-2"
+  ></button>
 </form>

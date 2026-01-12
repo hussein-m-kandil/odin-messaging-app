@@ -15,7 +15,7 @@ import { Chats } from '../../chats';
   styles: ``,
 })
 export class MessageForm implements OnInit {
-  private readonly _msgBodyInp = viewChild.required<ElementRef<HTMLTextAreaElement>>('msgBody');
+  private readonly _messageInput = viewChild.required<ElementRef<HTMLTextAreaElement>>('msgInp');
 
   private readonly _toast = inject(MessageService);
   private readonly _chats = inject(Chats);
@@ -42,7 +42,7 @@ export class MessageForm implements OnInit {
       if (req$) {
         this.form.disable();
         req$
-          .pipe(finalize(() => (this.form.enable(), this._msgBodyInp().nativeElement.focus())))
+          .pipe(finalize(() => (this.form.enable(), this._messageInput().nativeElement.focus())))
           .subscribe({
             next: () => this.form.reset(),
             error: (error) => {
@@ -61,9 +61,10 @@ export class MessageForm implements OnInit {
     }
   }
 
-  protected isInvalid(controlName: string) {
-    const control = this.form.get(controlName);
-    return control && control.invalid && control.dirty;
+  protected showScrollbarAsNeeded() {
+    const msgInp = this._messageInput().nativeElement;
+    const msgInpMsxHeight = parseFloat(getComputedStyle(msgInp).maxHeight);
+    msgInp.style.overflow = msgInp.scrollHeight > msgInpMsxHeight ? 'auto' : '';
   }
 
   ngOnInit(): void {
