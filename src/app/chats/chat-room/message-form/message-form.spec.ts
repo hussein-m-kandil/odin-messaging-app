@@ -3,6 +3,8 @@ import { userEvent } from '@testing-library/user-event';
 import { asyncScheduler, observeOn, of, throwError } from 'rxjs';
 import { MessageForm } from './message-form';
 import { Chats } from '../../chats';
+import { MessageService } from 'primeng/api';
+import { Toast } from 'primeng/toast';
 
 const profileId = crypto.randomUUID();
 const chatId = crypto.randomUUID();
@@ -12,9 +14,24 @@ const newChatData = { profiles: [profileId], message: { body: 'Hi!' } };
 
 const chatsMock = { create: vi.fn(), createMessage: vi.fn() };
 
-const renderComponent = ({ providers, ...options }: RenderComponentOptions<MessageForm> = {}) => {
-  return render(MessageForm, {
-    providers: [{ provide: Chats, useValue: chatsMock }, ...(providers || [])],
+const renderComponent = ({
+  providers,
+  inputs,
+  ...options
+}: RenderComponentOptions<MessageForm> = {}) => {
+  const { chatId, profileId } = inputs || {};
+  const componentTemplate =
+    chatId && profileId
+      ? `<app-message-form chatId="${chatId}" profileId="${profileId}" />`
+      : chatId
+      ? `<app-message-form chatId="${chatId}" />`
+      : profileId
+      ? `<app-message-form profileId="${profileId}" />`
+      : `<app-message-form />`;
+  return render(`${componentTemplate}<p-toast />`, {
+    imports: [MessageForm, Toast],
+    providers: [MessageService, { provide: Chats, useValue: chatsMock }, ...(providers || [])],
+    autoDetectChanges: false,
     ...options,
   });
 };
@@ -30,7 +47,11 @@ describe('MessageForm', () => {
   afterEach(vi.resetAllMocks);
 
   it('should throw an error if not given `chatId` nor `profileId`', async () => {
-    await expect(async () => await renderComponent()).rejects.toThrowError(/missing (.+ )?input/i);
+    const chatId = '';
+    const profileId = '';
+    await expect(() => renderComponent({ inputs: { chatId, profileId } })).rejects.toThrowError(
+      /missing (.+ )?input/i
+    );
   });
 
   it('should display a message form', async () => {
@@ -102,32 +123,38 @@ describe('MessageForm', () => {
   });
 
   it('should display a create message error, then remove it on the first interaction', async () => {
+    vi.useFakeTimers();
     chatsMock.createMessage.mockImplementation(() => throwError(() => new Error('Test error')));
-    const { click, type } = userEvent.setup();
+    const { click, type } = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     await renderComponent({ inputs: { chatId } });
     const { msgInp, sendBtn } = getFormElements();
     await type(msgInp, newMessageData.body);
     await click(sendBtn);
     expect(chatsMock.createMessage).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
-    expect(screen.getByText(/failed/i)).toBeVisible();
+    expect(screen.getByText(/failed message/i)).toBeVisible();
     expect(msgInp).toHaveValue(newMessageData.body);
     expect(msgInp).toHaveFocus();
     await type(msgInp, ' ');
-    expect(screen.queryByText(/failed/i)).toBeNull();
+    await vi.runAllTimersAsync();
+    expect(screen.queryByText(/failed message/i)).toBeNull();
+    vi.useRealTimers();
   });
 
   it('should display a create chat error, then remove it on the first interaction', async () => {
+    vi.useFakeTimers();
     chatsMock.create.mockImplementation(() => throwError(() => new Error('Test error')));
-    const { click, type } = userEvent.setup();
+    const { click, type } = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
     await renderComponent({ inputs: { profileId } });
     const { msgInp, sendBtn } = getFormElements();
     await type(msgInp, newChatData.message.body);
     await click(sendBtn);
     expect(chatsMock.create).toHaveBeenCalledExactlyOnceWith(newChatData);
-    expect(screen.getByText(/failed/i)).toBeVisible();
+    expect(screen.getByText(/failed message/i)).toBeVisible();
     expect(msgInp).toHaveValue(newMessageData.body);
     expect(msgInp).toHaveFocus();
     await type(msgInp, ' ');
-    expect(screen.queryByText(/failed/i)).toBeNull();
+    await vi.runAllTimersAsync();
+    expect(screen.queryByText(/failed message/i)).toBeNull();
+    vi.useRealTimers();
   });
 });

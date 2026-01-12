@@ -1,9 +1,10 @@
 import { render, RenderComponentOptions } from '@testing-library/angular';
-import { provideRouter, Router } from '@angular/router';
 import { userEvent } from '@testing-library/user-event';
 import { Chat, Message } from '../chats.types';
 import { screen } from '@testing-library/dom';
+import { MessageService } from 'primeng/api';
 import { Profiles } from '../../profiles';
+import { Router } from '@angular/router';
 import { User } from '../../app.types';
 import { ChatRoom } from './chat-room';
 import { Observable, of } from 'rxjs';
@@ -90,12 +91,16 @@ const renderComponent = ({
   ...options
 }: RenderComponentOptions<ChatRoom> = {}) => {
   return render(ChatRoom, {
-    componentProviders: [
+    providers: [
+      MessageService,
       { provide: Profiles, useValue: profilesMock },
+      ...(providers || []),
+    ],
+    componentProviders: [
       { provide: Messages, useValue: messagesMock },
       ...(componentProviders || []),
     ],
-    providers: [provideRouter([]), ...(providers || [])],
+    autoDetectChanges: false,
     ...options,
   });
 };
