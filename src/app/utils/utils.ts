@@ -1,8 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { WritableSignal } from '@angular/core';
 
 export function createResErrorHandler(
-  messageSignal: WritableSignal<string>,
+  messageSignal: { set: (value: string) => void },
   defaultMessage: string
 ) {
   return (res: unknown) => {
