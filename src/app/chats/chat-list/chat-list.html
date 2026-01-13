@@ -7,29 +7,37 @@
     routerLinkActive="bg-highlight"
     [routerLink]="['/chats', _chat.id]"
     [routerLinkActiveOptions]="{ exact: true }"
-    class="size-full py-4 px-2 border-surface border-b flex items-center"
+    class="block leading-tight w-full p-2 py-3 border-surface border-b **:align-middle"
   >
-    <div class="shrink-0 me-2 text-center">
-      @if (countNewMessages(_chat); as _newMessagesCount) {
-      <p-overlay-badge
-        styleClass="transform-[translate(25%,-50%)] p-1"
-        [value]="_newMessagesCount < 100 ? _newMessagesCount : '+99'"
-        aria-label="New messages"
-        severity="danger"
-        badgeSize="small"
-      >
-        <p-avatar label="{{ _title[0]?.toUpperCase() }}" shape="circle" size="large" />
-      </p-overlay-badge>
-      } @else {
-      <p-avatar label="{{ _title[0]?.toUpperCase() }}" shape="circle" size="large" />
-      }
-    </div>
-    <span class="block grow w-[calc(100%-56px)] **:truncate">
-      <span class="block w-full text-lg font-semibold tracking-wider">
-        {{ _title || 'Anonymous' }}
+    <p-avatar
+      label="{{ _title[0]?.toUpperCase() }}"
+      class="text-center size-12 me-2"
+      shape="circle"
+      size="large"
+    />
+    <span class="inline-block w-[calc(100%-4rem)]">
+      <span class="w-full inline-flex justify-between items-center">
+        <span
+          class="inline-block w-[calc(100%-3rem)] truncate text-lg font-semibold tracking-wider"
+        >
+          {{ _title || 'Anonymous' }}
+        </span>
       </span>
-      <span class="block w-full text-muted-color text-sm font-light tracking-tighter">
-        {{ _chat.messages[0]?.body || 'Empty chat!' }}
+      <br />
+      <span class="w-full inline-flex justify-between items-center">
+        <span
+          class="inline-block w-[calc(100%-3rem)] truncate text-muted-color text-sm font-light tracking-tighter"
+        >
+          {{ _chat.messages[0]?.body || 'Empty chat!' }}
+        </span>
+        @if (countNewMessages(_chat); as _newMessagesCount) {
+        <p-badge
+          [value]="_newMessagesCount < 100 ? _newMessagesCount : '+99'"
+          aria-label="New messages"
+          class="text-center"
+          badgeSize="small"
+        />
+        }
       </span>
     </span>
   </a>

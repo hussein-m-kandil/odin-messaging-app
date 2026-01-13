@@ -1,8 +1,8 @@
 import { input, inject, OnChanges, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { OverlayBadgeModule } from 'primeng/overlaybadge';
 import { AuthData } from '../../auth/auth.types';
 import { AvatarModule } from 'primeng/avatar';
+import { BadgeModule } from 'primeng/badge';
 import { Ripple } from 'primeng/ripple';
 import { Chat } from '../chats.types';
 import { List } from '../../list';
@@ -10,7 +10,7 @@ import { Chats } from '../chats';
 
 @Component({
   selector: 'app-chat-list',
-  imports: [RouterLinkActive, OverlayBadgeModule, AvatarModule, RouterLink, Ripple, List],
+  imports: [RouterLinkActive, AvatarModule, BadgeModule, RouterLink, Ripple, List],
   templateUrl: './chat-list.html',
   styles: ``,
 })
