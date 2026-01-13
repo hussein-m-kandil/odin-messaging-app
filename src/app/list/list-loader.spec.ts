@@ -19,6 +19,7 @@ const renderComponent = ({ inputs, on, ...options }: RenderComponentOptions<List
       ...inputs,
     },
     on: { loaded: loadMock, ...on },
+    autoDetectChanges: false,
     ...options,
   });
 };
