@@ -3,6 +3,7 @@ import { Profile, User } from '../../app.types';
 import { ChatList } from './chat-list';
 import { Chat } from '../chats.types';
 import { Chats } from '../chats';
+import { DatePipe } from '@angular/common';
 
 const chatsMock = {
   load: vi.fn(),
@@ -64,7 +65,8 @@ const chat: Chat = {
 
 const chats = [
   { ...chat, messages: [{ body: 'Hi!' }] },
-  { ...chat, id: crypto.randomUUID(), messages: [{ body: 'Hi!' }] },
+  { ...chat, id: crypto.randomUUID(), messages: [{ body: 'Yo!' }] },
+  { ...chat, id: crypto.randomUUID(), messages: [{ body: 'Bye!' }] },
 ];
 
 const renderComponent = ({
@@ -117,7 +119,7 @@ describe('ChatList', () => {
   it('should have some new-messages badges', async () => {
     chatsMock.list.mockImplementation(() => chats);
     await renderComponent();
-    expect(screen.getAllByLabelText(/new messages/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/\d/i).length).toBeGreaterThan(0);
   });
 
   it('should not have any new-messages badges', async () => {
@@ -129,6 +131,38 @@ describe('ChatList', () => {
     }));
     chatsMock.list.mockImplementation(() => updatedChats);
     await renderComponent();
-    expect(screen.queryByLabelText(/new messages/i)).toBeNull();
+    expect(screen.queryByText(/\d/i)).toBeNull();
+  });
+
+  it('should a chat have a formatted date', async () => {
+    const dayMS = 24 * 60 * 60 * 1000;
+    const nowMS = new Date().getTime();
+    const testChats = [
+      { ...chat, messages: [{ body: 'Hi!', createdAt: new Date().toISOString() }] },
+      {
+        ...chat,
+        id: crypto.randomUUID(),
+        messages: [{ body: 'Yo!', createdAt: new Date(nowMS - dayMS).toISOString() }],
+      },
+      {
+        ...chat,
+        id: crypto.randomUUID(),
+        messages: [{ body: 'Bye!', createdAt: new Date(nowMS - dayMS * 2).toISOString() }],
+      },
+    ];
+    const expectedDates = [
+      new DatePipe('en-US').transform(testChats[0].messages[0].createdAt, 'shortTime')!,
+      'Yesterday',
+      new DatePipe('en-US').transform(testChats[2].messages[0].createdAt, 'mediumDate')!,
+    ];
+    chatsMock.list.mockImplementation(() => testChats);
+    await renderComponent();
+    const timeElements = screen.getAllByRole('time');
+    expect(timeElements).toHaveLength(expectedDates.length);
+    for (let i = 0; i < timeElements.length; i++) {
+      const time = timeElements[i];
+      expect(time).toBeVisible();
+      expect(time.textContent.trim()).toBe(expectedDates[i]);
+    }
   });
 });

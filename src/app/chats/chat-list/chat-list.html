@@ -15,25 +15,42 @@
       shape="circle"
       size="large"
     />
+    <!-- ** NOTE: The following calculated widths are dependent ** -->
     <span class="inline-block w-[calc(100%-4rem)]">
+      @let _newMessagesCount = countNewMessages(_chat);
       <span class="w-full inline-flex justify-between items-center">
         <span
-          class="inline-block w-[calc(100%-3rem)] truncate text-lg font-semibold tracking-wider"
+          class="inline-block w-[calc(100%-4rem)] truncate text-lg font-semibold tracking-wider"
         >
           {{ _title || 'Anonymous' }}
         </span>
+        @if (_chat.messages[0]?.createdAt; as _recentMsgDate) {
+        <time
+          [attr.datetime]="_recentMsgDate"
+          class="text-xs tracking-tighter font-light"
+          [class]="[_newMessagesCount ? 'text-primary' : 'text-muted-color']"
+        >
+          @let _distanceDays = getDistanceDays(_recentMsgDate);
+          {{
+            _distanceDays === 1
+              ? 'Yesterday'
+              : _distanceDays === 0
+              ? (_recentMsgDate | date : 'shortTime')
+              : (_recentMsgDate | date : 'mediumDate')
+          }}
+        </time>
+        }
       </span>
       <br />
       <span class="w-full inline-flex justify-between items-center">
         <span
-          class="inline-block w-[calc(100%-3rem)] truncate text-muted-color text-sm font-light tracking-tighter"
+          class="inline-block w-[calc(100%-4rem)] truncate text-muted-color text-sm font-light tracking-tighter"
         >
           {{ _chat.messages[0]?.body || 'Empty chat!' }}
         </span>
-        @if (countNewMessages(_chat); as _newMessagesCount) {
+        @if (_newMessagesCount) {
         <p-badge
           [value]="_newMessagesCount < 100 ? _newMessagesCount : '+99'"
-          aria-label="New messages"
           class="text-center"
           badgeSize="small"
         />
