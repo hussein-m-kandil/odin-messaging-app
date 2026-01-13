@@ -1,6 +1,13 @@
-import { Component, ElementRef, inject, input, OnInit, viewChild } from '@angular/core';
+import { Component, ElementRef, inject, input, OnInit, signal, viewChild } from '@angular/core';
+import {
+  HttpErrorResponse,
+  HttpEvent,
+  HttpEventType,
+  HttpUploadProgressEvent,
+} from '@angular/common/http';
 import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { createResErrorHandler } from '../../../utils';
+import { ImagePicker } from '../../../image-picker';
 import { TextareaModule } from 'primeng/textarea';
 import { ButtonDirective } from 'primeng/button';
 import { MessageService } from 'primeng/api';
@@ -10,7 +17,7 @@ import { Chats } from '../../chats';
 
 @Component({
   selector: 'app-message-form',
-  imports: [ReactiveFormsModule, TextareaModule, ButtonDirective, Ripple],
+  imports: [ReactiveFormsModule, TextareaModule, ButtonDirective, ImagePicker, Ripple],
   templateUrl: './message-form.html',
   styles: ``,
 })
@@ -20,40 +27,87 @@ export class MessageForm implements OnInit {
   private readonly _toast = inject(MessageService);
   private readonly _chats = inject(Chats);
 
-  readonly profileId = input<string>();
-  readonly chatId = input<string>();
-
   protected readonly form = new FormGroup({
     body: new FormControl('', { nonNullable: true }),
   });
 
+  protected readonly progress = signal<HttpUploadProgressEvent | null>(null);
+  protected readonly pickedImage = signal<File | null>(null);
+  protected readonly pickingImage = signal(false);
+
+  readonly profileId = input<string>();
+  readonly chatId = input<string>();
+
+  protected unpickImage() {
+    this.pickedImage.set(null);
+    this.progress.set(null);
+  }
+
+  protected closeImagePicker() {
+    this.unpickImage();
+    this.pickingImage.set(false);
+  }
+
+  protected toggleImagePicker() {
+    this.pickingImage.update((picking) => {
+      if (picking) this.unpickImage();
+      return !picking;
+    });
+  }
+
+  protected reset() {
+    this.closeImagePicker();
+    this.form.reset();
+  }
+
   protected submit() {
     this.form.markAllAsDirty();
-    const newMessageData = this.form.getRawValue();
-    if (this.form.enabled && newMessageData.body) {
+    const data = { ...this.form.getRawValue(), image: this.pickedImage() };
+    if (this.form.enabled && (data.body || data.image)) {
       const profileId = this.profileId();
       const chatId = this.chatId();
-      let req$: Observable<unknown> | null = null;
+      let req$: Observable<HttpEvent<unknown>> | null = null;
       if (chatId) {
-        req$ = this._chats.createMessage(chatId, newMessageData);
+        req$ = this._chats.createMessage(chatId, data);
       } else if (profileId) {
-        req$ = this._chats.create({ profiles: [profileId], message: newMessageData });
+        req$ = this._chats.create({ profiles: [profileId], message: data });
       }
       if (req$) {
         this.form.disable();
         req$
           .pipe(finalize(() => (this.form.enable(), this._messageInput().nativeElement.focus())))
           .subscribe({
-            next: () => this.form.reset(),
-            error: (error) => {
-              let errorMessage = 'Failed to send your message.';
-              const fakeSignal = { set: (msg: string) => (errorMessage = msg || errorMessage) };
-              const handler = createResErrorHandler(fakeSignal, errorMessage);
-              handler(error);
+            next: (event) => {
+              switch (event.type) {
+                case HttpEventType.UploadProgress:
+                  this.progress.set(event);
+                  break;
+                case HttpEventType.Response:
+                  this.reset();
+                  break;
+              }
+            },
+            error: (res) => {
+              const defaultErrorMessage = 'Failed to send your message.';
+              let message = defaultErrorMessage;
+              const fakeSignal = { set: (msg: string) => (message = msg) };
+              createResErrorHandler(fakeSignal, defaultErrorMessage)(res);
+              if (
+                message === defaultErrorMessage &&
+                res instanceof HttpErrorResponse &&
+                res.status === 400
+              ) {
+                const { error } = res;
+                if (error.error) {
+                  if (typeof error.error === 'string') message = error.error;
+                  else if (typeof error.error.message === 'string') message = error.error.message;
+                } else if (typeof error.message === 'string') message = error.message;
+                else if (typeof error === 'string') message = error;
+              }
               this._toast.add({
                 severity: 'error',
-                summary: 'Failed message',
-                detail: errorMessage,
+                summary: 'Message failed',
+                detail: message,
               });
             },
           });

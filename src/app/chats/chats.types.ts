@@ -41,6 +41,7 @@ export interface ChatManager {
 
 export interface NewMessageData {
   imagedata?: Record<string, unknown>;
+  image?: File | null;
   body: string;
 }
 

@@ -73,7 +73,32 @@
             : 'me-auto rounded-bl-none'
           }`"
         >
-          <div class="mb-4 text-sm font-semibold tracking-wider">{{ _msg.body }}</div>
+          @if (_msg.image; as _img) {
+          <p-image [preview]="true" class="block mb-2 rounded-lg overflow-hidden max-h-[50vh]">
+            <ng-template #indicator>
+              <i class="pi pi-search-plus"></i>
+            </ng-template>
+            <ng-template #image>
+              <img
+                [src]="_img.src"
+                [width]="_img.width"
+                [height]="_img.height"
+                alt="{{ _img.alt || '' }}"
+                class="object-cover object-center"
+              />
+            </ng-template>
+            <ng-template #preview>
+              <img
+                [src]="_img.src"
+                [width]="_img.width"
+                [height]="_img.height"
+                alt="{{ _img.alt || '' }}"
+                class="block w-screen h-screen p-4 object-contain object-center"
+              />
+            </ng-template>
+          </p-image>
+          }
+          <div class="mb-2 text-sm font-semibold tracking-wider">{{ _msg.body }}</div>
           <div
             [class]="`text-muted-color leading-none *:leading-none *:align-bottom *:text-xs
               flex gap-1 justify-between`"
@@ -132,9 +157,9 @@
   <!-- prettier-ignore -->
   @let _chatId = chatId(); @let _profileId = profileId();
   @if (_chatId || _profileId) {
-  <div class="p-2">
+  <div>
     @if (_chatId && messages.chats.isDeadChat(_chatId, _user)) {
-    <p-message severity="info" class="**:text-xs **:tracking-wider">
+    <p-message severity="info" styleClass="rounded-none text-center **:text-xs **:tracking-wider">
       This chat cannot receive new messages because the other member's profile have been deleted.
     </p-message>
     } @else {

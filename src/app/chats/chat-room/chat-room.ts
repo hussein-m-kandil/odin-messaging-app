@@ -20,6 +20,7 @@ import { DatePipe } from '@angular/common';
 import { Profile } from '../../app.types';
 import { Ripple } from 'primeng/ripple';
 import { Spinner } from '../../spinner';
+import { Image } from 'primeng/image';
 import { Messages } from './messages';
 import { Chat } from '../chats.types';
 
@@ -36,6 +37,7 @@ import { Chat } from '../chats.types';
     DatePipe,
     Spinner,
     Ripple,
+    Image,
   ],
   providers: [Messages],
 })
