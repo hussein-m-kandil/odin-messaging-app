@@ -1,12 +1,13 @@
 import { screen, render, RenderComponentOptions } from '@testing-library/angular';
+import { HttpErrorResponse, HttpEventType, HttpResponse } from '@angular/common/http';
+import { asyncScheduler, Observable, observeOn, of, Subscriber, throwError } from 'rxjs';
 import { userEvent } from '@testing-library/user-event';
-import { asyncScheduler, observeOn, of, throwError } from 'rxjs';
 import { MessageForm } from './message-form';
-import { Chats } from '../../chats';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
-import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
+import { Chats } from '../../chats';
 import { Mock } from 'vitest';
+import { TestBed } from '@angular/core/testing';
 
 const profileId = crypto.randomUUID();
 const chatId = crypto.randomUUID();
@@ -83,20 +84,21 @@ describe('MessageForm', () => {
         const { imagePickerBtn } = getFormElements();
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        expect(screen.queryByRole('progressbar')).toBeNull();
         await actor.click(imagePickerBtn);
         expect(screen.getByRole('button', { name: /pick .*image/i })).toBeVisible();
         expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
+        expect(screen.getByRole('progressbar')).toHaveValue(0);
         await actor.click(imagePickerBtn);
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        expect(screen.queryByRole('progressbar')).toBeNull();
       });
 
       it('should create', async () => {
-        vi.useFakeTimers();
-        createMock.mockImplementation(() =>
-          of(new HttpResponse({ status: 201 })).pipe(observeOn(asyncScheduler, 7)),
-        );
-        const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
+        let sub!: Subscriber<unknown>;
+        createMock.mockImplementation(() => new Observable((s) => (sub = s)));
+        const actor = userEvent.setup();
         await renderComponent({ inputs });
         const { msgInp, sendBtn, imagePickerBtn } = getFormElements();
         await actor.type(msgInp, newMessageData.body);
@@ -104,45 +106,89 @@ describe('MessageForm', () => {
         expect(msgInp).toBeDisabled();
         expect(sendBtn).toBeDisabled();
         expect(imagePickerBtn).toBeDisabled();
-        await vi.runAllTimersAsync();
+        sub.next(new HttpResponse({ status: 201 }));
+        sub.complete();
         if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(newChatData);
         else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
         expect(msgInp).toHaveValue('');
         expect(msgInp).toHaveFocus();
-        vi.useRealTimers();
       });
 
       it('should create with an image', async () => {
-        vi.useFakeTimers();
-        createMock.mockImplementation(() =>
-          of(new HttpResponse({ status: 201 })).pipe(observeOn(asyncScheduler, 7)),
-        );
+        let sub!: Subscriber<unknown>;
+        createMock.mockImplementation(() => new Observable((s) => (sub = s)));
         const messageTestData = {
           ...newMessageData,
           image: new File([], 'img.png', { type: 'image/png' }),
         };
         const chatTestData = { ...newChatData, message: messageTestData };
-        const actor = userEvent.setup({
-          advanceTimers: vi.advanceTimersByTimeAsync,
-        });
+        const actor = userEvent.setup();
         await renderComponent({ inputs });
         const { msgInp, sendBtn, imagePickerBtn } = getFormElements();
         await actor.click(imagePickerBtn);
-        await actor.upload(screen.getByLabelText(/browse files/i), messageTestData.image);
+        const fileInp = screen.getByLabelText(/browse files/i);
+        await actor.upload(fileInp, messageTestData.image);
         await actor.type(msgInp, messageTestData.body);
         await actor.click(sendBtn);
         expect(msgInp).toBeDisabled();
         expect(sendBtn).toBeDisabled();
+        expect(fileInp).toBeDisabled();
         expect(imagePickerBtn).toBeDisabled();
-        await vi.runAllTimersAsync();
+        sub.next({ type: HttpEventType.UploadProgress, loaded: 3.5, total: 10 });
+        TestBed.tick();
+        expect(screen.getByRole('progressbar')).toHaveValue(35);
+        sub.next(new HttpResponse({ status: 201 }));
+        sub.complete();
         if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(chatTestData);
         else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, messageTestData);
+        TestBed.tick();
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
         expect(msgInp).toHaveValue('');
         expect(msgInp).toHaveFocus();
         await actor.click(imagePickerBtn);
-        expect(screen.queryByLabelText(/browse files/i)).toHaveValue('');
+        expect(screen.getByLabelText(/browse files/i)).toHaveValue('');
+        expect(screen.getByRole('progressbar')).toHaveValue(0);
+      });
+
+      it('should display image-upload error toast', async () => {
+        vi.useFakeTimers();
+        let sub!: Subscriber<unknown>;
+        createMock.mockImplementation(() => new Observable((s) => (sub = s)));
+        const messageTestData = {
+          ...newMessageData,
+          image: new File([], 'img.png', { type: 'image/png' }),
+        };
+        const chatTestData = { ...newChatData, message: messageTestData };
+        const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
+        await renderComponent({ inputs });
+        const { msgInp, sendBtn, imagePickerBtn } = getFormElements();
+        await actor.click(imagePickerBtn);
+        const fileInp = screen.getByLabelText(/browse files/i);
+        await actor.upload(fileInp, messageTestData.image);
+        await actor.type(msgInp, messageTestData.body);
+        await actor.click(sendBtn);
+        expect(msgInp).toBeDisabled();
+        expect(sendBtn).toBeDisabled();
+        expect(fileInp).toBeDisabled();
+        expect(imagePickerBtn).toBeDisabled();
+        sub.next({ type: HttpEventType.UploadProgress, loaded: 3.5, total: 10 });
+        TestBed.tick();
+        expect(screen.getByRole('progressbar')).toHaveValue(35);
+        sub.error(new Error('Test error'));
+        if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(chatTestData);
+        else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, messageTestData);
+        TestBed.tick();
+        expect(screen.getByRole('button', { name: /^pick .*image/i })).toBeVisible();
+        expect(screen.getByText(/failed to send your message/i)).toBeVisible();
+        expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
+        expect(screen.getByText(/message failed/i)).toBeVisible();
+        expect(screen.getByRole('progressbar')).toHaveValue(0);
+        expect(msgInp).toHaveValue(messageTestData.body);
+        expect(msgInp).toHaveFocus();
+        await vi.runAllTimersAsync();
+        expect(screen.queryByText(/failed message/i)).toBeNull();
+        expect(screen.queryByText(/failed to send your message/i)).toBeNull();
         vi.useRealTimers();
       });
 
@@ -177,7 +223,6 @@ describe('MessageForm', () => {
         expect(screen.getByText(/failed to send your message/i)).toBeVisible();
         expect(msgInp).toHaveValue(newMessageData.body);
         expect(msgInp).toHaveFocus();
-        await actor.type(msgInp, ' ');
         await vi.runAllTimersAsync();
         expect(screen.queryByText(/failed message/i)).toBeNull();
         expect(screen.queryByText(/failed to send your message/i)).toBeNull();
@@ -203,7 +248,6 @@ describe('MessageForm', () => {
         expect(screen.getByText(errRes.error.error.message)).toBeVisible();
         expect(msgInp).toHaveValue(newMessageData.body);
         expect(msgInp).toHaveFocus();
-        await actor.type(msgInp, ' ');
         await vi.runAllTimersAsync();
         expect(screen.queryByText(/failed message/i)).toBeNull();
         expect(screen.queryByText(errRes.error.error.message)).toBeNull();

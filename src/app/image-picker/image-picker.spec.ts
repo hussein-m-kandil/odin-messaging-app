@@ -8,8 +8,8 @@ const canceled = vi.fn();
 
 const renderComponent = ({ inputs, on, ...options }: RenderComponentOptions<ImagePicker> = {}) => {
   return render(ImagePicker, {
+    inputs: { progress: null, disabled: false, ...inputs },
     on: { canceled, unpicked, picked, ...on },
-    inputs: { progress: null, ...inputs },
     ...options,
   });
 };
@@ -20,9 +20,13 @@ describe('ImagePicker', () => {
   it('should be empty', async () => {
     await renderComponent();
     expect(screen.getByRole('button', { name: /cancel .*image picking/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /cancel .*image picking/i })).toBeEnabled();
     expect(screen.queryByRole('button', { name: /unpick .*image/i })).toBeNull();
     expect(screen.getByRole('button', { name: /pick .*image/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /pick .*image/i })).toBeEnabled();
     expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/browse files/i)).toBeEnabled();
+    expect(screen.queryByLabelText(/uploading/i)).toBeNull();
     expect(screen.getByText(/drag .* drop/i)).toBeVisible();
     expect(screen.getByRole('progressbar')).toHaveValue(0);
     expect(screen.queryByRole('presentation')).toBeNull();
@@ -122,6 +126,42 @@ describe('ImagePicker', () => {
     expect(canceled).toHaveBeenCalledExactlyOnceWith(undefined);
   });
 
+  it('should be enabled', async () => {
+    const actor = userEvent.setup();
+    await renderComponent({ inputs: { disabled: false, progress: null } });
+    const imageFile = new File([], 'img.png', { type: 'image/png' });
+    expect(screen.getByLabelText(/browse files/i)).toBeEnabled();
+    await actor.upload(screen.getByLabelText(/browse files/i), imageFile);
+    expect(screen.getByRole('button', { name: /cancel .*image picking/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /unpick .*image/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^pick .*image/i })).toBeEnabled();
+    expect(screen.getByLabelText(/browse files/i)).toBeDisabled();
+  });
+
+  it('should be disabled', async () => {
+    const actor = userEvent.setup();
+    const { rerender } = await renderComponent({ inputs: { disabled: false, progress: null } });
+    const imageFile = new File([], 'img.png', { type: 'image/png' });
+    await actor.upload(screen.getByLabelText(/browse files/i), imageFile);
+    await rerender({ inputs: { disabled: true, progress: null } });
+    expect(screen.getByRole('button', { name: /cancel .*image picking/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /unpick .*image/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^pick .*image/i })).toBeDisabled();
+    expect(screen.getByLabelText(/browse files/i)).toBeDisabled();
+  });
+
+  it('should be disabled while uploading', async () => {
+    const actor = userEvent.setup();
+    const { rerender } = await renderComponent({ inputs: { disabled: false, progress: null } });
+    const imageFile = new File([], 'img.png', { type: 'image/png' });
+    await actor.upload(screen.getByLabelText(/browse files/i), imageFile);
+    await rerender({ inputs: { disabled: false, progress: {} } });
+    expect(screen.getByRole('button', { name: /cancel .*image picking/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /unpick .*image/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^pick .*image/i })).toBeDisabled();
+    expect(screen.getByLabelText(/browse files/i)).toBeDisabled();
+  });
+
   it('should cancel', async () => {
     const actor = userEvent.setup();
     await renderComponent();
@@ -142,5 +182,12 @@ describe('ImagePicker', () => {
     expect(screen.getByRole('progressbar')).toHaveValue(92.5);
     await rerender({ inputs: { progress: { loaded: 3.75, total: 10 } } });
     expect(screen.getByRole('progressbar')).toHaveValue(37.5);
+  });
+
+  it('should show the loading indicator', async () => {
+    const { rerender } = await renderComponent({ inputs: { progress: {} } });
+    expect(screen.getByLabelText(/uploading/i)).toBeVisible();
+    await rerender({ inputs: { progress: { loaded: 3.75, total: 10 } } });
+    expect(screen.getByLabelText(/uploading/i)).toBeVisible();
   });
 });

@@ -2,12 +2,13 @@ import { Component, computed, inject, input, output, signal } from '@angular/cor
 import { FileUpload, FileSelectEvent } from 'primeng/fileupload';
 import { ProgressBar } from 'primeng/progressbar';
 import { ButtonDirective } from 'primeng/button';
+import { Skeleton } from 'primeng/skeleton';
 import { PrimeNG } from 'primeng/config';
 import { Ripple } from 'primeng/ripple';
 
 @Component({
   selector: 'app-image-picker',
-  imports: [FileUpload, ButtonDirective, ProgressBar, Ripple],
+  imports: [FileUpload, ButtonDirective, ProgressBar, Skeleton, Ripple],
   templateUrl: './image-picker.html',
   styles: ``,
 })
@@ -22,7 +23,8 @@ export class ImagePicker {
   readonly canceled = output();
   readonly unpicked = output();
 
-  readonly progress = input<{ loaded?: number; total?: number } | null>(null);
+  readonly disabled = input.required<boolean>();
+  readonly progress = input.required<{ loaded?: number; total?: number } | null>();
 
   protected readonly uploadPercentage = computed<number>(() => {
     const progress = this.progress();

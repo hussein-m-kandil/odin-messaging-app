@@ -1,38 +1,19 @@
-<article>
-  <p-fileupload
-    [customUpload]="true"
-    (onClear)="cancel()"
-    (onRemove)="unpick()"
-    (onSelect)="pick($event)"
-    styleClass="max-h-[calc(100vh-132px)] overflow-auto"
-    accept="image/png, image/jpeg, image/webp"
-    fileLimit="1"
-  >
-    <ng-template
-      #header
-      let-files
-      let-clearCallback="clearCallback"
-      let-chooseCallback="chooseCallback"
-    >
+@let _loading = progress();
+@let _disabled = _loading || disabled();
+<article class="relative">
+  <p-fileupload [customUpload]="true" [disabled]="_disabled" (onClear)="cancel()"
+                (onRemove)="unpick()" (onSelect)="pick($event)"
+                styleClass="max-h-[calc(100vh-132px)] overflow-auto"
+                accept="image/png, image/jpeg, image/webp" fileLimit="1">
+    <ng-template #header let-files let-clearCallback="clearCallback"
+                 let-chooseCallback="chooseCallback">
       <header class="w-full min-h-9 space-x-2 *:align-middle flex justify-between items-center">
-        <button
-          pButton
-          pRipple
-          rounded
-          outlined
-          size="small"
-          type="button"
-          severity="primary"
-          icon="pi pi-image"
-          aria-label="Pick an image"
-          (click)="chooseCallback()"
-        ></button>
+        <button pButton pRipple rounded outlined size="small" type="button" severity="primary"
+                [disabled]="_disabled" icon="pi pi-image" aria-label="Pick an image"
+                (click)="chooseCallback()"></button>
         @if (files.length) { @let _file = files[FILE_INDEX];
-        <span
-          [class]="`text-muted-color-emphasis text-center text-sm font-bold tracking-tight leading-tight
-            inline-block max-w-[calc(100%-80px)] truncate
-            `"
-        >
+        <span class="text-muted-color-emphasis text-center text-sm font-bold tracking-tight leading-tight inline-block max-w-[calc(100%-80px)] truncate"
+              [class]="{'opacity-50': _disabled}">
           {{ _file.name }}
           <br />
           <span class="uppercase font-normal text-xs text-muted-color">
@@ -40,53 +21,29 @@
           </span>
         </span>
         }
-        <button
-          pButton
-          pRipple
-          rounded
-          outlined
-          size="small"
-          type="button"
-          severity="danger"
-          icon="pi pi-times"
-          (click)="clearCallback()"
-          aria-label="Cancel image picking"
-        ></button>
+        <button pButton pRipple rounded outlined size="small" type="button" severity="danger"
+                [disabled]="_disabled" icon="pi pi-times" (click)="clearCallback()"
+                aria-label="Cancel image picking"></button>
       </header>
     </ng-template>
     <ng-template #content let-files let-removeFileCallback="removeFileCallback">
       <main>
         <p-progressbar [value]="uploadPercentage()" [showValue]="false" />
-        <div class="mt-4.5 relative rounded-2xl overflow-hidden text-center">
+        <div class="mt-4.5 relative rounded-2xl overflow-hidden text-center"
+             [class]="{'opacity-50': _disabled}">
           <div class="pt-[56.25%] pointer-events-none"></div>
           @if (files.length) { @let _file = files[FILE_INDEX];
-          <img
-            class="absolute top-0 left-0 size-full object-cover object-center"
-            [src]="_file.objectURL"
-            role="presentation"
-            [title]="_file.name"
-            [alt]="_file.name"
-            width="100%"
-          />
-          <button
-            pButton
-            pRipple
-            text
-            rounded
-            outlined
-            type="button"
-            size="small"
-            icon="pi pi-times"
-            severity="contrast"
-            aria-label="Unpick this image"
-            class="absolute top-1 right-1"
-            (click)="removeFileCallback($event, FILE_INDEX)"
-          ></button>
+          <img class="absolute top-0 left-0 size-full object-cover object-center"
+               [src]="_file.objectURL" role="presentation" [title]="_file.name" [alt]="_file.name"
+               width="100%" />
+          <button pButton pRipple text rounded outlined type="button" size="small"
+                  [disabled]="_disabled" icon="pi pi-times" severity="contrast"
+                  aria-label="Unpick this image" class="absolute top-1 right-1"
+                  (click)="removeFileCallback($event, FILE_INDEX)"></button>
           } @else {
           <div class="absolute top-1/2 left-1/2 w-full transform-[translate(-50%,-50%)]">
             <span
-              class="pi pi-cloud-upload rounded-full text-muted-color border-surface border-4 p-8 text-4xl"
-            ></span>
+                  class="pi pi-cloud-upload rounded-full text-muted-color border-surface border-4 p-8 text-4xl"></span>
             <p class="pt-4 text-sm text-muted-color-emphasis">Drag an image and drop it here.</p>
           </div>
           }
@@ -94,4 +51,8 @@
       </main>
     </ng-template>
   </p-fileupload>
+  @if (_loading) {
+  <p-skeleton aria-label="Uploading..."
+              class="absolute! top-0! left-0! size-full! bg-transparent!" />
+  }
 </article>

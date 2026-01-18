@@ -75,7 +75,13 @@ export class MessageForm implements OnInit {
       if (req$) {
         this.form.disable();
         req$
-          .pipe(finalize(() => (this.form.enable(), this._messageInput().nativeElement.focus())))
+          .pipe(
+            finalize(() => {
+              this.progress.set(null);
+              this.form.enable();
+              this._messageInput().nativeElement.focus();
+            }),
+          )
           .subscribe({
             next: (event) => {
               switch (event.type) {
