@@ -4,6 +4,7 @@ import { authInterceptor } from './auth-interceptor';
 import { TestBed } from '@angular/core/testing';
 import { Auth } from './auth';
 import { Mock } from 'vitest';
+import { environment } from '../../environments';
 
 const setup = (authTokenMock: Mock<() => string>) => {
   const signOutMock = vi.fn();
@@ -20,10 +21,10 @@ const setup = (authTokenMock: Mock<() => string>) => {
 };
 
 const httpMethods = ['GET', 'PUT', 'POST', 'PATCH', 'DELETE', 'OPTIONS'] as const;
-const url = '/';
+const url = environment.apiUrl;
 
 describe('authInterceptor', () => {
-  it('should set the Authorization request-header to the auth token', () => {
+  it('should set the Authorization request-header to the auth token, and send credentials', () => {
     const authToken = 'test_token';
     const { http, httpTesting } = setup(vi.fn(() => authToken));
     for (const method of httpMethods) {
@@ -32,10 +33,25 @@ describe('authInterceptor', () => {
       req.flush(null);
       httpTesting.verify();
       expect(req.request.headers.get('Authorization')).toEqual(authToken);
+      expect(req.request.withCredentials).toBe(true);
     }
   });
 
-  it('should not set the Authorization request-header to an empty auth token', () => {
+  it('should not send credentials if the URL not starts with the back-end API URL', () => {
+    const testUrls = ['/', '/blah', '/foo/bar'];
+    const { http, httpTesting } = setup(vi.fn(() => ''));
+    for (const method of httpMethods) {
+      for (const testUrl of testUrls) {
+        http.request(new HttpRequest(method, testUrl, null)).subscribe();
+        const req = httpTesting.expectOne({ method, url: testUrl });
+        req.flush(null);
+        httpTesting.verify();
+        expect(req.request.withCredentials).toBe(false);
+      }
+    }
+  });
+
+  it('should not set the Authorization request-header to an empty auth token, but send credentials', () => {
     const authToken = '';
     const { http, httpTesting } = setup(vi.fn(() => authToken));
     for (const method of httpMethods) {
@@ -44,6 +60,7 @@ describe('authInterceptor', () => {
       req.flush(null);
       httpTesting.verify();
       expect(req.request.headers.get('Authorization')).toBeNull();
+      expect(req.request.withCredentials).toBe(true);
     }
   });
 
