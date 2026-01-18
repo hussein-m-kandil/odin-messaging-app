@@ -1,8 +1,14 @@
 import { Chat, Message, ChatProfile, NewChatData, NewMessageData } from './chats.types';
-import { sort, subtract, findChatByAllMemberIds } from './chats.utils';
+import { HttpEventType, HttpClient, HttpParams } from '@angular/common/http';
+import {
+  sort,
+  subtract,
+  findChatByAllMemberIds,
+  createMessageFormData,
+  createChatFormData,
+} from './chats.utils';
 import { inject, signal, DestroyRef, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, defer, map, of, tap } from 'rxjs';
 import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
@@ -35,15 +41,6 @@ export class Chats extends ListStore<Chat> {
   override reset() {
     this.activatedChat.set(null);
     super.reset();
-  }
-
-  create(newChatData: NewChatData) {
-    return this._http.post<Chat>(`${apiUrl}/chats`, newChatData).pipe(
-      tap((chat) => {
-        this.load();
-        this._router.navigate(['/chats', chat.id]);
-      })
-    );
   }
 
   activate(chat: Chat, currentProfileName: string) {
@@ -175,11 +172,35 @@ export class Chats extends ListStore<Chat> {
     return updated;
   }
 
+  create(data: NewChatData) {
+    const body = createChatFormData(data);
+    return this._http
+      .post<Chat>(`${apiUrl}/chats`, body, { observe: 'events', reportProgress: true })
+      .pipe(
+        tap((event) => {
+          if (event.type === HttpEventType.Response && event.body) {
+            this.load();
+            this._router.navigate(['/chats', event.body.id]);
+          }
+        })
+      );
+  }
+
   createMessage(chatId: Chat['id'], data: NewMessageData) {
-    return this._http.post<Message>(`${this.baseUrl}/${chatId}/messages`, data).pipe(
-      takeUntilDestroyed(this._destroyRef),
-      tap((message) => this.updateChatMessages(chatId, [message]))
-    );
+    const body = createMessageFormData(data);
+    return this._http
+      .post<Message>(`${this.baseUrl}/${chatId}/messages`, body, {
+        reportProgress: true,
+        observe: 'events',
+      })
+      .pipe(
+        takeUntilDestroyed(this._destroyRef),
+        tap((event) => {
+          if (event.type === HttpEventType.Response && event.body) {
+            this.updateChatMessages(chatId, [event.body]);
+          }
+        })
+      );
   }
 
   generateTitle(chat: Chat, currentUser: User) {

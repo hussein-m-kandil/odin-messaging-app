@@ -1,5 +1,11 @@
+import {
+  HttpParams,
+  HttpResponse,
+  HttpEventType,
+  provideHttpClient,
+  HttpErrorResponse,
+} from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { HttpErrorResponse, HttpParams, provideHttpClient } from '@angular/common/http';
 import { Chat, Message, NewMessageData } from './chats.types';
 import { provideRouter, Router } from '@angular/router';
 import { environment } from '../../environments';
@@ -62,7 +68,6 @@ const { apiUrl } = environment;
 const chatsUrl = `${apiUrl}/chats`;
 
 const message = { id: crypto.randomUUID(), body: 'Hi!' } as Message;
-const newMessageData = { body: 'Hello!' } as NewMessageData;
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
 
@@ -83,6 +88,8 @@ const setup = () => {
 };
 
 describe('Chats', () => {
+  afterEach(vi.resetAllMocks);
+
   it('should have an activated chat in the initial state', () => {
     const { service } = setup();
     expect(service.activatedChat()).toBe(null);
@@ -437,111 +444,149 @@ describe('Chats', () => {
     service.list.set([chat]);
     const memberProfileId = profile2.id;
     const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
-    let resData: unknown, resErr: unknown;
-    req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res: unknown, errRes: unknown;
+    req$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const url = `${chatsUrl}/members/${memberProfileId}`;
     httpTesting.expectNone(url, 'Request to find a chat by member id');
-    expect(resErr).toBeUndefined();
-    expect(resData).toBeInstanceOf(Promise);
-    await expect(resData).resolves.toBe(true);
+    expect(errRes).toBeUndefined();
+    expect(res).toBeInstanceOf(Promise);
+    await expect(res).resolves.toBe(true);
     expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
     httpTesting.verify();
-    navigationSpy.mockClear();
   });
 
   it('should navigate to old chat if got from the backend by member and user profile ids', async () => {
     const { service, httpTesting } = setup();
     const memberProfileId = profile2.id;
     const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
-    let resData: unknown, resErr: unknown;
-    req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res: unknown, errRes: unknown;
+    req$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to find a chat by member id');
     req.flush([chat]);
-    expect(resErr).toBeUndefined();
-    expect(resData).toBeInstanceOf(Promise);
-    await expect(resData).resolves.toBe(true);
+    expect(errRes).toBeUndefined();
+    expect(res).toBeInstanceOf(Promise);
+    await expect(res).resolves.toBe(true);
     expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
     httpTesting.verify();
-    navigationSpy.mockClear();
   });
 
   it('should not navigate to old chat if not found by member and user profile ids', async () => {
     const { service, httpTesting } = setup();
     const memberProfileId = profile.id;
     const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
-    let resData: unknown, resErr: unknown;
-    req$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res: unknown, errRes: unknown;
+    req$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to find a chat by member id');
     req.flush([chat]);
-    expect(resErr).toBeUndefined();
-    expect(resData).toBeInstanceOf(Promise);
+    expect(errRes).toBeUndefined();
+    expect(res).toBeInstanceOf(Promise);
     expect(navigationSpy).toHaveBeenCalledTimes(0);
-    await expect(resData).resolves.toBe(false);
+    await expect(res).resolves.toBe(false);
     httpTesting.verify();
-    navigationSpy.mockClear();
   });
 
   it('should create a chat', () => {
     const { service, httpTesting } = setup();
     const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
-    let resData, resErr;
-    service
-      .create(newChatData)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    service.create(newChatData).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'Post', url: chatsUrl };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
+    const reqBody = req.request.body as FormData;
     req.flush(chat);
     httpTesting
       .expectOne({ method: 'Get', url: chatsUrl }, 'Request to get the chats')
       .flush([chat]);
+    expect(reqBody).toBeInstanceOf(FormData);
+    expect(Object.fromEntries(reqBody.entries())).toStrictEqual({
+      'message[body]': newChatData.message.body,
+      'profiles[0]': newChatData.profiles[0],
+    });
+    expect(res).toBeInstanceOf(HttpResponse);
+    expect(res).toHaveProperty('body', chat);
+    expect(errRes).toBeUndefined();
     expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
-    expect(resData).toStrictEqual(chat);
-    expect(resErr).toBeUndefined();
     httpTesting.verify();
-    navigationSpy.mockClear();
+  });
+
+  it('should create a chat with image message', () => {
+    const { service, httpTesting } = setup();
+    const newChatData = {
+      profiles: [crypto.randomUUID()],
+      message: {
+        body: 'Hello!',
+        image: new File([], 'img.png', { type: 'image/png' }),
+        imagedata: { x: 7, y: 7 },
+      },
+    };
+    let res, errRes;
+    service.create(newChatData).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    const reqInfo = { method: 'Post', url: chatsUrl };
+    const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
+    const reqBody = req.request.body as FormData;
+    req.flush(chat);
+    httpTesting
+      .expectOne({ method: 'Get', url: chatsUrl }, 'Request to get the chats')
+      .flush([chat]);
+    expect(reqBody.get('profiles[0]')).toBe(newChatData.profiles[0]);
+    expect(reqBody.get('message[body]')).toBe(newChatData.message.body);
+    expect(reqBody.get('image')).toStrictEqual(newChatData.message.image);
+    expect(reqBody.get('message[imagedata][x]')).toBe(`${newChatData.message.imagedata.x}`);
+    expect(reqBody.get('message[imagedata][y]')).toBe(`${newChatData.message.imagedata.y}`);
+    expect(res).toBeInstanceOf(HttpResponse);
+    expect(res).toHaveProperty('body', chat);
+    expect(errRes).toBeUndefined();
+    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
+    httpTesting.verify();
   });
 
   it('should fail to create a chat due to a server error', () => {
     const { service, httpTesting } = setup();
     const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
-    let resData, resErr;
-    service
-      .create(newChatData)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    service.create(newChatData).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'Post', url: chatsUrl };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
+    const reqBody = req.request.body as FormData;
     req.flush('Failed', { status: 500, statusText: 'Internal server error' });
     httpTesting.expectNone({ method: 'Get', url: chatsUrl }, 'Request to get the chats');
+    expect(reqBody).toBeInstanceOf(FormData);
+    expect(Object.fromEntries(reqBody.entries())).toStrictEqual({
+      'message[body]': newChatData.message.body,
+      'profiles[0]': newChatData.profiles[0],
+    });
     expect(navigationSpy).toHaveBeenCalledTimes(0);
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resData).toBeUndefined();
-    expect(resErr).toHaveProperty('status', 500);
-    expect(resErr).toHaveProperty('error', 'Failed');
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(res).toHaveProperty('type', HttpEventType.Sent);
+    expect(errRes).toHaveProperty('error', 'Failed');
+    expect(errRes).toHaveProperty('status', 500);
     httpTesting.verify();
-    navigationSpy.mockClear();
   });
 
   it('should fail to create a chat due to a network error', () => {
     const { service, httpTesting } = setup();
     const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
-    let resData, resErr;
-    service
-      .create(newChatData)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    service.create(newChatData).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'Post', url: chatsUrl };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
+    const reqBody = req.request.body as FormData;
     const networkError = new ProgressEvent('Network error');
     req.error(networkError);
     httpTesting.expectNone({ method: 'Get', url: chatsUrl }, 'Request to get the chats');
+    expect(reqBody).toBeInstanceOf(FormData);
+    expect(Object.fromEntries(reqBody.entries())).toStrictEqual({
+      'message[body]': newChatData.message.body,
+      'profiles[0]': newChatData.profiles[0],
+    });
     expect(navigationSpy).toHaveBeenCalledTimes(0);
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resData).toBeUndefined();
-    expect(resErr).toHaveProperty('status', 0);
-    expect(resErr).toHaveProperty('error', networkError);
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(res).toHaveProperty('type', HttpEventType.Sent);
+    expect(errRes).toHaveProperty('error', networkError);
+    expect(errRes).toHaveProperty('status', 0);
     httpTesting.verify();
-    navigationSpy.mockClear();
   });
 
   it('should generate a chat title as the other member profile name if the other member profile is null', () => {
@@ -653,11 +698,11 @@ describe('Chats', () => {
   it('should get a chat from the current list', () => {
     const { service, httpTesting } = setup();
     service.list.set([chat]);
-    let resData, resErr;
-    service.getChat(chatId).subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    service.getChat(chatId).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     httpTesting.expectNone(`${chatsUrl}/${chatId}`, 'Request to get the chat messages');
-    expect(resData).toStrictEqual(chat);
-    expect(resErr).toBeUndefined();
+    expect(res).toStrictEqual(chat);
+    expect(errRes).toBeUndefined();
     httpTesting.verify();
   });
 
@@ -666,270 +711,318 @@ describe('Chats', () => {
     service.list.set([chat]);
     const randChatId = crypto.randomUUID();
     const chat$ = service.getChat(randChatId);
-    let resData, resErr;
-    chat$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    chat$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${randChatId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const resBody = { ...chat, id: randChatId };
     req.flush(resBody);
-    expect(resData).toStrictEqual(resBody);
-    expect(resErr).toBeUndefined();
+    expect(res).toStrictEqual(resBody);
+    expect(errRes).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should fail to get a chat from the backend due to a server error', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
-    service.getChat(chatId).subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    service.getChat(chatId).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = 'Failed';
     req.flush(error, { status: 500, statusText: 'Internal server error' });
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
-    expect(resErr).toHaveProperty('status', 500);
-    expect(resData).toBeUndefined();
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
+    expect(errRes).toHaveProperty('status', 500);
+    expect(res).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should fail to get a chat from the backend due to a network error', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
-    service.getChat(chatId).subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    service.getChat(chatId).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = new ProgressEvent('Network error.');
     req.error(error);
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
-    expect(resErr).toHaveProperty('status', 0);
-    expect(resData).toBeUndefined();
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
+    expect(errRes).toHaveProperty('status', 0);
+    expect(res).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should get a chat by member profile id from the current list', () => {
     const { service, httpTesting } = setup();
     service.list.set([chat]);
-    let resData, resErr;
+    let res, errRes;
     service
       .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const url = `${chatsUrl}/members/${chat.profiles[1].profileId}`;
     httpTesting.expectNone(url, 'Request to get the chat messages');
-    expect(resData).toStrictEqual(chat);
-    expect(resErr).toBeUndefined();
+    expect(res).toStrictEqual(chat);
+    expect(errRes).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should get a chat by member profile id from the backend', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
+    let res, errRes;
     service
       .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId!}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     req.flush([chat]);
-    expect(resErr).toBeUndefined();
-    expect(resData).toStrictEqual(chat);
+    expect(errRes).toBeUndefined();
+    expect(res).toStrictEqual(chat);
     httpTesting.verify();
   });
 
   it('should fail to get a chat by member profile id from the backend due to a server error', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
+    let res, errRes;
     service
       .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = 'Failed';
     req.flush(error, { status: 500, statusText: 'Internal server error' });
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
-    expect(resErr).toHaveProperty('status', 500);
-    expect(resData).toBeUndefined();
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
+    expect(errRes).toHaveProperty('status', 500);
+    expect(res).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should fail to get a chat by member profile id from the backend due to a network error', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
+    let res, errRes;
     service
       .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = new ProgressEvent('Network error.');
     req.error(error);
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
-    expect(resErr).toHaveProperty('status', 0);
-    expect(resData).toBeUndefined();
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
+    expect(errRes).toHaveProperty('status', 0);
+    expect(res).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should get a chat messages', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
+    let res, errRes;
     service
       .getChatMessages(chatId)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     req.flush([message, message]);
-    expect(resData).toStrictEqual([message, message]);
-    expect(resErr).toBeUndefined();
+    expect(res).toStrictEqual([message, message]);
+    expect(errRes).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should fail to get a chat messages due to a server error', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
+    let res, errRes;
     service
       .getChatMessages(chatId)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = 'Failed';
     req.flush(error, { status: 500, statusText: 'Internal server error' });
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
-    expect(resErr).toHaveProperty('status', 500);
-    expect(resData).toBeUndefined();
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
+    expect(errRes).toHaveProperty('status', 500);
+    expect(res).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should fail to get a chat messages due to a network error', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
+    let res, errRes;
     service
       .getChatMessages(chatId)
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = new ProgressEvent('Network error.');
     req.error(error);
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
-    expect(resErr).toHaveProperty('status', 0);
-    expect(resData).toBeUndefined();
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
+    expect(errRes).toHaveProperty('status', 0);
+    expect(res).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should get more of a chat messages', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
+    let res, errRes;
     const cursor = message.id;
     service
       .getChatMessages(chatId, new HttpParams({ fromObject: { cursor } }))
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages?cursor=${cursor}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more of the chat messages');
     req.flush([message, message]);
-    expect(resData).toStrictEqual([message, message]);
-    expect(resErr).toBeUndefined();
+    expect(res).toStrictEqual([message, message]);
+    expect(errRes).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should fail to get more of a chat messages due to a server error', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
+    let res, errRes;
     const cursor = message.id;
     service
       .getChatMessages(chatId, new HttpParams({ fromObject: { cursor } }))
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages?cursor=${cursor}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more of the chat messages');
     const error = 'Failed';
     req.flush(error, { status: 500, statusText: 'Internal server error' });
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
-    expect(resErr).toHaveProperty('status', 500);
-    expect(resData).toBeUndefined();
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
+    expect(errRes).toHaveProperty('status', 500);
+    expect(res).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should fail to get more of a chat messages due to a network error', () => {
     const { service, httpTesting } = setup();
-    let resData, resErr;
+    let res, errRes;
     const cursor = message.id;
     service
       .getChatMessages(chatId, new HttpParams({ fromObject: { cursor } }))
-      .subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages?cursor=${cursor}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more of the chat messages');
     const error = new ProgressEvent('Network error.');
     req.error(error);
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
-    expect(resErr).toHaveProperty('status', 0);
-    expect(resData).toBeUndefined();
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
+    expect(errRes).toHaveProperty('status', 0);
+    expect(res).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should create a message', () => {
     const { service, httpTesting } = setup();
     const chats = [chat, { ...chat, id: crypto.randomUUID(), messages: [] }];
+    const newMessageData = { body: 'Hello!' } as NewMessageData;
     const activatedChat = chats[1];
     service.list.set(chats);
     service.activatedChat.set(activatedChat);
     const newMsg$ = service.createMessage(activatedChat.id, newMessageData);
-    let resData, resErr;
-    newMsg$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    newMsg$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'POST', url: `${chatsUrl}/${activatedChat.id}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a message');
+    const reqBody = req.request.body as FormData;
     const expectedChats = [chats[0], { ...chats[1], messages: [message] }];
     const expectedActivatedChat = expectedChats[1];
     req.flush(message);
+    expect(errRes).toBeUndefined();
+    expect(reqBody.get('image')).toBeNull();
+    expect(reqBody).toBeInstanceOf(FormData);
+    expect(reqBody.get('imagedata')).toBeNull();
+    expect(reqBody.get('body')).toBe(newMessageData.body);
     expect(service.activatedChat()).toStrictEqual(expectedActivatedChat);
     expect(service.list()).toStrictEqual(expectedChats);
-    expect(resData).toStrictEqual(message);
-    expect(resErr).toBeUndefined();
+    expect(res).toBeInstanceOf(HttpResponse);
+    expect(res).toHaveProperty('body', message);
+    httpTesting.verify();
+  });
+
+  it('should create an image message', () => {
+    const { service, httpTesting } = setup();
+    const chats = [chat, { ...chat, id: crypto.randomUUID(), messages: [] }];
+    const newMessageData = {
+      body: 'Hello!',
+      imagedata: { x: 7, y: 7 },
+      image: new File([], 'img.png', { type: 'image/png' }),
+    };
+    const activatedChat = chats[1];
+    service.list.set(chats);
+    service.activatedChat.set(activatedChat);
+    const newMsg$ = service.createMessage(activatedChat.id, newMessageData);
+    let res, errRes;
+    newMsg$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    const reqInfo = { method: 'POST', url: `${chatsUrl}/${activatedChat.id}/messages` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to create a message');
+    const reqBody = req.request.body as FormData;
+    const expectedChats = [chats[0], { ...chats[1], messages: [message] }];
+    const expectedActivatedChat = expectedChats[1];
+    req.flush(message);
+    expect(errRes).toBeUndefined();
+    expect(reqBody).toBeInstanceOf(FormData);
+    expect(reqBody.get('body')).toBe(newMessageData.body);
+    expect(reqBody.get('image')).toBe(newMessageData.image);
+    expect(reqBody.get('imagedata[x]')).toBe(`${newMessageData.imagedata.x}`);
+    expect(reqBody.get('imagedata[y]')).toBe(`${newMessageData.imagedata.y}`);
+    expect(service.activatedChat()).toStrictEqual(expectedActivatedChat);
+    expect(service.list()).toStrictEqual(expectedChats);
+    expect(res).toBeInstanceOf(HttpResponse);
+    expect(res).toHaveProperty('body', message);
     httpTesting.verify();
   });
 
   it('should fail to create a message due to a server error', () => {
     const { service, httpTesting } = setup();
     const chats = [chat, { ...chat, id: crypto.randomUUID(), messages: [] }];
+    const newMessageData = { body: 'Hello!' };
     const activatedChat = chats[1];
     service.list.set(chats);
     service.activatedChat.set(activatedChat);
     const newMsg$ = service.createMessage(activatedChat.id, newMessageData);
-    let resData, resErr;
-    newMsg$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    newMsg$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'POST', url: `${chatsUrl}/${activatedChat.id}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a message');
+    const reqBody = req.request.body as FormData;
     const error = 'Failed';
     req.flush(error, { status: 500, statusText: 'Internal server error' });
+    expect(reqBody).toBeInstanceOf(FormData);
+    expect(Object.fromEntries(reqBody.entries())).toStrictEqual(newMessageData);
     expect(service.activatedChat()).toStrictEqual(activatedChat);
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
-    expect(resErr).toHaveProperty('status', 500);
+    expect(res).toHaveProperty('type', HttpEventType.Sent);
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
+    expect(errRes).toHaveProperty('status', 500);
     expect(service.list()).toStrictEqual(chats);
-    expect(resData).toBeUndefined();
     httpTesting.verify();
   });
 
   it('should fail to create a message due to a network error', () => {
     const { service, httpTesting } = setup();
     const chats = [chat, { ...chat, id: crypto.randomUUID(), messages: [] }];
+    const newMessageData = { body: 'Hello!' };
     const activatedChat = chats[1];
     service.list.set(chats);
     service.activatedChat.set(activatedChat);
     const newMsg$ = service.createMessage(activatedChat.id, newMessageData);
-    let resData, resErr;
-    newMsg$.subscribe({ next: (d) => (resData = d), error: (e) => (resErr = e) });
+    let res, errRes;
+    newMsg$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'POST', url: `${chatsUrl}/${activatedChat.id}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a message');
+    const reqBody = req.request.body as FormData;
     const error = new ProgressEvent('Network error');
     req.error(error);
+    expect(reqBody).toBeInstanceOf(FormData);
     expect(service.activatedChat()).toStrictEqual(activatedChat);
-    expect(resErr).toBeInstanceOf(HttpErrorResponse);
-    expect(resErr).toHaveProperty('error', error);
+    expect(Object.fromEntries(reqBody.entries())).toStrictEqual(newMessageData);
+    expect(res).toHaveProperty('type', HttpEventType.Sent);
+    expect(errRes).toBeInstanceOf(HttpErrorResponse);
+    expect(errRes).toHaveProperty('error', error);
     expect(service.list()).toStrictEqual(chats);
-    expect(resErr).toHaveProperty('status', 0);
-    expect(resData).toBeUndefined();
+    expect(errRes).toHaveProperty('status', 0);
     httpTesting.verify();
   });
 });

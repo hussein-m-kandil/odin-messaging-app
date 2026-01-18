@@ -17,6 +17,7 @@ profile.user = user;
 
 const chatId = crypto.randomUUID();
 const now = new Date().toISOString();
+const image = { id: crypto.randomUUID(), width: 30, height: 20, alt: 'img', src: './img.png' };
 const messages: Message[] = [
   {
     chatId,
@@ -25,6 +26,8 @@ const messages: Message[] = [
     updatedAt: now,
     id: crypto.randomUUID(),
     profileName: user.username,
+    image: image as Message['image'],
+    imageId: image.id,
   },
   {
     chatId,
@@ -123,7 +126,9 @@ describe('ChatRoom', () => {
     expect(screen.queryByText(/failed/i)).toBeNull();
     for (const msg of messages) {
       expect(screen.getByText(msg.body)).toBeVisible();
+      if (msg.image) expect(screen.getByRole('img', { name: msg.image.alt }));
     }
+    expect(screen.getAllByRole('img')).toHaveLength(messages.filter((msg) => !!msg.image).length);
   });
 
   it('should display untitled chat', async () => {

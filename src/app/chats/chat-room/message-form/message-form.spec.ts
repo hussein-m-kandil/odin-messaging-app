@@ -5,12 +5,14 @@ import { MessageForm } from './message-form';
 import { Chats } from '../../chats';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
+import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
+import { Mock } from 'vitest';
 
 const profileId = crypto.randomUUID();
 const chatId = crypto.randomUUID();
 
-const newMessageData = { body: 'Hi!' };
-const newChatData = { profiles: [profileId], message: { body: 'Hi!' } };
+const newMessageData = { body: 'Hi!', image: null };
+const newChatData = { profiles: [profileId], message: newMessageData };
 
 const chatsMock = { create: vi.fn(), createMessage: vi.fn() };
 
@@ -24,10 +26,10 @@ const renderComponent = ({
     chatId && profileId
       ? `<app-message-form chatId="${chatId}" profileId="${profileId}" />`
       : chatId
-      ? `<app-message-form chatId="${chatId}" />`
-      : profileId
-      ? `<app-message-form profileId="${profileId}" />`
-      : `<app-message-form />`;
+        ? `<app-message-form chatId="${chatId}" />`
+        : profileId
+          ? `<app-message-form profileId="${profileId}" />`
+          : `<app-message-form />`;
   return render(`${componentTemplate}<p-toast />`, {
     imports: [MessageForm, Toast],
     providers: [MessageService, { provide: Chats, useValue: chatsMock }, ...(providers || [])],
@@ -37,10 +39,11 @@ const renderComponent = ({
 };
 
 const getFormElements = () => {
+  const imagePickerBtn = screen.getByRole('button', { name: /show image picker/i });
   const msgInp = screen.getByRole('textbox', { name: /message/i });
   const msgForm = screen.getByRole('form', { name: /message/i });
   const sendBtn = screen.getByRole('button', { name: /send/i });
-  return { msgInp, msgForm, sendBtn };
+  return { imagePickerBtn, sendBtn, msgForm, msgInp };
 };
 
 describe('MessageForm', () => {
@@ -50,111 +53,162 @@ describe('MessageForm', () => {
     const chatId = '';
     const profileId = '';
     await expect(() => renderComponent({ inputs: { chatId, profileId } })).rejects.toThrowError(
-      /missing (.+ )?input/i
+      /missing (.+ )?input/i,
     );
   });
 
-  it('should display a message form', async () => {
-    await renderComponent({ inputs: { chatId } });
-    const { msgInp, msgForm, sendBtn } = getFormElements();
-    expect(msgInp).toBeVisible();
-    expect(msgForm).toBeVisible();
-    expect(sendBtn).toBeVisible();
-  });
+  const testData: {
+    inputs: { chatId?: string; profileId?: string };
+    type: 'chat' | 'message';
+    createMock: Mock;
+  }[] = [
+    { type: 'message', inputs: { chatId }, createMock: chatsMock.createMessage },
+    { type: 'chat', inputs: { profileId }, createMock: chatsMock.create },
+  ];
 
-  it('should display a chat form', async () => {
-    await renderComponent({ inputs: { profileId } });
-    const { msgInp, msgForm, sendBtn } = getFormElements();
-    expect(msgInp).toBeVisible();
-    expect(msgForm).toBeVisible();
-    expect(sendBtn).toBeVisible();
-  });
+  for (const { type, createMock, inputs } of testData) {
+    describe(`Create ${type}`, () => {
+      it('should display a form with fields', async () => {
+        await renderComponent({ inputs });
+        const { msgInp, msgForm, sendBtn, imagePickerBtn } = getFormElements();
+        expect(msgInp).toBeVisible();
+        expect(msgForm).toBeVisible();
+        expect(sendBtn).toBeVisible();
+        expect(imagePickerBtn).toBeVisible();
+      });
 
-  it('should create a message by clicking the send button', async () => {
-    chatsMock.createMessage.mockImplementation(() => of(null));
-    const { click, type } = userEvent.setup();
-    await renderComponent({ inputs: { chatId } });
-    const { msgInp, sendBtn } = getFormElements();
-    await type(msgInp, newMessageData.body);
-    await click(sendBtn);
-    expect(chatsMock.createMessage).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
-    expect(msgInp).toHaveValue('');
-    expect(msgInp).toHaveFocus();
-  });
+      it('should toggle a file input', async () => {
+        await renderComponent({ inputs });
+        const actor = userEvent.setup();
+        const { imagePickerBtn } = getFormElements();
+        expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
+        expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        await actor.click(imagePickerBtn);
+        expect(screen.getByRole('button', { name: /pick .*image/i })).toBeVisible();
+        expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
+        await actor.click(imagePickerBtn);
+        expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
+        expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+      });
 
-  it('should create a chat', async () => {
-    chatsMock.create.mockImplementation(() => of(null));
-    const { click, type } = userEvent.setup();
-    await renderComponent({ inputs: { profileId } });
-    const { msgInp, sendBtn } = getFormElements();
-    await type(msgInp, newChatData.message.body);
-    await click(sendBtn);
-    expect(chatsMock.create).toHaveBeenCalledExactlyOnceWith(newChatData);
-    expect(msgInp).toHaveValue('');
-    expect(msgInp).toHaveFocus();
-  });
+      it('should create', async () => {
+        vi.useFakeTimers();
+        createMock.mockImplementation(() =>
+          of(new HttpResponse({ status: 201 })).pipe(observeOn(asyncScheduler, 7)),
+        );
+        const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
+        await renderComponent({ inputs });
+        const { msgInp, sendBtn, imagePickerBtn } = getFormElements();
+        await actor.type(msgInp, newMessageData.body);
+        await actor.click(sendBtn);
+        expect(msgInp).toBeDisabled();
+        expect(sendBtn).toBeDisabled();
+        expect(imagePickerBtn).toBeDisabled();
+        await vi.runAllTimersAsync();
+        if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(newChatData);
+        else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
+        expect(msgInp).toHaveValue('');
+        expect(msgInp).toHaveFocus();
+        vi.useRealTimers();
+      });
 
-  it('should not submit again while submitting the message form', async () => {
-    chatsMock.createMessage.mockImplementation(() => of(null).pipe(observeOn(asyncScheduler, 700)));
-    const { click, type } = userEvent.setup();
-    await renderComponent({ inputs: { chatId } });
-    const { msgInp, sendBtn } = getFormElements();
-    await type(msgInp, newMessageData.body);
-    await click(sendBtn);
-    await click(sendBtn);
-    await click(sendBtn);
-    expect(chatsMock.createMessage).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
-    expect(msgInp).toHaveValue(newMessageData.body);
-    expect(sendBtn).toHaveFocus();
-  });
+      it('should create with an image', async () => {
+        vi.useFakeTimers();
+        createMock.mockImplementation(() =>
+          of(new HttpResponse({ status: 201 })).pipe(observeOn(asyncScheduler, 7)),
+        );
+        const messageTestData = {
+          ...newMessageData,
+          image: new File([], 'img.png', { type: 'image/png' }),
+        };
+        const chatTestData = { ...newChatData, message: messageTestData };
+        const actor = userEvent.setup({
+          advanceTimers: vi.advanceTimersByTimeAsync,
+        });
+        await renderComponent({ inputs });
+        const { msgInp, sendBtn, imagePickerBtn } = getFormElements();
+        await actor.click(imagePickerBtn);
+        await actor.upload(screen.getByLabelText(/browse files/i), messageTestData.image);
+        await actor.type(msgInp, messageTestData.body);
+        await actor.click(sendBtn);
+        expect(msgInp).toBeDisabled();
+        expect(sendBtn).toBeDisabled();
+        expect(imagePickerBtn).toBeDisabled();
+        await vi.runAllTimersAsync();
+        if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(chatTestData);
+        else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, messageTestData);
+        expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
+        expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        expect(msgInp).toHaveValue('');
+        expect(msgInp).toHaveFocus();
+        await actor.click(imagePickerBtn);
+        expect(screen.queryByLabelText(/browse files/i)).toHaveValue('');
+        vi.useRealTimers();
+      });
 
-  it('should not submit again while submitting the chat form', async () => {
-    chatsMock.create.mockImplementation(() => of(null).pipe(observeOn(asyncScheduler, 700)));
-    const { click, type } = userEvent.setup();
-    await renderComponent({ inputs: { profileId } });
-    const { msgInp, sendBtn } = getFormElements();
-    await type(msgInp, newChatData.message.body);
-    await click(sendBtn);
-    await click(sendBtn);
-    await click(sendBtn);
-    expect(chatsMock.create).toHaveBeenCalledExactlyOnceWith(newChatData);
-    expect(msgInp).toHaveValue(newMessageData.body);
-    expect(sendBtn).toHaveFocus();
-  });
+      it('should not submit again while submitting', async () => {
+        createMock.mockImplementation(() =>
+          of(new HttpResponse({ status: 201 })).pipe(observeOn(asyncScheduler, 700)),
+        );
+        const actor = userEvent.setup();
+        await renderComponent({ inputs });
+        const { msgInp, sendBtn } = getFormElements();
+        await actor.type(msgInp, newMessageData.body);
+        await actor.click(sendBtn);
+        await actor.click(sendBtn);
+        await actor.click(sendBtn);
+        if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(newChatData);
+        else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
+        expect(msgInp).toHaveValue(newMessageData.body);
+        expect(sendBtn).toHaveFocus();
+      });
 
-  it('should display a create message error, then remove it on the first interaction', async () => {
-    vi.useFakeTimers();
-    chatsMock.createMessage.mockImplementation(() => throwError(() => new Error('Test error')));
-    const { click, type } = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
-    await renderComponent({ inputs: { chatId } });
-    const { msgInp, sendBtn } = getFormElements();
-    await type(msgInp, newMessageData.body);
-    await click(sendBtn);
-    expect(chatsMock.createMessage).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
-    expect(screen.getByText(/failed message/i)).toBeVisible();
-    expect(msgInp).toHaveValue(newMessageData.body);
-    expect(msgInp).toHaveFocus();
-    await type(msgInp, ' ');
-    await vi.runAllTimersAsync();
-    expect(screen.queryByText(/failed message/i)).toBeNull();
-    vi.useRealTimers();
-  });
+      it('should display a toast error message', async () => {
+        vi.useFakeTimers();
+        createMock.mockImplementation(() => throwError(() => new Error('Test error')));
+        const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
+        await renderComponent({ inputs });
+        const { msgInp, sendBtn } = getFormElements();
+        await actor.type(msgInp, newMessageData.body);
+        await actor.click(sendBtn);
+        if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(newChatData);
+        else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
+        expect(screen.getByText(/message failed/i)).toBeVisible();
+        expect(screen.getByText(/failed to send your message/i)).toBeVisible();
+        expect(msgInp).toHaveValue(newMessageData.body);
+        expect(msgInp).toHaveFocus();
+        await actor.type(msgInp, ' ');
+        await vi.runAllTimersAsync();
+        expect(screen.queryByText(/failed message/i)).toBeNull();
+        expect(screen.queryByText(/failed to send your message/i)).toBeNull();
+        vi.useRealTimers();
+      });
 
-  it('should display a create chat error, then remove it on the first interaction', async () => {
-    vi.useFakeTimers();
-    chatsMock.create.mockImplementation(() => throwError(() => new Error('Test error')));
-    const { click, type } = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
-    await renderComponent({ inputs: { profileId } });
-    const { msgInp, sendBtn } = getFormElements();
-    await type(msgInp, newChatData.message.body);
-    await click(sendBtn);
-    expect(chatsMock.create).toHaveBeenCalledExactlyOnceWith(newChatData);
-    expect(screen.getByText(/failed message/i)).toBeVisible();
-    expect(msgInp).toHaveValue(newMessageData.body);
-    expect(msgInp).toHaveFocus();
-    await type(msgInp, ' ');
-    await vi.runAllTimersAsync();
-    expect(screen.queryByText(/failed message/i)).toBeNull();
-    vi.useRealTimers();
-  });
+      it('should display a toast backend-error message', async () => {
+        vi.useFakeTimers();
+        const errRes = new HttpErrorResponse({
+          error: { error: { message: 'Bad request' } },
+          statusText: 'Bad request',
+          status: 400,
+        });
+        createMock.mockImplementation(() => throwError(() => errRes));
+        const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
+        await renderComponent({ inputs });
+        const { msgInp, sendBtn } = getFormElements();
+        await actor.type(msgInp, newMessageData.body);
+        await actor.click(sendBtn);
+        if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(newChatData);
+        else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
+        expect(screen.getByText(/message failed/i)).toBeVisible();
+        expect(screen.getByText(errRes.error.error.message)).toBeVisible();
+        expect(msgInp).toHaveValue(newMessageData.body);
+        expect(msgInp).toHaveFocus();
+        await actor.type(msgInp, ' ');
+        await vi.runAllTimersAsync();
+        expect(screen.queryByText(/failed message/i)).toBeNull();
+        expect(screen.queryByText(errRes.error.error.message)).toBeNull();
+        vi.useRealTimers();
+      });
+    });
+  }
 });
