@@ -18,6 +18,7 @@ profile.user = user;
 const chatId = crypto.randomUUID();
 const now = new Date().toISOString();
 const image = { id: crypto.randomUUID(), width: 30, height: 20, alt: 'img', src: './img.png' };
+const image2 = { ...image, id: crypto.randomUUID(), alt: 'img2', src: './img2.png' };
 const messages: Message[] = [
   {
     chatId,
@@ -36,6 +37,16 @@ const messages: Message[] = [
     updatedAt: now,
     id: crypto.randomUUID(),
     profileName: 'test_user_2',
+  },
+  {
+    chatId,
+    body: '',
+    createdAt: now,
+    updatedAt: now,
+    id: crypto.randomUUID(),
+    profileName: 'test_user_2',
+    image: image2 as Message['image'],
+    imageId: image2.id,
   },
 ];
 
@@ -125,7 +136,7 @@ describe('ChatRoom', () => {
     expect(screen.queryByLabelText(/loading/i)).toBeNull();
     expect(screen.queryByText(/failed/i)).toBeNull();
     for (const msg of messages) {
-      expect(screen.getByText(msg.body)).toBeVisible();
+      if (msg.body) expect(screen.getByText(msg.body)).toBeVisible();
       if (msg.image) expect(screen.getByRole('img', { name: msg.image.alt }));
     }
     expect(screen.getAllByRole('img')).toHaveLength(messages.filter((msg) => !!msg.image).length);
@@ -261,8 +272,10 @@ describe('ChatRoom', () => {
     expect(screen.getByLabelText(/loading more messages/i)).toBeVisible();
     expect(screen.queryByLabelText(/loading messages/i)).toBeNull();
     for (const msg of messages) {
-      expect(screen.getByText(msg.body)).toBeVisible();
+      if (msg.body) expect(screen.getByText(msg.body)).toBeVisible();
+      if (msg.image) expect(screen.getByRole('img', { name: msg.image.alt }));
     }
+    expect(screen.getAllByRole('img')).toHaveLength(messages.filter((msg) => !!msg.image).length);
   });
 
   it('should display load-more button, that invokes the load-more method', async () => {
@@ -288,7 +301,9 @@ describe('ChatRoom', () => {
     expect(screen.queryByLabelText(/loading more/i)).toBeNull();
     expect(messagesMock.load).toHaveBeenCalledExactlyOnceWith();
     for (const msg of messages) {
-      expect(screen.getByText(msg.body)).toBeVisible();
+      if (msg.body) expect(screen.getByText(msg.body)).toBeVisible();
+      if (msg.image) expect(screen.getByRole('img', { name: msg.image.alt }));
     }
+    expect(screen.getAllByRole('img')).toHaveLength(messages.filter((msg) => !!msg.image).length);
   });
 });

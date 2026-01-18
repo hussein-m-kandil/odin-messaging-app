@@ -1,35 +1,21 @@
 <ng-template #li let-_chat>
   @let _title = chats.generateTitle(_chat, user());
-  <a
-    pRipple
-    [title]="_title"
-    ariaCurrentWhenActive="page"
-    routerLinkActive="bg-highlight"
-    [routerLink]="['/chats', _chat.id]"
-    [routerLinkActiveOptions]="{ exact: true }"
-    class="block leading-tight w-full p-2 py-3 border-surface border-b **:align-middle"
-  >
-    <p-avatar
-      label="{{ _title[0]?.toUpperCase() }}"
-      class="text-center size-12 me-2"
-      shape="circle"
-      size="large"
-    />
+  <a pRipple [title]="_title" ariaCurrentWhenActive="page" routerLinkActive="bg-highlight"
+     [routerLink]="['/chats', _chat.id]" [routerLinkActiveOptions]="{ exact: true }"
+     class="block leading-tight w-full p-2 py-3 border-surface border-b **:align-middle">
+    <p-avatar label="{{ _title[0]?.toUpperCase() }}" class="text-center size-12 me-2" shape="circle"
+              size="large" />
     <!-- ** NOTE: The following calculated widths are dependent ** -->
     <span class="inline-block w-[calc(100%-4rem)]">
       @let _newMessagesCount = countNewMessages(_chat);
       <span class="w-full inline-flex justify-between items-center">
         <span
-          class="inline-block w-[calc(100%-4rem)] truncate text-lg font-semibold tracking-wider"
-        >
+              class="inline-block w-[calc(100%-4rem)] truncate text-lg font-semibold tracking-wider">
           {{ _title || 'Anonymous' }}
         </span>
         @if (_chat.messages[0]?.createdAt; as _recentMsgDate) {
-        <time
-          [attr.datetime]="_recentMsgDate"
-          class="text-xs tracking-tighter font-light"
-          [class]="[_newMessagesCount ? 'text-primary' : 'text-muted-color']"
-        >
+        <time [attr.datetime]="_recentMsgDate" class="text-xs tracking-tighter font-light"
+              [class]="[_newMessagesCount ? 'text-primary' : 'text-muted-color']">
           @let _distanceDays = getDistanceDays(_recentMsgDate);
           {{
             _distanceDays === 1
@@ -44,16 +30,16 @@
       <br />
       <span class="w-full inline-flex justify-between items-center">
         <span
-          class="inline-block w-[calc(100%-4rem)] truncate text-muted-color text-sm font-light tracking-tighter"
-        >
-          {{ _chat.messages[0]?.body || 'Empty chat!' }}
+              class="inline-block w-[calc(100%-4rem)] truncate text-muted-color text-sm **:text-sm font-light tracking-tighter">
+          @if (_chat.messages[0]?.body; as _lastMessageBody) {
+          {{ _lastMessageBody }}
+          } @else if (_chat.messages[0]?.image) {
+          <span class="pi pi-image opacity-75" aria-label="Image-Only message"></span>
+          }
         </span>
         @if (_newMessagesCount) {
-        <p-badge
-          [value]="_newMessagesCount < 100 ? _newMessagesCount : '+99'"
-          class="text-center"
-          badgeSize="small"
-        />
+        <p-badge [value]="_newMessagesCount < 100 ? _newMessagesCount : '+99'" class="text-center"
+                 badgeSize="small" />
         }
       </span>
     </span>
