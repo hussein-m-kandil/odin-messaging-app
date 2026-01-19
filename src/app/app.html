@@ -1,35 +1,29 @@
-@let _narrowScreen = vpWidth() < 720;
 <div class="h-screen flex flex-col">
-  @let _user = auth.user();
-  <header>
-    <app-mainbar [togglableView]="!_narrowScreen" />
-  </header>
-  <main class="relative grow">
-    <div class="absolute top-0 left-0 size-full overflow-auto">
+  @let _user=auth.user();
+  @let _narrowScreen = vpWidth() < 720; <!-- -->
+    <header>
+      <app-mainbar [togglableView]="!_narrowScreen" />
+    </header>
+    <main class="grow overflow-auto">
       @if (navigation.isInitial()) {
       <app-navigator />
       } @else if (_user) {
       <ng-container
-        [ngTemplateOutlet]="_narrowScreen || singularView.enabled() ? _singularView : _compoundView"
-      />
+                    [ngTemplateOutlet]="_narrowScreen || singularView.enabled() ? _singularView : _compoundView" />
       } @else {
       <ng-container [ngTemplateOutlet]="_mainContent" />
       }
-    </div>
-  </main>
+    </main>
 </div>
-
 <p-toast position="bottom-right" />
-
 <ng-template #_singularView>
   <ng-container [ngTemplateOutlet]="mainMenuRouteActivated() ? _mainMenu : _mainContent" />
 </ng-template>
-
 <ng-template #_compoundView>
   @if (notFoundRouteActivated()) {
   <ng-container [ngTemplateOutlet]="_mainContent" />
   } @else {
-  <div class="size-full *:h-full *:relative flex">
+  <div class="size-full overflow-auto *:h-full flex">
     <div class="shrink-0 w-82 border-surface border-r">
       <ng-container [ngTemplateOutlet]="_mainMenu" />
     </div>
@@ -39,32 +33,26 @@
   </div>
   }
 </ng-template>
-
 <ng-template #_mainMenu>
   <nav class="size-full flex flex-col">
     <p-tabs [value]="activeMenuIndex()">
       <p-tablist>
         @for(_navItem of mainNavItems; track _navItem){
         <p-tab [value]="$index" class="grow p-0">
-          <a
-            ariaCurrentWhenActive="page"
-            routerLinkActive="p-tab-active"
-            [routerLink]="[_navItem.route]"
-            [routerLinkActiveOptions]="{ exact: true }"
-            class="inline-block w-full p-1.5 text-center leading-tight *:align-middle"
-          >
+          <a ariaCurrentWhenActive="page" routerLinkActive="p-tab-active"
+             [routerLink]="[_navItem.route]" [routerLinkActiveOptions]="{ exact: true }"
+             class="inline-block w-full p-1.5 text-center leading-tight *:align-middle">
             <i [class]="_navItem.icon"></i>&nbsp;{{ _navItem.label }}
           </a>
         </p-tab>
         }
       </p-tablist>
     </p-tabs>
-    <div [class]="`grow overflow-auto`">
+    <div class="grow overflow-auto">
       <router-outlet name="mainMenu" />
     </div>
   </nav>
 </ng-template>
-
 <ng-template #_mainContent>
   @if (navigation.navigating() || navigation.error()) {
   <app-navigator />
