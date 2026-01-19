@@ -1,13 +1,13 @@
 @let _loading = progress();
 @let _disabled = _loading || disabled();
-<article class="relative">
+<div class="relative max-w-svh mx-auto">
   <p-fileupload [customUpload]="true" [disabled]="_disabled" (onClear)="cancel()"
                 (onRemove)="unpick()" (onSelect)="pick($event)"
                 styleClass="max-h-[calc(100vh-132px)] overflow-auto"
                 accept="image/png, image/jpeg, image/webp" fileLimit="1">
     <ng-template #header let-files let-clearCallback="clearCallback"
                  let-chooseCallback="chooseCallback">
-      <header class="w-full min-h-9 space-x-2 *:align-middle flex justify-between items-center">
+      <div class="w-full min-h-9 space-x-2 *:align-middle flex justify-between items-center">
         <button pButton pRipple rounded outlined size="small" type="button" severity="primary"
                 [disabled]="_disabled" icon="pi pi-image" aria-label="Pick an image"
                 (click)="chooseCallback()"></button>
@@ -24,10 +24,10 @@
         <button pButton pRipple rounded outlined size="small" type="button" severity="danger"
                 [disabled]="_disabled" icon="pi pi-times" (click)="clearCallback()"
                 aria-label="Cancel image picking"></button>
-      </header>
+      </div>
     </ng-template>
     <ng-template #content let-files let-removeFileCallback="removeFileCallback">
-      <main>
+      <div>
         <p-progressbar [value]="uploadPercentage()" [showValue]="false" />
         <div class="mt-4.5 relative rounded-2xl overflow-hidden text-center"
              [class]="{'opacity-50': _disabled}">
@@ -48,11 +48,11 @@
           </div>
           }
         </div>
-      </main>
+      </div>
     </ng-template>
   </p-fileupload>
   @if (_loading) {
   <p-skeleton aria-label="Uploading..."
               class="absolute! top-0! left-0! size-full! bg-transparent!" />
   }
-</article>
+</div>
