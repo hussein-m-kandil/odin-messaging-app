@@ -1,35 +1,31 @@
 @let _profile = profile(); @let _isCurrentProfile = profiles.isCurrentProfile(_profile.id);
 <section class="size-full flex flex-col justify-center">
-  <nav class="p-2 flex justify-between">
-    <a
-      pButton
-      pRipple
-      text
-      rounded
-      outlined
-      size="small"
-      routerLink=".."
-      aria-label="Go back"
-      class="**:leading-0!"
-      icon="pi pi-arrow-left"
-    ></a>
-    @if(_isCurrentProfile) {
-    <a
-      pButton
-      pRipple
-      text
-      rounded
-      outlined
-      size="small"
-      routerLink="./edit"
-      aria-label="Edit Profile"
-      class="**:leading-0!"
-      icon="pi pi-cog"
-    ></a>
-    }
+  <nav>
+    <ul class="p-2 flex justify-between">
+      <li>
+        <a pButton pRipple text rounded outlined size="small" routerLink=".." aria-label="Go back"
+           icon="pi pi-arrow-left"></a>
+      </li>
+      @if(_isCurrentProfile) {
+      <li>
+        <button pButton pRipple text rounded outlined size="small" type="button"
+                icon="pi pi-ellipsis-v" aria-label="Toggle profile options"
+                (click)="optionsMenu.toggle($event)"></button>
+        <p-menu #optionsMenu [model]="optionsMenuItems()" ariaLabel="Profile options menu"
+                [popup]="true" />
+      </li>
+      }
+    </ul>
   </nav>
   <div class="my-auto text-center">
-    <p-avatar [label]="_profile.user.username[0].toUpperCase()" size="xlarge" />
+    @if (_profile.user.avatar?.image; as _img) {
+    <p-avatar size="xlarge" class="*:object-cover overflow-hidden"
+              [image]="`${_img.src}${_img.src.includes('?') ? '&' : '?'}refresh=${_img.updatedAt}`" />
+    } @else if (_profile.user.username[0].toUpperCase(); as _firstLetter) {
+    <p-avatar size="xlarge" [label]="_firstLetter" />
+    } @else {
+    <p-avatar size="xlarge" icon="pi pi-image" class="*:text-muted-color" />
+    }
     <div class="my-4 **:leading-tight">
       <h2 class="text-xl font-bold">
         {{ _profile.user.fullname }}
@@ -40,14 +36,8 @@
       </p>
     </div>
     <div>
-      <a
-        pButton
-        pRipple
-        rounded
-        icon="pi pi-send"
-        routerLink="chat"
-        aria-label="Chat with {{ _isCurrentProfile ? 'yourself' : _profile.user.username }}"
-      ></a>
+      <a pButton pRipple rounded icon="pi pi-send" routerLink="chat"
+         aria-label="Chat with {{ _isCurrentProfile ? 'yourself' : _profile.user.username }}"></a>
     </div>
   </div>
 </section>

@@ -5,6 +5,7 @@ import { chatResolver } from './chats/chat-resolver';
 import { userResolver } from './auth/user-resolver';
 import { inject, Injectable } from '@angular/core';
 import { Title } from '@angular/platform-browser';
+import { ImageForm } from './images/image-form';
 import { environment } from '../environments';
 import { authGuard } from './auth/auth-guard';
 import { ChatRoom } from './chats/chat-room';
@@ -62,8 +63,14 @@ export const routes: Routes = [
           {
             path: ':profileId/edit',
             component: AuthForm,
-            title: 'Edit Profile',
+            title: 'Update Profile',
             resolve: { profile: profileResolver },
+          },
+          {
+            path: ':profileId/pic',
+            component: ImageForm,
+            title: 'Upload Profile Picture',
+            resolve: { isAvatar: () => true },
           },
           {
             path: ':profileId',

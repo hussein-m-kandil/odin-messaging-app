@@ -1,7 +1,8 @@
 import { render, RenderComponentOptions, screen } from '@testing-library/angular';
 import { Profile as ProfileT, User } from '../../app.types';
-import { Profile } from './profile';
+import { userEvent } from '@testing-library/user-event';
 import { Profiles } from '../profiles';
+import { Profile } from './profile';
 
 const user = {
   id: crypto.randomUUID(),
@@ -17,6 +18,7 @@ const profilesMock = { list: vi.fn(() => [] as ProfileT[]), isCurrentProfile: vi
 const renderComponent = ({ providers, ...options }: RenderComponentOptions<Profile> = {}) => {
   return render(Profile, {
     providers: [{ provide: Profiles, useValue: profilesMock }, ...(providers || [])],
+    autoDetectChanges: false,
     inputs: { profile },
     ...options,
   });
@@ -33,9 +35,9 @@ describe('Profile', () => {
     expect(screen.getByText(new RegExp(profile.user.username))).toBeVisible();
     expect(screen.getByText(new RegExp(profile.user.bio))).toBeVisible();
     expect(screen.getByRole('link', { name: /back/i })).toBeVisible();
-    expect(screen.queryByRole('link', { name: /edit profile/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /toggle profile options/i })).toBeNull();
     expect(
-      screen.getByRole('link', { name: new RegExp(`chat with ${profile.user.username}`, 'i') })
+      screen.getByRole('link', { name: new RegExp(`chat with ${profile.user.username}`, 'i') }),
     ).toBeVisible();
   });
 
@@ -47,7 +49,27 @@ describe('Profile', () => {
     expect(screen.getByText(new RegExp(profile.user.username))).toBeVisible();
     expect(screen.getByText(new RegExp(profile.user.bio))).toBeVisible();
     expect(screen.getByRole('link', { name: /back/i })).toBeVisible();
-    expect(screen.getByRole('link', { name: /edit profile/i })).toBeVisible();
     expect(screen.getByRole('link', { name: /chat with yourself/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /toggle profile options/i })).toBeVisible();
+  });
+
+  it('should render a button that toggles the current profile options menu', async () => {
+    profilesMock.isCurrentProfile.mockImplementation(() => true);
+    const actor = userEvent.setup();
+    await renderComponent();
+    await actor.click(screen.getByRole('button', { name: /toggle profile options/i }));
+    await vi.waitFor(() =>
+      expect(screen.getByRole('menu', { name: /profile options/i })).toBeVisible(),
+    );
+    expect(screen.getByRole('link', { name: /edit data/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /edit data/i })).toHaveAttribute('href', '/edit');
+    expect(screen.getByRole('link', { name: /upload picture/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /upload picture/i })).toHaveAttribute('href', '/pic');
+    await actor.click(screen.getByRole('button', { name: /toggle profile options/i }));
+    await vi.waitFor(() =>
+      expect(screen.queryByRole('menu', { name: /profile options/i })).toBeNull(),
+    );
+    expect(screen.queryByRole('link', { name: /edit data/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /upload picture/i })).toBeNull();
   });
 });
