@@ -115,7 +115,7 @@ describe('Chats', () => {
     service.activate(chat, chat.profiles[0].profileName);
     const req = httpTesting.expectOne(
       { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
-      'Request to update the chat profile last-seen date.'
+      'Request to update the chat profile last-seen date.',
     );
     const lastSeenAt = new Date(Date.now() + 7).toISOString();
     const expectedChats = [
@@ -129,7 +129,7 @@ describe('Chats', () => {
     expect(service.list()).toStrictEqual(expectedChats);
     httpTesting.expectOne(
       { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
-      'Request to update chats'
+      'Request to update chats',
     );
     httpTesting.verify();
   });
@@ -140,7 +140,7 @@ describe('Chats', () => {
     service.activate(chat, chat.profiles[0].profileName);
     const req = httpTesting.expectOne(
       { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
-      'Request to update the chat profile last-seen date.'
+      'Request to update the chat profile last-seen date.',
     );
     req.error(new ProgressEvent('Network error'));
     expect(service.activatedChat()).toStrictEqual(chat);
@@ -154,7 +154,7 @@ describe('Chats', () => {
     service.activate(chat, chat.profiles[0].profileName);
     const req = httpTesting.expectOne(
       { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
-      'Request to update the chat profile last-seen date.'
+      'Request to update the chat profile last-seen date.',
     );
     req.flush('Failed', { status: 500, statusText: 'Internal server error' });
     expect(service.activatedChat()).toStrictEqual(chat);
@@ -372,7 +372,7 @@ describe('Chats', () => {
     service.updateChats();
     const req = httpTesting.expectOne(
       { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
-      'Request to update chats'
+      'Request to update chats',
     );
     const expectedMessages = [
       {
@@ -419,7 +419,7 @@ describe('Chats', () => {
     service.updateChats();
     const req = httpTesting.expectOne(
       { method: 'GET', url: `${chatsUrl}?limit=1` },
-      'Request to update chats'
+      'Request to update chats',
     );
     req.error(new ProgressEvent('Network error'));
     expect(service.list()).toStrictEqual([chat]);
@@ -432,7 +432,7 @@ describe('Chats', () => {
     service.updateChats();
     const req = httpTesting.expectOne(
       { method: 'GET', url: `${chatsUrl}?limit=1` },
-      'Request to update chats'
+      'Request to update chats',
     );
     req.flush('Failed', { status: 500, statusText: 'Internal server error' });
     expect(service.list()).toStrictEqual([chat]);
@@ -518,7 +518,7 @@ describe('Chats', () => {
       message: {
         body: 'Hello!',
         image: new File([], 'img.png', { type: 'image/png' }),
-        imagedata: { x: 7, y: 7 },
+        imagedata: { xPos: 7, yPos: 7 },
       },
     };
     let res, errRes;
@@ -533,8 +533,8 @@ describe('Chats', () => {
     expect(reqBody.get('profiles[0]')).toBe(newChatData.profiles[0]);
     expect(reqBody.get('message[body]')).toBe(newChatData.message.body);
     expect(reqBody.get('image')).toStrictEqual(newChatData.message.image);
-    expect(reqBody.get('message[imagedata][x]')).toBe(`${newChatData.message.imagedata.x}`);
-    expect(reqBody.get('message[imagedata][y]')).toBe(`${newChatData.message.imagedata.y}`);
+    expect(reqBody.get('message[imagedata][xPos]')).toBe(`${newChatData.message.imagedata.xPos}`);
+    expect(reqBody.get('message[imagedata][yPos]')).toBe(`${newChatData.message.imagedata.yPos}`);
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', chat);
     expect(errRes).toBeUndefined();
@@ -946,7 +946,7 @@ describe('Chats', () => {
     const chats = [chat, { ...chat, id: crypto.randomUUID(), messages: [] }];
     const newMessageData = {
       body: 'Hello!',
-      imagedata: { x: 7, y: 7 },
+      imagedata: { xPos: 7, yPos: 7 },
       image: new File([], 'img.png', { type: 'image/png' }),
     };
     const activatedChat = chats[1];
@@ -965,8 +965,8 @@ describe('Chats', () => {
     expect(reqBody).toBeInstanceOf(FormData);
     expect(reqBody.get('body')).toBe(newMessageData.body);
     expect(reqBody.get('image')).toBe(newMessageData.image);
-    expect(reqBody.get('imagedata[x]')).toBe(`${newMessageData.imagedata.x}`);
-    expect(reqBody.get('imagedata[y]')).toBe(`${newMessageData.imagedata.y}`);
+    expect(reqBody.get('imagedata[xPos]')).toBe(`${newMessageData.imagedata.xPos}`);
+    expect(reqBody.get('imagedata[yPos]')).toBe(`${newMessageData.imagedata.yPos}`);
     expect(service.activatedChat()).toStrictEqual(expectedActivatedChat);
     expect(service.list()).toStrictEqual(expectedChats);
     expect(res).toBeInstanceOf(HttpResponse);

@@ -1,0 +1,14 @@
+@let _submitting = submitting();
+@let _isAvatar = isAvatar();
+<form (submit)="submit($event)" aria-labelledby="pic-form-label"
+      class="p-4 space-y-4 h-full flex flex-col justify-center">
+  <h2 class="text-2xl text-color text-center font-semibold leading-tight tracking-wider"
+      id="pic-form-label">
+    Upload {{_isAvatar ? 'Picture' : 'Image'}}
+  </h2>
+  <app-image-picker [kind]="_isAvatar ? 'picture' : 'image'" [progress]="progress()"
+                    [disabled]="_submitting" (unpicked)="unpick()" (canceled)="goBack()"
+                    (picked)="image.set($event)" />
+  <p-button fluid type="submit" [loading]="_submitting" [disabled]="!image()" icon="pi pi-upload"
+            [label]="_submitting ? 'Uploading...' : 'Upload'"></p-button>
+</form>

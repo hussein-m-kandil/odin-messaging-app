@@ -1,5 +1,5 @@
-@let _loading = progress();
-@let _disabled = _loading || disabled();
+@let _kind = kind(); @let _singularKind = `${_kind === 'picture' ? 'a' : 'an'} ${_kind}`;
+@let _loading = progress(); @let _disabled = _loading || disabled();
 <div class="relative max-w-svh mx-auto">
   <p-fileupload [customUpload]="true" [disabled]="_disabled" (onClear)="cancel()"
                 (onRemove)="unpick()" (onSelect)="pick($event)"
@@ -9,7 +9,7 @@
                  let-chooseCallback="chooseCallback">
       <div class="w-full min-h-9 space-x-2 *:align-middle flex justify-between items-center">
         <button pButton pRipple rounded outlined size="small" type="button" severity="primary"
-                [disabled]="_disabled" icon="pi pi-image" aria-label="Pick an image"
+                [disabled]="_disabled" icon="pi pi-image" aria-label="Pick {{ _singularKind }}"
                 (click)="chooseCallback()"></button>
         @if (files.length) { @let _file = files[FILE_INDEX];
         <span class="text-muted-color-emphasis text-center text-sm font-bold tracking-tight leading-tight inline-block max-w-[calc(100%-80px)] truncate"
@@ -23,7 +23,7 @@
         }
         <button pButton pRipple rounded outlined size="small" type="button" severity="danger"
                 [disabled]="_disabled" icon="pi pi-times" (click)="clearCallback()"
-                aria-label="Cancel image picking"></button>
+                aria-label="Cancel {{ _kind }} picking"></button>
       </div>
     </ng-template>
     <ng-template #content let-files let-removeFileCallback="removeFileCallback">
@@ -38,13 +38,15 @@
                width="100%" />
           <button pButton pRipple text rounded outlined type="button" size="small"
                   [disabled]="_disabled" icon="pi pi-times" severity="contrast"
-                  aria-label="Unpick this image" class="absolute top-1 right-1"
+                  aria-label="Unpick this {{ _kind }}" class="absolute top-1 right-1"
                   (click)="removeFileCallback($event, FILE_INDEX)"></button>
           } @else {
           <div class="absolute top-1/2 left-1/2 w-full transform-[translate(-50%,-50%)]">
             <span
                   class="pi pi-cloud-upload rounded-full text-muted-color border-surface border-4 p-8 text-4xl"></span>
-            <p class="pt-4 text-sm text-muted-color-emphasis">Drag an image and drop it here.</p>
+            <p class="pt-4 text-sm text-muted-color-emphasis">Drag {{ _singularKind }} and drop it
+              here.
+            </p>
           </div>
           }
         </div>

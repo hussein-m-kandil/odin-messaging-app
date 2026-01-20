@@ -1,4 +1,4 @@
-import { Image, Profile } from '../app.types';
+import { Image, Profile, NewImageData } from '../app.types';
 
 export interface Message {
   id: string;
@@ -40,7 +40,7 @@ export interface ChatManager {
 }
 
 export interface NewMessageData {
-  imagedata?: Record<string, unknown>;
+  imagedata?: NewImageData;
   image?: File | null;
   body: string;
 }

@@ -24,6 +24,7 @@ export class ImagePicker {
   readonly unpicked = output();
 
   readonly disabled = input.required<boolean>();
+  readonly kind = input<'image' | 'picture'>('image');
   readonly progress = input.required<{ loaded?: number; total?: number } | null>();
 
   protected readonly uploadPercentage = computed<number>(() => {

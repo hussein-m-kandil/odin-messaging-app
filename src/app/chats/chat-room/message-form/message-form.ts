@@ -1,13 +1,13 @@
-import { Component, ElementRef, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import {
-  HttpErrorResponse,
   HttpEvent,
   HttpEventType,
+  HttpErrorResponse,
   HttpUploadProgressEvent,
 } from '@angular/common/http';
+import { Component, ElementRef, inject, input, OnInit, signal, viewChild } from '@angular/core';
 import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
+import { ImagePicker } from '../../../images/image-picker';
 import { createResErrorHandler } from '../../../utils';
-import { ImagePicker } from '../../../image-picker';
 import { TextareaModule } from 'primeng/textarea';
 import { ButtonDirective } from 'primeng/button';
 import { MessageService } from 'primeng/api';

@@ -19,15 +19,34 @@ describe('ImagePicker', () => {
 
   it('should be empty', async () => {
     await renderComponent();
-    expect(screen.getByRole('button', { name: /cancel .*image picking/i })).toBeVisible();
-    expect(screen.getByRole('button', { name: /cancel .*image picking/i })).toBeEnabled();
-    expect(screen.queryByRole('button', { name: /unpick .*image/i })).toBeNull();
-    expect(screen.getByRole('button', { name: /pick .*image/i })).toBeVisible();
-    expect(screen.getByRole('button', { name: /pick .*image/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /cancel image picking/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /cancel image picking/i })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /unpick image/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /pick an image/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /pick an image/i })).toBeEnabled();
+    expect(screen.getByText(/drag an image and drop it here/i)).toBeVisible();
     expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/browse files/i)).toBeEnabled();
     expect(screen.queryByLabelText(/uploading/i)).toBeNull();
-    expect(screen.getByText(/drag .* drop/i)).toBeVisible();
+    expect(screen.getByRole('progressbar')).toHaveValue(0);
+    expect(screen.queryByRole('presentation')).toBeNull();
+    expect(screen.queryByRole('img')).toBeNull();
+    expect(canceled).toHaveBeenCalledTimes(0);
+    expect(unpicked).toHaveBeenCalledTimes(0);
+    expect(picked).toHaveBeenCalledTimes(0);
+  });
+
+  it('should use the word "picture" instead of using "image"', async () => {
+    await renderComponent({ inputs: { kind: 'picture' } });
+    expect(screen.getByRole('button', { name: /cancel picture picking/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /cancel picture picking/i })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: /unpick picture/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /pick a picture/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /pick a picture/i })).toBeEnabled();
+    expect(screen.getByText(/drag a picture and drop it here/i)).toBeVisible();
+    expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/browse files/i)).toBeEnabled();
+    expect(screen.queryByLabelText(/uploading/i)).toBeNull();
     expect(screen.getByRole('progressbar')).toHaveValue(0);
     expect(screen.queryByRole('presentation')).toBeNull();
     expect(screen.queryByRole('img')).toBeNull();
