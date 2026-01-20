@@ -1,15 +1,10 @@
-import {
-  HttpEvent,
-  HttpEventType,
-  HttpErrorResponse,
-  HttpUploadProgressEvent,
-} from '@angular/common/http';
 import { Component, ElementRef, inject, input, OnInit, signal, viewChild } from '@angular/core';
+import { HttpEvent, HttpEventType, HttpUploadProgressEvent } from '@angular/common/http';
 import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ImagePicker } from '../../../images/image-picker';
-import { createResErrorHandler } from '../../../utils';
 import { TextareaModule } from 'primeng/textarea';
 import { ButtonDirective } from 'primeng/button';
+import { getResErrMsg } from '../../../utils';
 import { MessageService } from 'primeng/api';
 import { finalize, Observable } from 'rxjs';
 import { Ripple } from 'primeng/ripple';
@@ -94,27 +89,9 @@ export class MessageForm implements OnInit {
               }
             },
             error: (res) => {
-              const defaultErrorMessage = 'Failed to send your message.';
-              let message = defaultErrorMessage;
-              const fakeSignal = { set: (msg: string) => (message = msg) };
-              createResErrorHandler(fakeSignal, defaultErrorMessage)(res);
-              if (
-                message === defaultErrorMessage &&
-                res instanceof HttpErrorResponse &&
-                res.status === 400
-              ) {
-                const { error } = res;
-                if (error.error) {
-                  if (typeof error.error === 'string') message = error.error;
-                  else if (typeof error.error.message === 'string') message = error.error.message;
-                } else if (typeof error.message === 'string') message = error.message;
-                else if (typeof error === 'string') message = error;
-              }
-              this._toast.add({
-                severity: 'error',
-                summary: 'Message failed',
-                detail: message,
-              });
+              const defaultMessage = 'Failed to send your message.';
+              const message = getResErrMsg(res) || defaultMessage;
+              this._toast.add({ severity: 'error', summary: 'Message failed', detail: message });
             },
           });
       }

@@ -20,12 +20,13 @@ import { DividerModule } from 'primeng/divider';
 import { MessageModule } from 'primeng/message';
 import { ButtonModule } from 'primeng/button';
 import { MessageService } from 'primeng/api';
+import { getResErrMsg } from '../../utils';
 import { Profile } from '../../app.types';
 import { Observable } from 'rxjs';
 import { Auth } from '../auth';
 
 export const passwordsMatchValidator: ValidatorFn = (
-  control: AbstractControl
+  control: AbstractControl,
 ): ValidationErrors | null => {
   const password = control.get('password');
   const confirm = control.get('confirm');
@@ -75,21 +76,21 @@ export class AuthForm implements OnInit {
         error: { summary: 'Submission failed!', detail: 'Failed to sign you up.' },
       } as const)
     : this._activatedPath.endsWith('edit')
-    ? ({
-        type: 'edit',
-        label: this.EDIT_LABEL,
-        success: {
-          summary: 'Profile edited!',
-          detail: 'You have successfully edited your profile data.',
-        },
-        error: { summary: 'Submission failed!', detail: 'Failed to edit your profile data.' },
-      } as const)
-    : ({
-        type: 'signin',
-        label: this.SIGN_IN_LABEL,
-        success: { summary: 'Welcome back!', detail: 'You have signed-in successfully.' },
-        error: { summary: 'Submission failed!', detail: 'Failed to sign you in.' },
-      } as const);
+      ? ({
+          type: 'edit',
+          label: this.EDIT_LABEL,
+          success: {
+            summary: 'Profile edited!',
+            detail: 'You have successfully edited your profile data.',
+          },
+          error: { summary: 'Submission failed!', detail: 'Failed to edit your profile data.' },
+        } as const)
+      : ({
+          type: 'signin',
+          label: this.SIGN_IN_LABEL,
+          success: { summary: 'Welcome back!', detail: 'You have signed-in successfully.' },
+          error: { summary: 'Submission failed!', detail: 'Failed to sign you in.' },
+        } as const);
 
   protected readonly signingIn = this.info.type === 'signin';
   protected readonly signingUp = this.info.type === 'signup';
@@ -114,7 +115,7 @@ export class AuthForm implements OnInit {
           }
         : {}),
     },
-    { validators: passwordsMatchValidator }
+    { validators: passwordsMatchValidator },
   );
 
   protected navigate(url: string[]) {
@@ -152,21 +153,16 @@ export class AuthForm implements OnInit {
           this._toast.add({ ...this.info.success, severity: 'success' });
           if (this.editing) this.navigate(['..']);
         },
-        error: (data) => {
+        error: (res) => {
           this.form.enable();
-          let message = 'Something went wrong; please try again later.';
-          // 401 and 403 status codes are not handled, because this is an AUTH form!
-          if (data instanceof HttpErrorResponse) {
-            if (data.status === 400 && data.error) {
+          const defaultMessage = 'Something went wrong; please try again later.';
+          let message = getResErrMsg(res) || defaultMessage;
+          if (message === defaultMessage && res instanceof HttpErrorResponse) {
+            // 401 and 403 status codes are not handled, because this is an AUTH form!
+            if (res.status === 400 && res.error) {
               const endSentence = (s: string) => `${s}${/\.|\?|!$/.test(s) ? '' : '.'}`;
-              const { error } = data;
-              if (error.error) {
-                if (typeof error.error === 'string') message = error.error;
-                else if (typeof error.error.message === 'string') message = error.error.message;
-              } else if (typeof error.message === 'string') message = error.message;
-              else if (typeof error === 'string') message = error;
-              else if (Array.isArray(error) && !this.signingIn) {
-                for (const field of error) {
+              if (Array.isArray(res.error) && !this.signingIn) {
+                for (const field of res.error) {
                   if (Array.isArray(field.path) && typeof field.message === 'string') {
                     const controlNames = Object.keys(this.form.controls);
                     for (const controlName of controlNames) {
@@ -179,7 +175,7 @@ export class AuthForm implements OnInit {
                 }
               }
               message = endSentence(message);
-            } else if (data.status === 0 && data.error instanceof ProgressEvent) {
+            } else if (res.status === 0 && res.error instanceof ProgressEvent) {
               message = 'Please, check your internet connection and try again.';
             }
           }

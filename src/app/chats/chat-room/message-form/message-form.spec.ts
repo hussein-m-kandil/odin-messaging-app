@@ -1,13 +1,12 @@
-import { screen, render, RenderComponentOptions } from '@testing-library/angular';
-import { HttpErrorResponse, HttpEventType, HttpResponse } from '@angular/common/http';
 import { asyncScheduler, Observable, observeOn, of, Subscriber, throwError } from 'rxjs';
+import { HttpErrorResponse, HttpEventType, HttpResponse } from '@angular/common/http';
+import { screen, render, RenderComponentOptions } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
 import { MessageForm } from './message-form';
 import { MessageService } from 'primeng/api';
 import { Toast } from 'primeng/toast';
 import { Chats } from '../../chats';
 import { Mock } from 'vitest';
-import { TestBed } from '@angular/core/testing';
 
 const profileId = crypto.randomUUID();
 const chatId = crypto.randomUUID();
@@ -123,7 +122,7 @@ describe('MessageForm', () => {
         };
         const chatTestData = { ...newChatData, message: messageTestData };
         const actor = userEvent.setup();
-        await renderComponent({ inputs });
+        const { detectChanges } = await renderComponent({ inputs });
         const { msgInp, sendBtn, imagePickerBtn } = getFormElements();
         await actor.click(imagePickerBtn);
         const fileInp = screen.getByLabelText(/browse files/i);
@@ -135,13 +134,13 @@ describe('MessageForm', () => {
         expect(fileInp).toBeDisabled();
         expect(imagePickerBtn).toBeDisabled();
         sub.next({ type: HttpEventType.UploadProgress, loaded: 3.5, total: 10 });
-        TestBed.tick();
+        detectChanges();
         expect(screen.getByRole('progressbar')).toHaveValue(35);
         sub.next(new HttpResponse({ status: 201 }));
         sub.complete();
         if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(chatTestData);
         else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, messageTestData);
-        TestBed.tick();
+        detectChanges();
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
         expect(msgInp).toHaveValue('');
@@ -161,7 +160,7 @@ describe('MessageForm', () => {
         };
         const chatTestData = { ...newChatData, message: messageTestData };
         const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTimeAsync });
-        await renderComponent({ inputs });
+        const { detectChanges } = await renderComponent({ inputs });
         const { msgInp, sendBtn, imagePickerBtn } = getFormElements();
         await actor.click(imagePickerBtn);
         const fileInp = screen.getByLabelText(/browse files/i);
@@ -173,12 +172,12 @@ describe('MessageForm', () => {
         expect(fileInp).toBeDisabled();
         expect(imagePickerBtn).toBeDisabled();
         sub.next({ type: HttpEventType.UploadProgress, loaded: 3.5, total: 10 });
-        TestBed.tick();
+        detectChanges();
         expect(screen.getByRole('progressbar')).toHaveValue(35);
         sub.error(new Error('Test error'));
         if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(chatTestData);
         else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, messageTestData);
-        TestBed.tick();
+        detectChanges();
         expect(screen.getByRole('button', { name: /^pick .*image/i })).toBeVisible();
         expect(screen.getByText(/failed to send your message/i)).toBeVisible();
         expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
@@ -187,7 +186,7 @@ describe('MessageForm', () => {
         expect(msgInp).toHaveValue(messageTestData.body);
         expect(msgInp).toHaveFocus();
         await vi.runAllTimersAsync();
-        expect(screen.queryByText(/failed message/i)).toBeNull();
+        expect(screen.queryByText(/message failed/i)).toBeNull();
         expect(screen.queryByText(/failed to send your message/i)).toBeNull();
         vi.useRealTimers();
       });
@@ -224,7 +223,7 @@ describe('MessageForm', () => {
         expect(msgInp).toHaveValue(newMessageData.body);
         expect(msgInp).toHaveFocus();
         await vi.runAllTimersAsync();
-        expect(screen.queryByText(/failed message/i)).toBeNull();
+        expect(screen.queryByText(/message failed/i)).toBeNull();
         expect(screen.queryByText(/failed to send your message/i)).toBeNull();
         vi.useRealTimers();
       });
@@ -249,7 +248,7 @@ describe('MessageForm', () => {
         expect(msgInp).toHaveValue(newMessageData.body);
         expect(msgInp).toHaveFocus();
         await vi.runAllTimersAsync();
-        expect(screen.queryByText(/failed message/i)).toBeNull();
+        expect(screen.queryByText(/message failed/i)).toBeNull();
         expect(screen.queryByText(errRes.error.error.message)).toBeNull();
         vi.useRealTimers();
       });

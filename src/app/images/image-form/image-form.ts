@@ -1,11 +1,11 @@
+import { HttpEventType, HttpUploadProgressEvent } from '@angular/common/http';
 import { Component, inject, input, signal } from '@angular/core';
-import { HttpErrorResponse, HttpEventType, HttpUploadProgressEvent } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
-import { createResErrorHandler } from '../../utils';
 import { ImagePicker } from '../image-picker';
 import { MessageService } from 'primeng/api';
+import { getResErrMsg } from '../../utils';
 import { Button } from 'primeng/button';
-import { Images } from '..';
+import { Images } from '../images';
 import { finalize } from 'rxjs';
 
 @Component({
@@ -63,22 +63,8 @@ export class ImageForm {
             }
           },
           error: (res) => {
-            const defaultErrorMessage = `Failed to upload your ${isAvatar ? 'picture' : 'image'}.`;
-            let message = defaultErrorMessage;
-            const fakeSignal = { set: (msg: string) => (message = msg) };
-            createResErrorHandler(fakeSignal, defaultErrorMessage)(res);
-            if (
-              message === defaultErrorMessage &&
-              res instanceof HttpErrorResponse &&
-              res.status === 400
-            ) {
-              const { error } = res;
-              if (error.error) {
-                if (typeof error.error === 'string') message = error.error;
-                else if (typeof error.error.message === 'string') message = error.error.message;
-              } else if (typeof error.message === 'string') message = error.message;
-              else if (typeof error === 'string') message = error;
-            }
+            const defaultMessage = `Failed to upload your ${isAvatar ? 'picture' : 'image'}.`;
+            const message = getResErrMsg(res) || defaultMessage;
             this._toast.add({ severity: 'error', summary: 'Upload failed', detail: message });
           },
         });
