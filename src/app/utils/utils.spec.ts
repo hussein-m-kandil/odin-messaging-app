@@ -6,7 +6,29 @@ const errorMessage = signal('');
 const defaultMessage = 'Test default error message';
 
 describe('App Utils', () => {
-  describe('getResErrMsg', () => {
+  describe(Utils.mergeTailwindCNs.name, () => {
+    it('should not include a class from the 1st that exists in the 2nd', () => {
+      const firstCN = 'foo bar tar-baz';
+      const secondCN = 'wax-jar bar baz';
+      const expectedCN = 'foo tar-baz wax-jar bar baz';
+      expect(Utils.mergeTailwindCNs(firstCN, secondCN)).toBe(expectedCN);
+      expect(Utils.mergeTailwindCNs(firstCN.split(' '), secondCN)).toBe(expectedCN);
+      expect(Utils.mergeTailwindCNs(firstCN, secondCN.split(' '))).toBe(expectedCN);
+      expect(Utils.mergeTailwindCNs(firstCN.split(' '), secondCN.split(' '))).toBe(expectedCN);
+    });
+
+    it('should not include a class from the 1st if one with same hyphen-prefix exists in the 2nd', () => {
+      const firstCN = 'foo-bar baz-tar';
+      const secondCN = 'wax bar-tar baz-tar';
+      const expectedCN = 'foo-bar wax bar-tar baz-tar';
+      expect(Utils.mergeTailwindCNs(firstCN, secondCN)).toBe(expectedCN);
+      expect(Utils.mergeTailwindCNs(firstCN.split(' '), secondCN)).toBe(expectedCN);
+      expect(Utils.mergeTailwindCNs(firstCN, secondCN.split(' '))).toBe(expectedCN);
+      expect(Utils.mergeTailwindCNs(firstCN.split(' '), secondCN.split(' '))).toBe(expectedCN);
+    });
+  });
+
+  describe(Utils.getResErrMsg.name, () => {
     it('should return null', () => {
       const message = 7;
       const responses = [
@@ -36,7 +58,7 @@ describe('App Utils', () => {
     });
   });
 
-  describe('createResErrorHandler', () => {
+  describe(Utils.createResErrorHandler.name, () => {
     it('should use the given error message on an arbitrary error', () => {
       const error = new Error('Test arbitrary error');
       Utils.createResErrorHandler(errorMessage, defaultMessage)(error);

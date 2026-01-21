@@ -23,3 +23,12 @@ export function createResErrorHandler(
 ) {
   return (res: unknown) => messageSignal.set(getResErrMsg(res) || defaultMessage);
 }
+
+export function mergeTailwindCNs(aCN: string | string[], bCN: string | string[]) {
+  const aCNs = typeof aCN === 'string' ? aCN.split(' ') : aCN;
+  const bCNs = typeof bCN === 'string' ? bCN.split(' ') : bCN;
+  return aCNs
+    .filter((a) => !bCNs.some((b) => a.split('-')[0] === b.split('-')[0]))
+    .concat(bCNs)
+    .join(' ');
+}
