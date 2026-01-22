@@ -51,10 +51,11 @@ export class ChatRoom implements OnChanges {
     const chat = this.chat();
     const user = this.user();
     if (chat) {
-      const memberId = chat.profiles.filter((cp) => cp.profileName !== user.username)[0].profileId;
-      const url = memberId ? `/profiles/${memberId}` : null;
-      const label = this.messages.chats.generateTitle(chat, user);
-      return { label, url };
+      const memberId = this.messages.chats.getOtherProfiles(chat, user)[0]?.profileId;
+      return {
+        label: this.messages.chats.generateTitle(chat, user),
+        url: memberId ? `/profiles/${memberId}` : null,
+      };
     } else if (profile) {
       return { label: profile.user.username, url: `${`/profiles/${profile.id}`}` };
     }

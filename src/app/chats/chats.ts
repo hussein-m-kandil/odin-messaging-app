@@ -205,20 +205,23 @@ export class Chats extends ListStore<Chat> {
 
   generateTitle(chat: Chat, currentUser: User) {
     const memberNames = chat.profiles.map((cp) => cp.profile?.user.username || cp.profileName);
+    if (memberNames.length === 1) return memberNames[0];
     const otherMemberNames = memberNames.filter((name) => name !== currentUser.username);
     if (otherMemberNames.length > 1) {
       const lastName = otherMemberNames[otherMemberNames.length - 1];
       const namesWithoutLast = otherMemberNames.slice(0, -1);
       const lastDelimiter = `${otherMemberNames.length > 2 ? ',' : ''} and `;
       return `${namesWithoutLast.join(', ')}${lastDelimiter}${lastName}`;
+    } else if (otherMemberNames.length === 1) {
+      return otherMemberNames[0];
     }
-    if (otherMemberNames.length < 1 && memberNames.length === 1) return 'Yourself';
-    if (otherMemberNames.length === 1) return otherMemberNames[0];
-    return '';
+    return 'Anonymous';
   }
 
   getOtherProfiles(chat: Chat, currentUser: User): ChatProfile[] {
-    return chat.profiles.filter((cp) => cp.profileName !== currentUser.username);
+    return chat.profiles.length < 2
+      ? chat.profiles
+      : chat.profiles.filter((cp) => cp.profileName !== currentUser.username);
   }
 
   isDeadChat(chatId: Chat['id'], currentUser: User) {

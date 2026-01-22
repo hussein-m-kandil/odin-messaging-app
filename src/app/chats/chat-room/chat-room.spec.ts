@@ -91,6 +91,7 @@ const messagesMock = {
     isDeadChat: vi.fn<() => void>(),
     generateTitle: vi.fn<() => string>(),
     list: vi.fn<() => unknown[]>(() => []),
+    getOtherProfiles: vi.fn<() => unknown[]>(() => []),
     createMessage: vi.fn<() => Observable<unknown>>(() => of({ id: crypto.randomUUID() })),
     getChatMessages: vi.fn<() => Observable<unknown[]>>(() => of([{ id: crypto.randomUUID() }])),
     getChat: vi.fn<() => Observable<unknown>>(() => of({ id: crypto.randomUUID(), messages: [] })),
@@ -154,6 +155,7 @@ describe('ChatRoom', () => {
     const title = 'Test Chat Title';
     messagesMock.chats.list.mockImplementation(() => [{ id: chatId }]);
     messagesMock.chats.generateTitle.mockImplementation(() => title);
+    messagesMock.chats.getOtherProfiles.mockImplementation(() => [chat.profiles[0]]);
     await renderComponent({ inputs: { user, chat } });
     expect(screen.getByRole('link', { name: title })).toBeVisible();
     expect(screen.queryByText(profile.user.username)).toBeNull();
@@ -194,6 +196,7 @@ describe('ChatRoom', () => {
     const title = 'Test Chat Title';
     messagesMock.chats.list.mockImplementation(() => [{ id: chatId }]);
     messagesMock.chats.generateTitle.mockImplementation(() => title);
+    messagesMock.chats.getOtherProfiles.mockImplementation(() => [chat.profiles[0]]);
     await renderComponent({ inputs: { user, chat, profile } });
     expect(screen.getByRole('link', { name: title })).toBeVisible();
     expect(screen.queryByText(profile.user.username)).toBeNull();

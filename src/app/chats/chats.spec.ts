@@ -658,17 +658,25 @@ describe('Chats', () => {
     expect(service.generateTitle(testChat, user)).toBe(expectedTitle);
   });
 
-  it('should generate a chat title as "Yourself" in case of self-chat', () => {
+  it('should generate a chat title as the first member profile name in case of solo-chat', () => {
     const { service } = setup();
     const testChat = structuredClone(chat);
     testChat.id = crypto.randomUUID();
     testChat.profiles.splice(1);
-    expect(service.generateTitle(testChat, user)).toBe('Yourself');
+    expect(service.generateTitle(testChat, user)).toBe(testChat.profiles[0].profileName);
   });
 
   it('should return a list of the other chat profiles', () => {
     const { service } = setup();
     expect(service.getOtherProfiles(chat, user)).toStrictEqual(chat.profiles.slice(1));
+  });
+
+  it('should return the chat profiles list as is, if contains less than 2 profiles', () => {
+    const { service } = setup();
+    const testChat1 = { ...chat, profiles: [] };
+    const testChat2 = { ...chat, profiles: chat.profiles.slice(1) };
+    expect(service.getOtherProfiles(testChat1, user)).toBe(testChat1.profiles);
+    expect(service.getOtherProfiles(testChat2, user)).toBe(testChat2.profiles);
   });
 
   it('should consider a chat dead if it is missing profiles for all the other members', () => {
