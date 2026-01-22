@@ -111,8 +111,6 @@ export class Chats extends ListStore<Chat> {
             );
           }
         });
-    } else {
-      this.load();
     }
   }
 

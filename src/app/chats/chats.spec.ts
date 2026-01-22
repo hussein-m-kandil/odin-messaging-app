@@ -341,12 +341,13 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should load instead of update if the current chat list is empty', () => {
+  it('should do nothing if the current chat list is empty', () => {
     const { service, httpTesting } = setup();
+    const initialList = service.list();
     service.updateChats();
-    const req = httpTesting.expectOne({ method: 'GET', url: chatsUrl }, 'Request to load chats');
-    req.flush([chat]);
-    expect(service.list()).toStrictEqual([chat]);
+    httpTesting.expectNone('Request to load chats');
+    expect(service.list()).toStrictEqual(initialList);
+    expect(service.list()).toHaveLength(0);
     httpTesting.verify();
   });
 
