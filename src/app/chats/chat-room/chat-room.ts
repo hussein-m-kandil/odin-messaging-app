@@ -17,10 +17,10 @@ import { MessageModule } from 'primeng/message';
 import { MessageForm } from './message-form';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { Image } from '../../images/image';
 import { Profile } from '../../app.types';
 import { Ripple } from 'primeng/ripple';
 import { Spinner } from '../../spinner';
-import { Image } from 'primeng/image';
 import { Messages } from './messages';
 import { Chat } from '../chats.types';
 

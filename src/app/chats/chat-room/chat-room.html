@@ -40,20 +40,9 @@
                  [class]="_fromCurrentUser ? 'ms-auto rounded-br-none' : 'me-auto rounded-bl-none'">
           <main>
             @if (_msg.image; as _img) {
-            <p-image [preview]="true" class="block mb-2 rounded-lg overflow-hidden max-h-[50vh]">
-              <ng-template #indicator>
-                <i class="pi pi-search-plus"></i>
-              </ng-template>
-              <ng-template #image>
-                <img [src]="_img.src" [width]="_img.width" [height]="_img.height"
-                     alt="{{ _img.alt || '' }}" class="object-cover object-center" />
-              </ng-template>
-              <ng-template #preview>
-                <img [src]="_img.src" [width]="_img.width" [height]="_img.height"
-                     alt="{{ _img.alt || '' }}"
-                     class="block w-screen h-screen p-4 object-contain object-center" />
-              </ng-template>
-            </p-image>
+            <app-image class="block mb-2 rounded-lg overflow-hidden max-h-[50vh]"
+                       [width]="_img.width" [src]="_img.src" alt="{{ _img.alt || '' }}"
+                       [height]="_img.height" />
             }
             @if (_msg.body) {
             <div class="mb-2 text-sm font-semibold tracking-wider">{{ _msg.body }}</div>
