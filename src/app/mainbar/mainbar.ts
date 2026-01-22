@@ -4,15 +4,15 @@ import { ColorScheme, SCHEMES } from '../color-scheme';
 import { ButtonDirective } from 'primeng/button';
 import { environment } from '../../environments';
 import { SingularView } from './singular-view';
-import { AvatarModule } from 'primeng/avatar';
 import { RouterLink } from '@angular/router';
-import { MenuModule } from 'primeng/menu';
 import { Ripple } from 'primeng/ripple';
+import { Menu } from 'primeng/menu';
+import { Avatar } from '../avatar';
 import { Auth } from '../auth';
 
 @Component({
   selector: 'app-mainbar',
-  imports: [ButtonDirective, AvatarModule, RouterLink, MenuModule, Ripple],
+  imports: [ButtonDirective, RouterLink, Avatar, Ripple, Menu],
   templateUrl: './mainbar.html',
   styles: ``,
 })

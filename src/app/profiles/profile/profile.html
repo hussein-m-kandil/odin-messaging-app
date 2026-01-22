@@ -18,14 +18,7 @@
     </ul>
   </nav>
   <div class="my-auto text-center">
-    @if (_profile.user.avatar?.image; as _img) {
-    <p-avatar size="xlarge" class="*:object-cover overflow-hidden"
-              [image]="`${_img.src}${_img.src.includes('?') ? '&' : '?'}refresh=${_img.updatedAt}`" />
-    } @else if (_profile.user.username[0].toUpperCase(); as _firstLetter) {
-    <p-avatar size="xlarge" [label]="_firstLetter" />
-    } @else {
-    <p-avatar size="xlarge" icon="pi pi-image" class="*:text-muted-color" />
-    }
+    <app-avatar preview [user]="_profile.user" size="lg" />
     <div class="my-4 **:leading-tight">
       <h2 class="text-xl font-bold">
         {{ _profile.user.fullname }}

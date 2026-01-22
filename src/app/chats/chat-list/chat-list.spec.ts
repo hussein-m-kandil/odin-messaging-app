@@ -12,7 +12,8 @@ const chatsMock = {
   loading: vi.fn(() => false),
   hasMore: vi.fn(() => false),
   generateTitle: vi.fn(() => ''),
-  list: vi.fn<() => unknown[]>(() => []),
+  list: vi.fn(() => [] as unknown[]),
+  getOtherProfiles: vi.fn(() => [] as unknown[]),
 };
 
 const now = new Date().toISOString();
@@ -77,6 +78,7 @@ const renderComponent = ({
   return render(ChatList, {
     providers: [{ provide: Chats, useValue: chatsMock }, ...(providers || [])],
     inputs: { user, ...inputs },
+    autoDetectChanges: false,
     ...options,
   });
 };
@@ -86,8 +88,8 @@ describe('ChatList', () => {
 
   it('should reset and load the chats on every render', async () => {
     const { rerender } = await renderComponent();
-    await rerender();
-    await rerender();
+    await rerender({ partialUpdate: true });
+    await rerender({ partialUpdate: true });
     expect(chatsMock.load).toHaveBeenCalledTimes(3);
     expect(chatsMock.reset).toHaveBeenCalledTimes(3);
   });

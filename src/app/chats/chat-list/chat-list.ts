@@ -1,17 +1,17 @@
 import { input, inject, OnChanges, Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthData } from '../../auth/auth.types';
-import { AvatarModule } from 'primeng/avatar';
-import { BadgeModule } from 'primeng/badge';
 import { DatePipe } from '@angular/common';
 import { Ripple } from 'primeng/ripple';
+import { Avatar } from '../../avatar';
+import { Badge } from 'primeng/badge';
 import { Chat } from '../chats.types';
 import { List } from '../../list';
 import { Chats } from '../chats';
 
 @Component({
   selector: 'app-chat-list',
-  imports: [RouterLinkActive, AvatarModule, BadgeModule, RouterLink, DatePipe, Ripple, List],
+  imports: [RouterLinkActive, RouterLink, DatePipe, Avatar, Ripple, Badge, List],
   templateUrl: './chat-list.html',
   styles: ``,
 })
@@ -29,7 +29,7 @@ export class ChatList implements OnChanges {
       !userLastSeenChatAt
         ? otherMembersMessages
         : otherMembersMessages.filter(
-            (msg) => new Date(userLastSeenChatAt) < new Date(msg.createdAt)
+            (msg) => new Date(userLastSeenChatAt) < new Date(msg.createdAt),
           )
     ).length;
   }

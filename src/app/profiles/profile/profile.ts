@@ -3,14 +3,14 @@ import { Profile as ProfileT } from '../../app.types';
 import { ButtonDirective } from 'primeng/button';
 import { RouterLink } from '@angular/router';
 import { Ripple } from 'primeng/ripple';
-import { Avatar } from 'primeng/avatar';
 import { Profiles } from '../profiles';
 import { MenuItem } from 'primeng/api';
+import { Avatar } from '../../avatar';
 import { Menu } from 'primeng/menu';
 
 @Component({
   selector: 'app-profile',
-  imports: [RouterLink, ButtonDirective, Ripple, Avatar, Menu],
+  imports: [RouterLink, ButtonDirective, Avatar, Ripple, Menu],
   templateUrl: './profile.html',
   styles: ``,
 })

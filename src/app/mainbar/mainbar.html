@@ -3,59 +3,31 @@
   <h1 class="text-primary-contrast text-2xl text-center font-bold">
     <a routerLink="/">{{ title }}</a>
   </h1>
-  <ul class="ms-auto flex items-center">
+  <ul class="ms-auto flex items-center *:leading-0 **:[button]:**:leading-0!">
     <li>
       @let _selectedScheme = colorScheme.selectedScheme();
-      <button
-        pButton
-        pRipple
-        rounded
-        size="small"
-        type="button"
-        [icon]="_selectedScheme.icon"
-        (click)="colorSchemeMenu.toggle($event)"
-        aria-label="Change the {{ _selectedScheme.value }} color scheme."
-      ></button>
-      <p-menu
-        #colorSchemeMenu
-        [model]="colorSchemeMenuItems()"
-        ariaLabel="Color scheme menu"
-        [popup]="true"
-      />
+      <button pButton pRipple rounded size="small" type="button" [icon]="_selectedScheme.icon"
+              (click)="colorSchemeMenu.toggle($event)"
+              aria-label="Change the {{ _selectedScheme.value }} color scheme."></button>
+      <p-menu #colorSchemeMenu [model]="colorSchemeMenuItems()" ariaLabel="Color scheme menu"
+              [popup]="true" />
     </li>
     @if (_user) {
     <!-- prettier-ignore -->
     @if (togglableView()) {
     @let _viewToggler = singularView.enabled()
-        ? { label: 'Open main menu', icon: 'pi pi-tablet' }
-        : { label: 'Close main menu', icon: 'pi pi-th-large' };
+    ? { label: 'Open main menu', icon: 'pi pi-tablet' }
+    : { label: 'Close main menu', icon: 'pi pi-th-large' };
     <li>
-      <button
-        pButton
-        pRipple
-        rounded
-        size="small"
-        type="button"
-        icon="{{ _viewToggler.icon }}"
-        (click)="singularView.toggle()"
-        aria-label="{{ _viewToggler.label }}"
-      ></button>
+      <button pButton pRipple rounded size="small" type="button" icon="{{ _viewToggler.icon }}"
+              (click)="singularView.toggle()" aria-label="{{ _viewToggler.label }}"></button>
     </li>
     }
     <!-- prettier-ignore -->
     <li>
-      <button
-        pButton
-        pRipple
-        text
-        rounded
-        outlined
-        type="button"
-        class="p-0 ms-2"
-        aria-label="Toggle profile menu"
-        (click)="profileMenu.toggle($event)"
-      >
-        <p-avatar label="{{ _user.username[0].toUpperCase() }}" shape="circle" size="normal" />
+      <button pButton pRipple text rounded outlined type="button" class="p-0 ms-2"
+              aria-label="Toggle profile menu" (click)="profileMenu.toggle($event)">
+        <app-avatar [user]="_user" size="xs" />
       </button>
       <p-menu #profileMenu [model]="profileMenuItems()" ariaLabel="Profile menu" [popup]="true" />
     </li>

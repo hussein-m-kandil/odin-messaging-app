@@ -1,19 +1,9 @@
 <ng-template #li let-_profile>
-  <a
-    pRipple
-    ariaCurrentWhenActive="page"
-    routerLinkActive="bg-highlight"
-    [title]="_profile.user.username"
-    [routerLink]="['/profiles', _profile.id]"
-    [routerLinkActiveOptions]="{ exact: true }"
-    class="block leading-tight w-full px-2 py-3 border-surface border-b **:align-middle"
-  >
-    <p-avatar
-      label="{{ _profile.user.username[0].toUpperCase() }}"
-      class="me-2 text-center"
-      shape="circle"
-      size="normal"
-    />
+  <a pRipple ariaCurrentWhenActive="page" routerLinkActive="bg-highlight"
+     [title]="_profile.user.username" [routerLink]="['/profiles', _profile.id]"
+     [routerLinkActiveOptions]="{ exact: true }"
+     class="block leading-tight w-full px-2 py-3 border-surface border-b **:align-middle">
+    <app-avatar [user]="_profile.user" size="sm" class="me-2 text-center" />
     <span class="inline-block font-semibold tracking-wider truncate">
       {{ _profile.user.username || 'Anonymous' }}
     </span>

@@ -1,10 +1,12 @@
+@let _user = user();
 <ng-template #li let-_chat>
-  @let _title = chats.generateTitle(_chat, user());
+  @let _title = chats.generateTitle(_chat, _user);
+  @let _otherMembers = chats.getOtherProfiles(_chat, _user);
+  @let _member = _otherMembers[0]?.profile?.user || { username: _otherMembers[0]?.profileName };
   <a pRipple [title]="_title" ariaCurrentWhenActive="page" routerLinkActive="bg-highlight"
      [routerLink]="['/chats', _chat.id]" [routerLinkActiveOptions]="{ exact: true }"
      class="block leading-tight w-full p-2 py-3 border-surface border-b **:align-middle">
-    <p-avatar label="{{ _title[0]?.toUpperCase() }}" class="text-center size-12 me-2" shape="circle"
-              size="large" />
+    <app-avatar [user]="_member" size="sm" class="text-center size-12 me-2" />
     <!-- ** NOTE: The following calculated widths are dependent ** -->
     <span class="inline-block w-[calc(100%-4rem)]">
       @let _newMessagesCount = countNewMessages(_chat);
