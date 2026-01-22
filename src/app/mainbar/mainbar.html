@@ -3,7 +3,7 @@
   <h1 class="text-primary-contrast text-2xl text-center font-bold">
     <a routerLink="/">{{ title }}</a>
   </h1>
-  <ul class="ms-auto flex items-center *:leading-0 **:[button]:**:leading-0!">
+  <ul class="ms-auto max-[20rem]:me-auto flex items-center *:leading-0 **:[button]:**:leading-0!">
     <li>
       @let _selectedScheme = colorScheme.selectedScheme();
       <button pButton pRipple rounded size="small" type="button" [icon]="_selectedScheme.icon"
