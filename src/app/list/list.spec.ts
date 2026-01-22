@@ -4,6 +4,7 @@ import { ListStore } from './list-store';
 import { List } from './list';
 
 interface TestData {
+  id: number;
   name: string;
 }
 
@@ -55,14 +56,18 @@ describe('List', () => {
   });
 
   it('should render a list of items', async () => {
-    const list = [{ name: 'Foo' }, { name: 'Bar' }, { name: 'Tar' }];
+    const list = [
+      { id: 1, name: 'Foo' },
+      { id: 2, name: 'Bar' },
+      { id: 3, name: 'Tar' },
+    ];
     listStoreMock.list.mockImplementation(() => list);
     await renderComponent();
     expect(screen.queryByText(`There are no ${pluralLabel.toLowerCase()}.`)).toBeNull();
-    expect(screen.getByRole('menu', { name: `${singularLabel} list` })).toBeVisible();
+    expect(screen.getByRole('list', { name: `${singularLabel} list` })).toBeVisible();
     expect(screen.getAllByText(consumerText)).toHaveLength(list.length);
-    expect(screen.getAllByRole('menuitem')).toHaveLength(list.length);
-    expect(screen.getByRole('menu')).toBeVisible();
+    expect(screen.getAllByRole('listitem')).toHaveLength(list.length);
+    expect(screen.getByRole('list')).toBeVisible();
     for (const { name } of list) {
       expect(screen.getByText(name)).toBeVisible();
     }

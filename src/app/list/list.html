@@ -2,28 +2,18 @@
 @let _store = store(); @let _storeList = _store.list(); @let _pluralLabel = pluralLabel();
 <div class="relative size-full overflow-auto">
   @if (_storeList.length) {
-  <p-menu
-    [model]="_storeList"
-    styleClass="rounded-none border-none"
-    [ariaLabel]="`${singularLabel()} list`"
-    [pt]="{ list: { class: 'gap-0' } }"
-  >
-    <ng-template #item let-_listItem>
-      <ng-container
-        [ngTemplateOutlet]="itemFragment()"
-        [ngTemplateOutletContext]="{ $implicit: _listItem }"
-      />
-    </ng-template>
-  </p-menu>
+  <ul aria-label="{{ singularLabel() }} list">
+    @for (_listItem of _storeList; track _listItem.id) {
+    <li>
+      <ng-container [ngTemplateOutlet]="itemFragment()"
+                    [ngTemplateOutletContext]="{ $implicit: _listItem }" />
+    </li>
+    }
+  </ul>
   }
-  <app-list-loader
-    [pluralLabel]="_pluralLabel"
-    [listSize]="_storeList.length"
-    [loadError]="_store.loadError()"
-    [loading]="_store.loading()"
-    [hasMore]="_store.hasMore()"
-    (loaded)="_store.load()"
-  >
+  <app-list-loader [pluralLabel]="_pluralLabel" [listSize]="_storeList.length"
+                   [loadError]="_store.loadError()" [loading]="_store.loading()"
+                   [hasMore]="_store.hasMore()" (loaded)="_store.load()">
     @if (!_storeList.length) {
     <p class="text-muted-color">There are no {{ _pluralLabel.toLowerCase() }}.</p>
     }

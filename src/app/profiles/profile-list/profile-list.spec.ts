@@ -45,7 +45,7 @@ describe('ProfileList', () => {
   it('should display a list of named profiles', async () => {
     profilesMock.list.mockImplementation(() => profiles);
     await renderComponent();
-    expect(screen.getAllByRole('menuitem')).toHaveLength(profiles.length);
+    expect(screen.getAllByRole('listitem')).toHaveLength(profiles.length);
     for (const { id, user } of profiles) {
       const name = new RegExp(user.username);
       const profileLink = screen.getByRole('link', { name }) as HTMLAnchorElement;
