@@ -666,6 +666,11 @@ describe('Chats', () => {
     expect(service.generateTitle(testChat, user)).toBe('Yourself');
   });
 
+  it('should return a list of the other chat profiles', () => {
+    const { service } = setup();
+    expect(service.getOtherProfiles(chat, user)).toStrictEqual(chat.profiles.slice(1));
+  });
+
   it('should consider a chat dead if it is missing profiles for all the other members', () => {
     const { service } = setup();
     const testChat = structuredClone(chat);

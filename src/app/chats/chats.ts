@@ -1,12 +1,12 @@
-import { Chat, Message, ChatProfile, NewChatData, NewMessageData } from './chats.types';
-import { HttpEventType, HttpClient, HttpParams } from '@angular/common/http';
 import {
   sort,
   subtract,
+  createChatFormData,
   findChatByAllMemberIds,
   createMessageFormData,
-  createChatFormData,
 } from './chats.utils';
+import { Chat, Message, ChatProfile, NewChatData, NewMessageData } from './chats.types';
+import { HttpEventType, HttpClient, HttpParams } from '@angular/common/http';
 import { inject, signal, DestroyRef, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, defer, map, of, tap } from 'rxjs';
@@ -67,7 +67,7 @@ export class Chats extends ListStore<Chat> {
       return this._http
         .get<Chat[]>(`${this.baseUrl}/members/${memberProfileId}`)
         .pipe(
-          map((chats) => findChatByAllMemberIds(chats, [memberProfileId, userProfileId]) || null)
+          map((chats) => findChatByAllMemberIds(chats, [memberProfileId, userProfileId]) || null),
         );
     });
   }
@@ -77,7 +77,7 @@ export class Chats extends ListStore<Chat> {
       map((chat) => {
         if (chat) return this._router.navigate(['/chats', chat.id]);
         return Promise.resolve(false);
-      })
+      }),
     );
   }
 
@@ -88,7 +88,7 @@ export class Chats extends ListStore<Chat> {
         .get<Chat[]>(this.baseUrl, { params: { limit } })
         .pipe(
           takeUntilDestroyed(this._destroyRef),
-          catchError(() => of(null))
+          catchError(() => of(null)),
         )
         .subscribe((newChats) => {
           if (newChats) {
@@ -100,14 +100,14 @@ export class Chats extends ListStore<Chat> {
                   const updatedChat = {
                     ...newChat,
                     messages: sort(
-                      newChat.messages.concat(subtract(oldChat.messages, newChat.messages))
+                      newChat.messages.concat(subtract(oldChat.messages, newChat.messages)),
                     ),
                   };
                   this.activatedChat.set(updatedChat);
                   return updatedChat;
                 }
                 return newChat || oldChat;
-              })
+              }),
             );
           }
         });
@@ -122,7 +122,7 @@ export class Chats extends ListStore<Chat> {
         return {
           ...chat,
           profiles: chat.profiles.map((cp) =>
-            cp.profileName === currentProfileName ? { ...cp, lastSeenAt } : cp
+            cp.profileName === currentProfileName ? { ...cp, lastSeenAt } : cp,
           ),
         };
       }
@@ -132,15 +132,15 @@ export class Chats extends ListStore<Chat> {
       .patch<ChatProfile['lastSeenAt']>(`${this.baseUrl}/${chatId}/seen`, '')
       .pipe(
         takeUntilDestroyed(this._destroyRef),
-        catchError(() => of(null))
+        catchError(() => of(null)),
       )
       .subscribe((lastSeenAt) => {
         if (lastSeenAt) {
           this.activatedChat.update((chat) =>
-            chat ? updateChatProfileLastSeen(chat, lastSeenAt) : chat
+            chat ? updateChatProfileLastSeen(chat, lastSeenAt) : chat,
           );
           this.list.update((chats) =>
-            chats.map((chat) => updateChatProfileLastSeen(chat, lastSeenAt))
+            chats.map((chat) => updateChatProfileLastSeen(chat, lastSeenAt)),
           );
           onUpdated?.();
         }
@@ -182,7 +182,7 @@ export class Chats extends ListStore<Chat> {
             this.load();
             this._router.navigate(['/chats', event.body.id]);
           }
-        })
+        }),
       );
   }
 
@@ -199,7 +199,7 @@ export class Chats extends ListStore<Chat> {
           if (event.type === HttpEventType.Response && event.body) {
             this.updateChatMessages(chatId, [event.body]);
           }
-        })
+        }),
       );
   }
 
@@ -215,6 +215,10 @@ export class Chats extends ListStore<Chat> {
     if (otherMemberNames.length < 1 && memberNames.length === 1) return 'Yourself';
     if (otherMemberNames.length === 1) return otherMemberNames[0];
     return '';
+  }
+
+  getOtherProfiles(chat: Chat, currentUser: User): ChatProfile[] {
+    return chat.profiles.filter((cp) => cp.profileName !== currentUser.username);
   }
 
   isDeadChat(chatId: Chat['id'], currentUser: User) {
