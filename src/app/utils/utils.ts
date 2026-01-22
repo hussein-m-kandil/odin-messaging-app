@@ -32,3 +32,15 @@ export function mergeTailwindCNs(aCN: string | string[], bCN: string | string[])
     .concat(bCNs)
     .join(' ');
 }
+
+export function sortByDate<T>(
+  items: readonly T[],
+  dateSelector: (item: T) => Date | string,
+  order: 'asc' | 'desc' = 'desc',
+): T[] {
+  return [...items].sort(
+    (a, b) =>
+      (new Date(dateSelector(a)).getTime() - new Date(dateSelector(b)).getTime()) *
+      (order === 'desc' ? -1 : 1),
+  );
+}

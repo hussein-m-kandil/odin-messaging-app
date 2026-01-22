@@ -81,4 +81,24 @@ describe('App Utils', () => {
       expect(errorMessage()).toMatch(/check .* (internet)? connection/i);
     });
   });
+
+  describe(Utils.sortByDate.name, () => {
+    it('should sort items by their dates (in descending order)', () => {
+      const first = { date: new Date(Date.now() - 1) };
+      const second = { date: new Date(Date.now() - 2) };
+      const third = { date: new Date(Date.now() - 3) };
+      const items = [third, first, second];
+      const expectedItems = [first, second, third];
+      expect(Utils.sortByDate(items, (x) => x.date)).toStrictEqual(expectedItems);
+    });
+
+    it('should sort items by their dates (in ascending order)', () => {
+      const first = { date: new Date(Date.now() - 1) };
+      const second = { date: new Date(Date.now() - 2) };
+      const third = { date: new Date(Date.now() - 3) };
+      const items = [third, first, second];
+      const expectedItems = [third, second, first];
+      expect(Utils.sortByDate(items, (x) => x.date, 'asc')).toStrictEqual(expectedItems);
+    });
+  });
 });

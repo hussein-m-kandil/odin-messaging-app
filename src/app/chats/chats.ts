@@ -1,5 +1,4 @@
 import {
-  sort,
   subtract,
   createChatFormData,
   findChatByAllMemberIds,
@@ -14,6 +13,7 @@ import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
 import { User, Profile } from '../app.types';
 import { Router } from '@angular/router';
+import { sortByDate } from '../utils';
 
 const { apiUrl } = environment;
 
@@ -92,23 +92,24 @@ export class Chats extends ListStore<Chat> {
         )
         .subscribe((newChats) => {
           if (newChats) {
-            this.list.update((oldChats) =>
-              oldChats.map((oldChat) => {
-                const newChat = newChats.find((newChat) => newChat.id === oldChat.id);
+            this.list.update((oldChats) => {
+              return oldChats.map((oldChat) => {
+                const updatedChat = newChats.find((newChat) => newChat.id === oldChat.id);
                 const activatedChat = this.activatedChat();
-                if (newChat && activatedChat && newChat.id === activatedChat.id) {
-                  const updatedChat = {
-                    ...newChat,
-                    messages: sort(
-                      newChat.messages.concat(subtract(oldChat.messages, newChat.messages)),
+                if (updatedChat && activatedChat && updatedChat.id === activatedChat.id) {
+                  const updatedActivatedChat = {
+                    ...updatedChat,
+                    messages: sortByDate(
+                      updatedChat.messages.concat(subtract(oldChat.messages, updatedChat.messages)),
+                      (msg) => msg.createdAt,
                     ),
                   };
-                  this.activatedChat.set(updatedChat);
-                  return updatedChat;
+                  this.activatedChat.set(updatedActivatedChat);
+                  return updatedActivatedChat;
                 }
-                return newChat || oldChat;
-              }),
-            );
+                return updatedChat || oldChat;
+              });
+            });
           }
         });
     }
@@ -157,7 +158,10 @@ export class Chats extends ListStore<Chat> {
       const oldChat = chatActivated ? activatedChat : this.list().find((c) => c.id === chatId);
       if (oldChat) {
         const oldMessages = oldChat.messages;
-        const updatedMessages = sort(newMessages.concat(subtract(oldMessages, newMessages)));
+        const updatedMessages = sortByDate(
+          newMessages.concat(subtract(oldMessages, newMessages)),
+          (msg) => msg.createdAt,
+        );
         const updatedChat = { ...oldChat, messages: updatedMessages };
         if (chatActivated) this.activatedChat.set(updatedChat);
         this.list.update((chats) => {

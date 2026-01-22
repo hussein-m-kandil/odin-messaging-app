@@ -8,7 +8,7 @@ export const createMessageFormData = (data: NewMessageData, chatFormData?: FormD
   formData.set(prefixKey('body'), data.body || '');
   if (data.imagedata) {
     Object.entries(data.imagedata).forEach(([k, v]) =>
-      formData.set(`${prefixKey('imagedata')}[${k}]`, String(v))
+      formData.set(`${prefixKey('imagedata')}[${k}]`, String(v)),
     );
   }
   return formData;
@@ -21,18 +21,12 @@ export const createChatFormData = (data: NewChatData) => {
   return createMessageFormData(data.message || {}, formData);
 };
 
-export const sort = <T extends { createdAt: string }>(items: T[]): T[] => {
-  return [...items].sort(
-    (a, b) => -1 * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-  );
-};
-
 export const subtract = <T extends { id: unknown }>(items: T[], itemsToSubtract: T[]): T[] => {
   return items.filter((x) => !itemsToSubtract.some((xToSub) => xToSub.id === x.id));
 };
 
 export const findChatByAllMemberIds = (chats: Chat[], memberIds: Profile['id'][]) => {
   return chats.find((chat) =>
-    chat.profiles.every((c) => c.profileId && memberIds.includes(c.profileId))
+    chat.profiles.every((c) => c.profileId && memberIds.includes(c.profileId)),
   );
 };
