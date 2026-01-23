@@ -176,7 +176,7 @@ export class Chats extends ListStore<Chat> {
           return chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat));
         });
         updated = oldMessages.length !== updatedMessages.length;
-        if (!updated) this.updateChats(); // Refresh after finishing updating messages
+        this.updateChats(); // Refresh chats (optional)
       }
     }
     return updated;

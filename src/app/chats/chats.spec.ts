@@ -1043,6 +1043,10 @@ describe('Chats', () => {
     expect(service.list()).toStrictEqual(expectedChats);
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', message);
+    httpTesting.expectOne(
+      { method: 'GET', url: 'http://127.0.0.1:8080/api/v1/chats?limit=2' },
+      'Request to update chats with the current limit',
+    );
     httpTesting.verify();
   });
 
@@ -1076,6 +1080,10 @@ describe('Chats', () => {
     expect(service.list()).toStrictEqual(expectedChats);
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', message);
+    httpTesting.expectOne(
+      { method: 'GET', url: 'http://127.0.0.1:8080/api/v1/chats?limit=2' },
+      'Request to update chats with the current limit',
+    );
     httpTesting.verify();
   });
 
