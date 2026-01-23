@@ -40,7 +40,7 @@
                  [class]="_fromCurrentUser ? 'ms-auto rounded-br-none' : 'me-auto rounded-bl-none'">
           <main>
             @if (_msg.image; as _img) {
-            <app-image class="block mb-2 rounded-lg overflow-hidden max-h-[50vh]"
+            <app-image preview class="block mb-2 rounded-lg overflow-hidden max-h-[50vh]"
                        [width]="_img.width" [src]="_img.src" alt="{{ _img.alt || '' }}"
                        [height]="_img.height" />
             }
