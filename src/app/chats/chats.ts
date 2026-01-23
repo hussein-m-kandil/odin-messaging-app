@@ -1,19 +1,14 @@
-import {
-  subtract,
-  createChatFormData,
-  findChatByAllMemberIds,
-  createMessageFormData,
-} from './chats.utils';
+import { createChatFormData, findChatByAllMemberIds, createMessageFormData } from './chats.utils';
 import { Chat, Message, ChatProfile, NewChatData, NewMessageData } from './chats.types';
 import { HttpEventType, HttpClient, HttpParams } from '@angular/common/http';
 import { inject, signal, DestroyRef, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { mergeDistinctBy, sortByDate } from '../utils';
 import { catchError, defer, map, of, tap } from 'rxjs';
 import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
 import { User, Profile } from '../app.types';
 import { Router } from '@angular/router';
-import { sortByDate } from '../utils';
 
 const { apiUrl } = environment;
 
@@ -100,7 +95,7 @@ export class Chats extends ListStore<Chat> {
                   const updatedActivatedChat = {
                     ...updatedChat,
                     messages: sortByDate(
-                      updatedChat.messages.concat(subtract(oldChat.messages, updatedChat.messages)),
+                      mergeDistinctBy(updatedChat.messages, oldChat.messages, (msg) => msg.id),
                       (msg) => msg.createdAt,
                     ),
                   };
@@ -159,7 +154,7 @@ export class Chats extends ListStore<Chat> {
       if (oldChat) {
         const oldMessages = oldChat.messages;
         const updatedMessages = sortByDate(
-          newMessages.concat(subtract(oldMessages, newMessages)),
+          mergeDistinctBy(newMessages, oldMessages, (msg) => msg.id),
           (msg) => msg.createdAt,
         );
         const updatedChat = { ...oldChat, messages: updatedMessages };

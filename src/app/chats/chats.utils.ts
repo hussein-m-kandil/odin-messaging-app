@@ -21,10 +21,6 @@ export const createChatFormData = (data: NewChatData) => {
   return createMessageFormData(data.message || {}, formData);
 };
 
-export const subtract = <T extends { id: unknown }>(items: T[], itemsToSubtract: T[]): T[] => {
-  return items.filter((x) => !itemsToSubtract.some((xToSub) => xToSub.id === x.id));
-};
-
 export const findChatByAllMemberIds = (chats: Chat[], memberIds: Profile['id'][]) => {
   return chats.find((chat) =>
     chat.profiles.every((c) => c.profileId && memberIds.includes(c.profileId)),

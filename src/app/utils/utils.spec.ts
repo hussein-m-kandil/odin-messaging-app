@@ -101,4 +101,46 @@ describe('App Utils', () => {
       expect(Utils.sortByDate(items, (x) => x.date, 'asc')).toStrictEqual(expectedItems);
     });
   });
+
+  describe(Utils.mergeDistinctBy.name, () => {
+    it('should return new array has all items from first and second arrays without duplications, and in same order', () => {
+      const base = [{ key: 1 }, { key: 2 }, { key: 1 }, { key: 3 }, { key: 2 }];
+      const next = [{ key: 2 }, { key: 4 }, { key: 3 }, { key: 1 }, { key: 5 }, { key: 1 }];
+      const expected = [{ key: 1 }, { key: 2 }, { key: 3 }, { key: 4 }, { key: 5 }];
+      const actual = Utils.mergeDistinctBy(base, next, (x) => x.key);
+      expect(actual).not.toBe(base);
+      expect(actual).not.toBe(next);
+      expect(actual).toStrictEqual(expected);
+    });
+
+    it('should return new array has all items from first in order, and without duplications, if second one is empty', () => {
+      const base = [{ key: 1 }, { key: 2 }, { key: 1 }, { key: 3 }, { key: 2 }];
+      const next: { key: number }[] = [];
+      const expected = [{ key: 1 }, { key: 2 }, { key: 3 }];
+      const actual = Utils.mergeDistinctBy(base, next, (x) => x.key);
+      expect(actual).not.toBe(base);
+      expect(actual).not.toBe(next);
+      expect(actual).toStrictEqual(expected);
+    });
+
+    it('should return new array has all items from second in order, and without duplications, if first one is empty', () => {
+      const base: { key: number }[] = [];
+      const next = [{ key: 1 }, { key: 2 }, { key: 1 }, { key: 3 }, { key: 2 }];
+      const expected = [{ key: 1 }, { key: 2 }, { key: 3 }];
+      const actual = Utils.mergeDistinctBy(base, next, (x) => x.key);
+      expect(actual).not.toBe(base);
+      expect(actual).not.toBe(next);
+      expect(actual).toStrictEqual(expected);
+    });
+
+    it('should return new empty array, if first and second arguments are empty arrays', () => {
+      const base: { key: number }[] = [];
+      const next: { key: number }[] = [];
+      const expected: { key: number }[] = [];
+      const actual = Utils.mergeDistinctBy(base, next, (x) => x.key);
+      expect(actual).not.toBe(base);
+      expect(actual).not.toBe(next);
+      expect(actual).toStrictEqual(expected);
+    });
+  });
 });

@@ -44,3 +44,22 @@ export function sortByDate<T>(
       (order === 'desc' ? -1 : 1),
   );
 }
+
+export function mergeDistinctBy<T, K>(
+  base: readonly T[],
+  next: readonly T[],
+  keySelector: (value: T) => K,
+): T[] {
+  const result: T[] = [];
+  const seen = new Set<K>();
+  const appendDistinct = (value: T) => {
+    const key = keySelector(value);
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(value);
+    }
+  };
+  base.forEach(appendDistinct);
+  next.forEach(appendDistinct);
+  return result;
+}
