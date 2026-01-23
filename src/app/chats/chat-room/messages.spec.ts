@@ -94,7 +94,7 @@ describe('Messages', () => {
   it('should init', () => {
     const { service } = setup();
     const chat = { id: chatId, messages: [message, message] } as Chat;
-    service.init(chat, profileName);
+    service.init(chat);
     const serviceFinalState = getServiceState(service);
     expect(serviceFinalState.loadError).toBe('');
     expect(serviceFinalState.hasMore).toBe(true);
@@ -102,14 +102,14 @@ describe('Messages', () => {
     expect(serviceFinalState.loadRecentError).toBe('');
     expect(serviceFinalState.loadingRecent).toBe(false);
     expect(serviceFinalState.list).toStrictEqual(chatsMock.activatedChat().messages);
-    expect(chatsMock.activate).toHaveBeenCalledExactlyOnceWith(chat, profileName);
+    expect(chatsMock.activate).toHaveBeenCalledExactlyOnceWith(chat);
     expect(chatsMock.deactivate).toHaveBeenCalledOnce();
   });
 
   it('should load the messages', () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() =>
-      of([message, message]).pipe(observeOn(asyncScheduler, 0))
+      of([message, message]).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     setMessageList([message]);
@@ -137,7 +137,7 @@ describe('Messages', () => {
   it('should reset load error on load', async () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() =>
-      of([message, message]).pipe(observeOn(asyncScheduler, 0))
+      of([message, message]).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     service.loadError.set('Blah');
@@ -153,7 +153,7 @@ describe('Messages', () => {
   it('should fail to load the messages', () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() =>
-      throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0))
+      throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     service.load();
@@ -178,7 +178,7 @@ describe('Messages', () => {
   it('should load more messages', () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() =>
-      of([message, message3]).pipe(observeOn(asyncScheduler, 0))
+      of([message, message3]).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     setMessageList([message2, message3]);
@@ -204,7 +204,7 @@ describe('Messages', () => {
   it('should reset load-more error on load', async () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() =>
-      of([message]).pipe(observeOn(asyncScheduler, 0))
+      of([message]).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     setMessageList([message2]);
@@ -221,7 +221,7 @@ describe('Messages', () => {
   it('should fail to load more messages', () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() =>
-      throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0))
+      throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     setMessageList([message]);
@@ -248,7 +248,7 @@ describe('Messages', () => {
   it('should load recent messages', async () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() =>
-      of([message, message2]).pipe(observeOn(asyncScheduler, 0))
+      of([message, message2]).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     setMessageList([message3, message2]);
@@ -294,7 +294,7 @@ describe('Messages', () => {
   it('should fail to load recent messages', async () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() =>
-      throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0))
+      throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     setMessageList([message3, message2]);
@@ -321,7 +321,7 @@ describe('Messages', () => {
   it('should reset load-recent error on load', async () => {
     vi.useFakeTimers();
     chatsMock.getChatMessages.mockImplementation(() =>
-      of([message]).pipe(observeOn(asyncScheduler, 0))
+      of([message]).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     service.loadRecentError.set('Blah');

@@ -9,6 +9,7 @@ import { Navigation } from './navigation';
 import { TabsModule } from 'primeng/tabs';
 import { Toast } from 'primeng/toast';
 import { Mainbar } from './mainbar';
+import { Chats } from './chats';
 import { Auth } from './auth';
 import { filter } from 'rxjs';
 
@@ -26,7 +27,9 @@ import { filter } from 'rxjs';
   ],
   templateUrl: './app.html',
   providers: [MessageService],
-  host: { '(window:resize)': 'handleWindowResize()' },
+  host: {
+    '(window:resize)': 'handleWindowResize()',
+  },
 })
 export class App implements OnInit {
   private readonly _router = inject(Router);
@@ -38,6 +41,7 @@ export class App implements OnInit {
 
   protected readonly singularView = inject(SingularView);
   protected readonly navigation = inject(Navigation);
+  protected readonly chats = inject(Chats);
   protected readonly auth = inject(Auth);
 
   protected readonly vpWidth = signal(0);
@@ -49,13 +53,13 @@ export class App implements OnInit {
     this._router.events
       .pipe(
         takeUntilDestroyed(),
-        filter((event): event is NavigationEnd => event instanceof NavigationEnd)
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
       )
       .subscribe((event) => {
         this.notFoundRouteActivated.set(event.urlAfterRedirects === '/not-found');
         this.mainMenuRouteActivated.set(this._isMainMenuUrl(event.urlAfterRedirects));
         this.activeMenuIndex.set(
-          this.mainNavItems.findIndex(({ route }) => event.urlAfterRedirects.startsWith(route))
+          this.mainNavItems.findIndex(({ route }) => event.urlAfterRedirects.startsWith(route)),
         );
       });
   }

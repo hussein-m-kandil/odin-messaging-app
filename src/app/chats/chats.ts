@@ -9,6 +9,7 @@ import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
 import { User, Profile } from '../app.types';
 import { Router } from '@angular/router';
+import { Auth } from '../auth';
 
 const { apiUrl } = environment;
 
@@ -19,6 +20,7 @@ export class Chats extends ListStore<Chat> {
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _http = inject(HttpClient);
   private readonly _router = inject(Router);
+  private readonly _auth = inject(Auth);
 
   protected override loadErrorMessage = 'Failed to load any chats.';
 
@@ -38,9 +40,9 @@ export class Chats extends ListStore<Chat> {
     super.reset();
   }
 
-  activate(chat: Chat, currentProfileName: string) {
+  activate(chat: Chat) {
     this.activatedChat.set(chat);
-    this.updateChatLastSeenDate(chat.id, currentProfileName);
+    this.updateChatLastSeenDate(chat.id, () => this.updateChats());
   }
 
   deactivate() {
@@ -123,18 +125,7 @@ export class Chats extends ListStore<Chat> {
     }
   }
 
-  updateChatLastSeenDate(chatId: Chat['id'], currentProfileName: string) {
-    const updateChatProfileLastSeen = (chat: Chat, lastSeenAt: ChatProfile['lastSeenAt']) => {
-      if (chat.id === chatId) {
-        return {
-          ...chat,
-          profiles: chat.profiles.map((cp) =>
-            cp.profileName === currentProfileName ? { ...cp, lastSeenAt } : cp,
-          ),
-        };
-      }
-      return chat;
-    };
+  updateChatLastSeenDate(chatId: Chat['id'], afterUpdate?: () => void) {
     this._http
       .patch<ChatProfile['lastSeenAt']>(`${this.baseUrl}/${chatId}/seen`, '')
       .pipe(
@@ -142,15 +133,21 @@ export class Chats extends ListStore<Chat> {
         catchError(() => of(null)),
       )
       .subscribe((lastSeenAt) => {
-        if (lastSeenAt) {
-          this.activatedChat.update((chat) =>
-            chat ? updateChatProfileLastSeen(chat, lastSeenAt) : chat,
-          );
-          this.list.update((chats) =>
-            chats.map((chat) => updateChatProfileLastSeen(chat, lastSeenAt)),
-          );
-          this.updateChats();
+        const user = this._auth.user();
+        if (lastSeenAt && user) {
+          const update = (c: Chat, n: ChatProfile['profileName'], d: ChatProfile['lastSeenAt']) =>
+            c.id === chatId
+              ? {
+                  ...c,
+                  profiles: c.profiles.map((cp) =>
+                    cp.profileName === n ? { ...cp, lastSeenAt: d } : cp,
+                  ),
+                }
+              : c;
+          this.list.update((chats) => chats.map((chat) => update(chat, user.username, lastSeenAt)));
+          this.activatedChat.update((chat) => chat && update(chat, user.username, lastSeenAt));
         }
+        afterUpdate?.();
       });
   }
 

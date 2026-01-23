@@ -13,6 +13,7 @@ import { TestBed } from '@angular/core/testing';
 import { Profile, User } from '../app.types';
 import { Component } from '@angular/core';
 import { Chats } from './chats';
+import { Auth } from '../auth';
 
 const now = new Date().toISOString();
 const profile = {
@@ -62,12 +63,12 @@ const chat: Chat = {
   id: chatId,
 };
 
-const profileName = profile.user.username;
-
 const { apiUrl } = environment;
 const chatsUrl = `${apiUrl}/chats`;
 
 const message = { id: crypto.randomUUID(), body: 'Hi!' } as Message;
+
+const authMock = { user: vi.fn() };
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
 
@@ -80,6 +81,7 @@ const setup = () => {
       provideHttpClient(),
       provideHttpClientTesting(),
       provideRouter([{ path: '**', component: RouteComponentMock }]),
+      { provide: Auth, useValue: authMock },
     ],
   });
   const httpTesting = TestBed.inject(HttpTestingController);
@@ -103,16 +105,18 @@ describe('Chats', () => {
   });
 
   it('should activate chat even if it is not in the chat list', () => {
+    authMock.user.mockImplementationOnce(() => user);
     const { service } = setup();
-    service.activate(chat, profileName);
+    service.activate(chat);
     expect(service.activatedChat()).toStrictEqual(chat);
   });
 
   it('should activate chat, and update the chat profile last-seen date', () => {
+    authMock.user.mockImplementationOnce(() => user);
     const { service, httpTesting } = setup();
     const chats = [chat];
     service.list.set(chats);
-    service.activate(chat, chat.profiles[0].profileName);
+    service.activate(chat);
     const req = httpTesting.expectOne(
       { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
       'Request to update the chat profile last-seen date.',
@@ -135,9 +139,10 @@ describe('Chats', () => {
   });
 
   it('should activate chat, and silently fail to update the chat profile last-seen date due to a network error', () => {
+    authMock.user.mockImplementationOnce(() => user);
     const { service, httpTesting } = setup();
     service.list.set([chat]);
-    service.activate(chat, chat.profiles[0].profileName);
+    service.activate(chat);
     const req = httpTesting.expectOne(
       { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
       'Request to update the chat profile last-seen date.',
@@ -145,13 +150,18 @@ describe('Chats', () => {
     req.error(new ProgressEvent('Network error'));
     expect(service.activatedChat()).toStrictEqual(chat);
     expect(service.list()).toStrictEqual([chat]);
+    httpTesting.expectOne(
+      { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
+      'Request to update chats with the current limit',
+    );
     httpTesting.verify();
   });
 
   it('should activate chat, and silently fail to update the chat profile last-seen date due to a backend error', () => {
+    authMock.user.mockImplementationOnce(() => user);
     const { service, httpTesting } = setup();
     service.list.set([chat]);
-    service.activate(chat, chat.profiles[0].profileName);
+    service.activate(chat);
     const req = httpTesting.expectOne(
       { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
       'Request to update the chat profile last-seen date.',
@@ -159,10 +169,15 @@ describe('Chats', () => {
     req.flush('Failed', { status: 500, statusText: 'Internal server error' });
     expect(service.activatedChat()).toStrictEqual(chat);
     expect(service.list()).toStrictEqual([chat]);
+    httpTesting.expectOne(
+      { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
+      'Request to update chats with the current limit',
+    );
     httpTesting.verify();
   });
 
   it('should update and sort the activated chat messages, without duplications, and return `true`', () => {
+    authMock.user.mockImplementationOnce(() => user);
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
@@ -172,7 +187,7 @@ describe('Chats', () => {
       } as Message;
     }
     const { service } = setup();
-    service.activate({ ...chat, messages: [messages[2], messages[0]] }, profileName);
+    service.activate({ ...chat, messages: [messages[2], messages[0]] });
     const updated = service.updateChatMessages(chatId, [messages[0], messages[1]]);
     expect(updated).toBe(true);
     expect({ ...service.activatedChat(), messages: [] }).toStrictEqual(chat);
@@ -180,6 +195,7 @@ describe('Chats', () => {
   });
 
   it('should sort the activated chat messages, without duplications, and return `false`', () => {
+    authMock.user.mockImplementationOnce(() => user);
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
@@ -189,7 +205,7 @@ describe('Chats', () => {
       } as Message;
     }
     const { service } = setup();
-    service.activate({ ...chat, messages: [messages[2], messages[0], messages[1]] }, profileName);
+    service.activate({ ...chat, messages: [messages[2], messages[0], messages[1]] });
     const updated = service.updateChatMessages(chatId, [messages[0], messages[1]]);
     expect(updated).toBe(false);
     expect({ ...service.activatedChat(), messages: [] }).toStrictEqual(chat);
@@ -210,6 +226,7 @@ describe('Chats', () => {
   });
 
   it('should update the activated chat messages, and its corresponding chat in the chat list', () => {
+    authMock.user.mockImplementationOnce(() => user);
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
@@ -221,7 +238,7 @@ describe('Chats', () => {
     const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
     const { service } = setup();
     service.list.set(chatList);
-    service.activate(chatList[0], profileName);
+    service.activate(chatList[0]);
     const updated = service.updateChatMessages(chatId, messages);
     const updatedChat = { ...chatList[0], messages };
     expect(updated).toBe(true);
@@ -231,6 +248,7 @@ describe('Chats', () => {
   });
 
   it('should not update the activated chat messages if it has been changed, instead, update its corresponding chat in the chat list', () => {
+    authMock.user.mockImplementationOnce(() => user);
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
@@ -242,7 +260,7 @@ describe('Chats', () => {
     const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
     const { service } = setup();
     service.list.set(chatList);
-    service.activate(chatList[0], profileName);
+    service.activate(chatList[0]);
     const updated = service.updateChatMessages(chatList[1].id, messages);
     expect(updated).toBe(true);
     expect(service.list()[1]).toStrictEqual({ ...chatList[1], messages });
@@ -251,6 +269,7 @@ describe('Chats', () => {
   });
 
   it('should keep the activated chat updates in the chat list, after deactivating', () => {
+    authMock.user.mockImplementationOnce(() => user);
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
@@ -262,7 +281,7 @@ describe('Chats', () => {
     const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
     const { service } = setup();
     service.list.set(chatList);
-    service.activate(chatList[0], profileName);
+    service.activate(chatList[0]);
     const updated = service.updateChatMessages(chatId, messages);
     service.deactivate();
     expect(updated).toBe(true);
@@ -1044,7 +1063,7 @@ describe('Chats', () => {
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', message);
     httpTesting.expectOne(
-      { method: 'GET', url: 'http://127.0.0.1:8080/api/v1/chats?limit=2' },
+      { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
       'Request to update chats with the current limit',
     );
     httpTesting.verify();
@@ -1081,7 +1100,7 @@ describe('Chats', () => {
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', message);
     httpTesting.expectOne(
-      { method: 'GET', url: 'http://127.0.0.1:8080/api/v1/chats?limit=2' },
+      { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
       'Request to update chats with the current limit',
     );
     httpTesting.verify();

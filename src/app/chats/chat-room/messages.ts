@@ -47,7 +47,7 @@ export class Messages extends ListStore<Message> {
     this.getMore()
       .pipe(
         takeUntilDestroyed(this._destroyRef),
-        finalize(() => this.finalizeLoad())
+        finalize(() => this.finalizeLoad()),
       )
       .subscribe({
         next: (olderList) => {
@@ -61,10 +61,10 @@ export class Messages extends ListStore<Message> {
       });
   }
 
-  init(chat: Chat, currentProfileName: string) {
+  init(chat: Chat) {
     this.reset();
     this.hasMore.set(!!chat?.messages.length);
-    this.chats.activate(chat, currentProfileName);
+    this.chats.activate(chat);
   }
 
   loadRecent(chatId: Chat['id'], currentProfileName: Message['profileName']) {
@@ -80,7 +80,7 @@ export class Messages extends ListStore<Message> {
         .getChatMessages(chatId, new HttpParams({ fromObject: { cursor, sort: 'asc' } }))
         .pipe(
           takeUntilDestroyed(this._destroyRef),
-          finalize(() => this.loadingRecent.set(false))
+          finalize(() => this.loadingRecent.set(false)),
         )
         .subscribe({
           next: (newerList) => {
@@ -98,7 +98,7 @@ export class Messages extends ListStore<Message> {
     prop: 'lastSeenAt' | 'lastReceivedAt',
     msg: Message,
     chat: Chat,
-    currentProfileName: string
+    currentProfileName: string,
   ) {
     const check = (chat: Chat) =>
       chat.profiles
