@@ -403,13 +403,104 @@ describe('Chats', () => {
       ...chats.slice(1),
     ];
     req.flush([
-      { ...chat, id: crypto.randomUUID() },
       ...[
         { ...expectedChats[0], messages: [...[...expectedMessages].reverse()] },
         ...expectedChats.slice(1),
       ].reverse(),
     ]);
     expect(service.activatedChat()).toStrictEqual(expectedChats[0]);
+    expect(service.list()).toStrictEqual(expectedChats);
+    httpTesting.verify();
+  });
+
+  it('should update/sort current chats, update activated chat, and send another limited request if response has extra chats', () => {
+    const { service, httpTesting } = setup();
+    const chat1 = {
+      ...chat,
+      id: crypto.randomUUID(),
+      updatedAt: new Date(Date.now() - 7).toISOString(),
+      messages: [
+        ...chat.messages,
+        {
+          ...message,
+          id: crypto.randomUUID(),
+          createdAt: new Date(Date.now() + 13).toISOString(),
+        },
+      ],
+    };
+    const chat2 = {
+      ...chat,
+      id: crypto.randomUUID(),
+      updatedAt: new Date(Date.now() - 5).toISOString(),
+    };
+    const extraChat1 = {
+      ...chat,
+      id: crypto.randomUUID(),
+      updatedAt: new Date(Date.now() - 3).toISOString(),
+    };
+    const extraChat2 = {
+      ...chat,
+      id: crypto.randomUUID(),
+      updatedAt: new Date(Date.now() - 1).toISOString(),
+    };
+    const expectedChats = [
+      extraChat2,
+      extraChat1,
+      chat2,
+      {
+        ...chat1,
+        profiles: chat1.profiles.map((cp) => ({
+          ...cp,
+          lastSeenAt: new Date(),
+          lastReceivedAt: new Date(),
+        })),
+        messages: [
+          {
+            ...message,
+            id: crypto.randomUUID(),
+            profileName: profile2.user.username,
+            createdAt: new Date(Date.now() + 17).toISOString(),
+          },
+          {
+            ...message,
+            id: crypto.randomUUID(),
+            profileName: profile.user.username,
+            createdAt: new Date(Date.now() + 15).toISOString(),
+          },
+          ...chat1.messages,
+        ],
+      },
+    ];
+    service.activatedChat.set(chat1);
+    service.list.set([chat2, chat1]);
+    service.updateChats();
+    httpTesting
+      .expectOne(
+        { method: 'GET', url: `${chatsUrl}?limit=${2}` },
+        'Request to update chats with the current limit',
+      )
+      .flush(
+        [
+          expectedChats[1],
+          expectedChats[0],
+          { ...expectedChats[3], messages: [...[...expectedChats[3].messages].reverse()] },
+          expectedChats[2],
+        ].reverse(),
+      );
+    httpTesting
+      .expectOne(
+        { method: 'GET', url: `${chatsUrl}?limit=${expectedChats.length}` },
+        'another request to update chats with the new limit',
+      )
+      .flush(
+        [
+          { ...expectedChats[3], messages: [...[...expectedChats[3].messages].reverse()] },
+          expectedChats[0],
+          expectedChats[2],
+          expectedChats[1],
+        ].reverse(),
+      );
+    expect(service.activatedChat()).toStrictEqual(expectedChats[3]);
     expect(service.list()).toStrictEqual(expectedChats);
     httpTesting.verify();
   });

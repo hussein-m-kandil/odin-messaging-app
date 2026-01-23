@@ -40,7 +40,7 @@ export class Chats extends ListStore<Chat> {
 
   activate(chat: Chat, currentProfileName: string) {
     this.activatedChat.set(chat);
-    this.updateChatLastSeenDate(chat.id, currentProfileName, () => this.updateChats());
+    this.updateChatLastSeenDate(chat.id, currentProfileName);
   }
 
   deactivate() {
@@ -87,30 +87,43 @@ export class Chats extends ListStore<Chat> {
         )
         .subscribe((newChats) => {
           if (newChats) {
-            this.list.update((oldChats) => {
-              return oldChats.map((oldChat) => {
-                const updatedChat = newChats.find((newChat) => newChat.id === oldChat.id);
-                const activatedChat = this.activatedChat();
-                if (updatedChat && activatedChat && updatedChat.id === activatedChat.id) {
-                  const updatedActivatedChat = {
-                    ...updatedChat,
-                    messages: sortByDate(
-                      mergeDistinctBy(updatedChat.messages, oldChat.messages, (msg) => msg.id),
-                      (msg) => msg.createdAt,
-                    ),
-                  };
-                  this.activatedChat.set(updatedActivatedChat);
-                  return updatedActivatedChat;
-                }
-                return updatedChat || oldChat;
-              });
+            const oldChats = this.list();
+            const extraChats = newChats.filter((nc) => !oldChats.some((oc) => oc.id === nc.id));
+            const updatedChats = oldChats.map((oldChat) => {
+              const updatedChat = newChats.find((newChat) => newChat.id === oldChat.id);
+              const activatedChat = this.activatedChat();
+              if (updatedChat && activatedChat && updatedChat.id === activatedChat.id) {
+                const updatedActivatedChat = {
+                  ...updatedChat,
+                  messages: sortByDate(
+                    mergeDistinctBy(updatedChat.messages, oldChat.messages, (msg) => msg.id),
+                    (msg) => msg.createdAt,
+                  ),
+                };
+                this.activatedChat.set(updatedActivatedChat);
+                return updatedActivatedChat;
+              }
+              return updatedChat || oldChat;
             });
+            if (extraChats.length) {
+              // Update, sort, and extend the chat list
+              this.list.set(
+                sortByDate(
+                  mergeDistinctBy(extraChats, updatedChats, (chat) => chat.id),
+                  (chat) => chat.updatedAt,
+                ),
+              );
+              this.updateChats(); // Update the extended chat list
+            } else {
+              // Update the chat list
+              this.list.set(updatedChats);
+            }
           }
         });
     }
   }
 
-  updateChatLastSeenDate(chatId: Chat['id'], currentProfileName: string, onUpdated?: () => void) {
+  updateChatLastSeenDate(chatId: Chat['id'], currentProfileName: string) {
     const updateChatProfileLastSeen = (chat: Chat, lastSeenAt: ChatProfile['lastSeenAt']) => {
       if (chat.id === chatId) {
         return {
@@ -136,7 +149,7 @@ export class Chats extends ListStore<Chat> {
           this.list.update((chats) =>
             chats.map((chat) => updateChatProfileLastSeen(chat, lastSeenAt)),
           );
-          onUpdated?.();
+          this.updateChats();
         }
       });
   }
