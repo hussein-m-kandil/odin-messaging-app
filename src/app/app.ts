@@ -29,6 +29,7 @@ import { filter } from 'rxjs';
   providers: [MessageService],
   host: {
     '(window:resize)': 'handleWindowResize()',
+    '(window:focus)': 'chats.handleWindowFocus()',
   },
 })
 export class App implements OnInit {

@@ -176,6 +176,25 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
+  it('should reactivate the active chat on window focus', () => {
+    const { service } = setup();
+    service.activate(chat);
+    const activateSpy = vi.spyOn(service, 'activate');
+    const updateChatsSpy = vi.spyOn(service, 'updateChats');
+    service.handleWindowFocus();
+    expect(activateSpy).toHaveBeenCalledExactlyOnceWith(chat);
+    expect(updateChatsSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it('should only update the chats on window focus, if there is no an active chat', () => {
+    const { service } = setup();
+    const activateSpy = vi.spyOn(service, 'activate');
+    const updateChatsSpy = vi.spyOn(service, 'updateChats');
+    service.handleWindowFocus();
+    expect(updateChatsSpy).toHaveBeenCalledExactlyOnceWith();
+    expect(activateSpy).toHaveBeenCalledTimes(0);
+  });
+
   it('should update and sort the activated chat messages, without duplications, and return `true`', () => {
     authMock.user.mockImplementationOnce(() => user);
     const messages: Message[] = [];
