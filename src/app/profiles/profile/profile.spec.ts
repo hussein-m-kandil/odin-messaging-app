@@ -61,15 +61,21 @@ describe('Profile', () => {
     await vi.waitFor(() =>
       expect(screen.getByRole('menu', { name: /profile options/i })).toBeVisible(),
     );
-    expect(screen.getByRole('link', { name: /edit data/i })).toBeVisible();
-    expect(screen.getByRole('link', { name: /edit data/i })).toHaveAttribute('href', '/edit');
+    expect(screen.getByRole('link', { name: /edit profile/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /edit profile/i })).toHaveAttribute('href', '/edit');
     expect(screen.getByRole('link', { name: /upload picture/i })).toBeVisible();
     expect(screen.getByRole('link', { name: /upload picture/i })).toHaveAttribute('href', '/pic');
+    expect(screen.getByRole('link', { name: /delete profile/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /delete profile/i })).toHaveAttribute(
+      'href',
+      '/delete',
+    );
     await actor.click(screen.getByRole('button', { name: /toggle profile options/i }));
     await vi.waitFor(() =>
       expect(screen.queryByRole('menu', { name: /profile options/i })).toBeNull(),
     );
-    expect(screen.queryByRole('link', { name: /edit data/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /edit profile/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /upload picture/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /delete profile/i })).toBeNull();
   });
 });

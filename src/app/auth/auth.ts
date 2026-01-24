@@ -1,5 +1,5 @@
 import { computed, signal, inject, Injectable, effect, untracked } from '@angular/core';
-import { catchError, of, map, Observable, switchMap, defer } from 'rxjs';
+import { catchError, of, map, Observable, switchMap, defer, tap } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { SigninData, SignupData, AuthData } from './auth.types';
 import { authNavOpts, isAuthData, isAuthUrl } from './utils';
@@ -58,7 +58,7 @@ export class Auth {
               return true;
             }
             return false;
-          })
+          }),
         );
     });
   };
@@ -71,7 +71,7 @@ export class Auth {
   readonly token = computed<string>(() => this._authData()?.token || '');
 
   readonly authenticated$: Observable<boolean> = toObservable(this._authData).pipe(
-    switchMap((authData) => (authData ? of(true) : this._verify()))
+    switchMap((authData) => (authData ? of(true) : this._verify())),
   );
 
   constructor() {
@@ -119,5 +119,9 @@ export class Auth {
     return this._http
       .patch<AuthData>(`${apiUrl}/users/${id}`, reqBody)
       .pipe(map(this._saveValidAuthDataAndGetUserOrThrow));
+  }
+
+  delete(id: AuthData['user']['id']) {
+    return this._http.delete<''>(`${apiUrl}/users/${id}`).pipe(tap(() => this.signOut()));
   }
 }

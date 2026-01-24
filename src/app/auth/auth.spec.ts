@@ -57,29 +57,44 @@ describe('Auth', () => {
 
   const testData = [
     {
+      url: `${apiUrl}/auth/signin`,
       methodName: 'signIn' as const,
+      method: 'POST' as const,
       resData: authData.user,
       reqData: signupData,
-      path: '/auth/signin',
-      suffix: 'in',
+      action: 'sign in',
     },
     {
+      url: `${apiUrl}/users`,
       methodName: 'signUp' as const,
+      method: 'POST' as const,
       resData: authData.user,
       reqData: signupData,
-      path: '/users',
-      suffix: 'up',
+      action: 'sign up',
+    },
+    {
+      url: `${apiUrl}/users/${user.id}`,
+      methodName: 'edit' as const,
+      method: 'PATCH' as const,
+      resData: authData.user,
+      reqData: { ...signupData, password: undefined, confirm: undefined },
+      action: 'edit',
     },
   ];
 
-  for (const { path, methodName, reqData, resData, suffix } of testData) {
-    it(`should sign ${suffix}`, async () => {
+  for (const { url, method, action, methodName, reqData, resData } of testData) {
+    const reqBody: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(reqData)) {
+      if (reqData[k as keyof typeof reqData]) reqBody[k] = v;
+    }
+
+    it(`should ${action}`, async () => {
       const { service, httpTesting, storage } = await setup('/signin');
-      const user$ = service[methodName](reqData);
+      const user$ =
+        methodName === 'edit' ? service.edit(user.id, reqData) : service[methodName](reqData);
       let result: unknown, error: unknown;
       user$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
-      const reqProps = { method: 'POST', url: `${apiUrl}${path}` };
-      const req = httpTesting.expectOne(reqProps, `Request to sign ${suffix}`);
+      const req = httpTesting.expectOne({ method, url }, `Request to ${action}`);
       req.flush(authData);
       TestBed.tick();
       service.authenticated$.subscribe((authenticated) => {
@@ -87,7 +102,7 @@ describe('Auth', () => {
         expect(navigationSpy).toHaveBeenCalledOnce();
         expect(navigationSpy.mock.calls[0][0]).toBe('/chats');
         expect(storage.setItem).toHaveBeenCalledOnce();
-        expect(req.request.body).toStrictEqual(reqData);
+        expect(req.request.body).toStrictEqual(reqBody);
         expect(service.token()).toStrictEqual(token);
         expect(service.user()).toStrictEqual(user);
         expect(result).toStrictEqual(resData);
@@ -97,8 +112,7 @@ describe('Auth', () => {
       });
     });
 
-    it(`should handle malformed sign-${suffix} response`, async () => {
-      const reqProps = { method: 'POST', url: `${apiUrl}${path}` };
+    it(`should handle malformed ${action} response`, async () => {
       const { service, httpTesting, storage } = await setup();
       const malformedResponses = [
         { user },
@@ -111,12 +125,13 @@ describe('Auth', () => {
         { ...authData, user: { ...user, fullname: 777 } },
       ];
       for (const malResData of malformedResponses) {
-        const user$ = service[methodName](reqData);
+        const user$ =
+          methodName === 'edit' ? service.edit(user.id, reqData) : service[methodName](reqData);
         let result, error;
         user$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
-        const req = httpTesting.expectOne(reqProps, `Request to sign ${suffix}`);
+        const req = httpTesting.expectOne({ method, url }, `Request to ${action}`);
         req.flush(malResData);
-        expect(req.request.body).toStrictEqual(reqData);
+        expect(req.request.body).toStrictEqual(reqBody);
         expect(service.user()).toStrictEqual(null);
         expect(service.token()).toStrictEqual('');
         expect(result).toBeUndefined();
@@ -129,19 +144,19 @@ describe('Auth', () => {
     });
 
     it('should throw backend errors', async () => {
-      const reqProps = { method: 'POST', url: `${apiUrl}${path}` };
       const { service, httpTesting, storage } = await setup();
       const backendErrors = [
         { status: 500, statusText: 'Server error' },
         { status: 400, statusText: 'Client error' },
       ];
       for (const resError of backendErrors) {
-        const user$ = service[methodName](reqData);
+        const user$ =
+          methodName === 'edit' ? service.edit(user.id, reqData) : service[methodName](reqData);
         let result, error;
         user$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
-        const req = httpTesting.expectOne(reqProps, `Request to sign ${suffix}`);
+        const req = httpTesting.expectOne({ method, url }, `Request to ${action}`);
         req.flush(null, resError);
-        expect(req.request.body).toStrictEqual(reqData);
+        expect(req.request.body).toStrictEqual(reqBody);
         expect(service.user()).toStrictEqual(null);
         expect(service.token()).toStrictEqual('');
         expect(result).toBeUndefined();
@@ -154,15 +169,15 @@ describe('Auth', () => {
     });
 
     it('should throw backend errors', async () => {
-      const reqProps = { method: 'POST', url: `${apiUrl}${path}` };
       const { service, httpTesting, storage } = await setup();
-      const user$ = service[methodName](reqData);
+      const user$ =
+        methodName === 'edit' ? service.edit(user.id, reqData) : service[methodName](reqData);
       let result, error;
       user$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
-      const req = httpTesting.expectOne(reqProps, `Request to sign ${suffix}`);
+      const req = httpTesting.expectOne({ method, url }, `Request to ${action}`);
       const networkError = new ProgressEvent('Network error!');
       req.error(networkError);
-      expect(req.request.body).toStrictEqual(reqData);
+      expect(req.request.body).toStrictEqual(reqBody);
       expect(service.user()).toStrictEqual(null);
       expect(service.token()).toStrictEqual('');
       expect(result).toBeUndefined();
@@ -265,6 +280,59 @@ describe('Auth', () => {
     expect(navigationSpy).toHaveBeenCalledOnce();
     expect(navigationSpy.mock.calls[0][0]).toBe('/signin');
     expect(storage.removeItem).toHaveBeenCalledOnce();
+    storage.removeItem.mockReset();
+    storage.getItem.mockReset();
+    httpTesting.verify();
+  });
+
+  it('should delete and sign out', async () => {
+    let testToken: string | null = 'test_token';
+    const { service, httpTesting, storage } = await setup();
+    storage.getItem.mockImplementation(() => testToken);
+    storage.removeItem.mockImplementation(() => (testToken = null));
+    service.authenticated$.subscribe();
+    httpTesting
+      .expectOne({ method: 'GET', url: `${apiUrl}/auth/me` }, `Request to verify user auth-token`)
+      .flush(user);
+    let result: unknown, error: unknown;
+    service.delete(user.id).subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
+    httpTesting
+      .expectOne({ method: 'DELETE', url: `${apiUrl}/users/${user.id}` }, `Request to delete`)
+      .flush('', { status: 204, statusText: 'No content' });
+    TestBed.tick();
+    expect(result).toBe('');
+    expect(testToken).toBeNull();
+    expect(error).toBeUndefined();
+    expect(navigationSpy).toHaveBeenCalledOnce();
+    expect(navigationSpy.mock.calls[0][0]).toBe('/signin');
+    expect(storage.removeItem).toHaveBeenCalledOnce();
+    storage.removeItem.mockReset();
+    storage.getItem.mockReset();
+    httpTesting.verify();
+  });
+
+  it('should fail to delete and not sign out', async () => {
+    let testToken: string | null = 'test_token';
+    const { service, httpTesting, storage } = await setup();
+    storage.getItem.mockImplementation(() => testToken);
+    storage.removeItem.mockImplementation(() => (testToken = null));
+    service.authenticated$.subscribe();
+    httpTesting
+      .expectOne({ method: 'GET', url: `${apiUrl}/auth/me` }, `Request to verify user auth-token`)
+      .flush(user);
+    let result: unknown, error: unknown;
+    service.delete(user.id).subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
+    httpTesting
+      .expectOne({ method: 'DELETE', url: `${apiUrl}/users/${user.id}` }, `Request to delete`)
+      .flush('Failed', { status: 500, statusText: 'Internal server error' });
+    TestBed.tick();
+    expect(result).toBeUndefined();
+    expect(testToken).toBeTruthy();
+    expect(navigationSpy).toHaveBeenCalledTimes(0);
+    expect(storage.removeItem).toHaveBeenCalledTimes(0);
+    expect(error).toBeInstanceOf(HttpErrorResponse);
+    expect(error).toHaveProperty('error', 'Failed');
+    expect(error).toHaveProperty('status', 500);
     storage.removeItem.mockReset();
     storage.getItem.mockReset();
     httpTesting.verify();

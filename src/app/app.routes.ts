@@ -6,12 +6,12 @@ import { userResolver } from './auth/user-resolver';
 import { inject, Injectable } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { ImageForm } from './images/image-form';
+import { AuthForm, DeleteForm } from './auth';
 import { environment } from '../environments';
 import { authGuard } from './auth/auth-guard';
 import { ChatRoom } from './chats/chat-room';
 import { ChatList } from './chats/chat-list';
 import { Profile } from './profiles/profile';
-import { AuthForm } from './auth/auth-form';
 import { NotFound } from './not-found';
 
 @Injectable({ providedIn: 'root' })
@@ -65,6 +65,11 @@ export const routes: Routes = [
             component: AuthForm,
             title: 'Update Profile',
             resolve: { profile: profileResolver },
+          },
+          {
+            path: ':profileId/delete',
+            component: DeleteForm,
+            title: 'Delete Profile',
           },
           {
             path: ':profileId/pic',

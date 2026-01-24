@@ -19,7 +19,13 @@ export class Profile {
     if (this.profiles.isCurrentProfile(this.profile().id)) {
       return [
         { icon: 'pi pi-camera', routerLink: './pic', label: 'Upload picture' },
-        { icon: 'pi pi-pencil', routerLink: './edit', label: 'Edit data' },
+        { icon: 'pi pi-pencil', routerLink: './edit', label: 'Edit profile' },
+        {
+          icon: 'pi pi-trash',
+          routerLink: './delete',
+          label: 'Delete profile',
+          labelClass: 'text-(--p-button-text-danger-color)',
+        },
       ];
     }
     return [];

@@ -1,0 +1,49 @@
+<form [formGroup]="form" (ngSubmit)="submit()" aria-labelledby="del-profile-form-label"
+      class="p-4 space-y-4 h-full flex flex-col justify-center">
+  <h2 class="text-2xl text-color text-center font-semibold leading-tight tracking-wider"
+      id="del-profile-form-label">
+    Deleting <span class="font-normal tracking-normal">@{{ user().username }}</span>
+  </h2>
+  @if (form.errors?.['global']; as _globalError) {
+  <p-message closable severity="error" size="small" (onClose)="form.setErrors(null)">
+    {{ _globalError }}
+  </p-message>
+  }
+  <p-message severity="warn" size="small" styleClass="text-center justify-center">
+    Do you really want to delete your profile?
+    <br />
+    <strong>This action is irreversible!</strong>
+  </p-message>
+  <div class="mt-2">
+    @let _username = form.controls.username;
+    @let _invalidUsername = _username.invalid && _username.dirty;
+    <p-float-label variant="on">
+      <label for="username">Type your username to confirm</label>
+      <input pInputText fluid class="p-3 pe-9 text-sm font-semibold tracking-wider" type="text"
+             id="username" [formControl]="_username" [invalid]="_invalidUsername"
+             [aria-invalid]="_invalidUsername" autocomplete="off"
+             (input)="_username.setValue($event.target.value.trimStart())" />
+    </p-float-label>
+    @if (_invalidUsername) {
+    <p-message severity="error" size="small" variant="simple">
+      @if (_username.getError('required')) {
+      Username is required.
+      }@else if (_username.getError('mismatch'); as _validationError) {
+      Username is wrong.
+      }@else {
+      Username is invalid.
+      }
+    </p-message>
+    }
+  </div>
+  <div class="space-x-2 flex justify-around *:grow">
+    @let _loading = form.disabled;
+    <button pButton type="button" severity="secondary" [disabled]="_loading" routerLink="..">
+      <span pButtonLabel>Cancel</span>
+    </button>
+    <button pButton type="submit" severity="danger" [loading]="_loading"
+            [disabled]="form.invalid || _loading">
+      <span pButtonLabel>Delete</span>
+    </button>
+  </div>
+</form>
