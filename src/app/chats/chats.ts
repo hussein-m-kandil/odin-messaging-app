@@ -98,7 +98,7 @@ export class Chats extends ListStore<Chat> {
                 const updatedActivatedChat = {
                   ...updatedChat,
                   messages: sortByDate(
-                    mergeDistinctBy(updatedChat.messages, oldChat.messages, (msg) => msg.id),
+                    mergeDistinctBy(updatedChat.messages, activatedChat.messages, (msg) => msg.id),
                     (msg) => msg.createdAt,
                   ),
                 };
@@ -107,19 +107,13 @@ export class Chats extends ListStore<Chat> {
               }
               return updatedChat || oldChat;
             });
-            if (extraChats.length) {
-              // Update, sort, and extend the chat list
-              this.list.set(
-                sortByDate(
-                  mergeDistinctBy(extraChats, updatedChats, (chat) => chat.id),
-                  (chat) => chat.updatedAt,
-                ),
-              );
-              this.updateChats(); // Update the extended chat list
-            } else {
-              // Update the chat list
-              this.list.set(updatedChats);
-            }
+            this.list.set(
+              sortByDate(
+                mergeDistinctBy(extraChats, updatedChats, (chat) => chat.id),
+                (chat) => chat.updatedAt,
+              ),
+            );
+            if (extraChats.length) this.updateChats(); // Update again with the extended limit
           }
         });
     }
@@ -159,21 +153,28 @@ export class Chats extends ListStore<Chat> {
     let updated = false;
     if (newMessages.length) {
       const activatedChat = this.activatedChat();
-      const chatActivated = activatedChat && activatedChat.id === chatId;
-      const oldChat = chatActivated ? activatedChat : this.list().find((c) => c.id === chatId);
+      const active = activatedChat && activatedChat.id === chatId;
+      const oldChat = active ? activatedChat : this.list().find((c) => c.id === chatId);
       if (oldChat) {
         const oldMessages = oldChat.messages;
         const updatedMessages = sortByDate(
           mergeDistinctBy(newMessages, oldMessages, (msg) => msg.id),
           (msg) => msg.createdAt,
         );
-        const updatedChat = { ...oldChat, messages: updatedMessages };
-        if (chatActivated) this.activatedChat.set(updatedChat);
-        this.list.update((chats) => {
-          return chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat));
-        });
+        const updatedChat = {
+          ...oldChat,
+          messages: updatedMessages,
+          updatedAt: new Date().toISOString(),
+        };
         updated = oldMessages.length !== updatedMessages.length;
-        this.updateChats(); // Refresh chats (optional)
+        this.list.update((chats) =>
+          sortByDate(
+            chats.map((chat) => (chat.id === updatedChat.id ? updatedChat : chat)),
+            (chat) => chat.updatedAt,
+          ),
+        );
+        if (active) this.activatedChat.set(updatedChat);
+        this.updateChats();
       }
     }
     return updated;
