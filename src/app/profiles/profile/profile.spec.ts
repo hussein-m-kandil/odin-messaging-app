@@ -70,6 +70,7 @@ describe('Profile', () => {
       'href',
       '/delete',
     );
+    expect(screen.queryByRole('link', { name: /delete picture/i })).toBeNull();
     await actor.click(screen.getByRole('button', { name: /toggle profile options/i }));
     await vi.waitFor(() =>
       expect(screen.queryByRole('menu', { name: /profile options/i })).toBeNull(),
@@ -77,5 +78,42 @@ describe('Profile', () => {
     expect(screen.queryByRole('link', { name: /edit profile/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /upload picture/i })).toBeNull();
     expect(screen.queryByRole('link', { name: /delete profile/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /delete picture/i })).toBeNull();
+  });
+
+  it('should render a delete-picture option', async () => {
+    profilesMock.isCurrentProfile.mockImplementation(() => true);
+    const actor = userEvent.setup();
+    const testProfile = {
+      ...profile,
+      user: { ...user, avatar: { image: { id: crypto.randomUUID() } } },
+    } as unknown as typeof profile;
+    await renderComponent({ inputs: { profile: testProfile } });
+    await actor.click(screen.getByRole('button', { name: /toggle profile options/i }));
+    await vi.waitFor(() =>
+      expect(screen.getByRole('menu', { name: /profile options/i })).toBeVisible(),
+    );
+    expect(screen.getByRole('link', { name: /edit profile/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /edit profile/i })).toHaveAttribute('href', '/edit');
+    expect(screen.getByRole('link', { name: /upload picture/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /upload picture/i })).toHaveAttribute('href', '/pic');
+    expect(screen.getByRole('link', { name: /delete profile/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /delete profile/i })).toHaveAttribute(
+      'href',
+      '/delete',
+    );
+    expect(screen.getByRole('link', { name: /delete picture/i })).toBeVisible();
+    expect(screen.getByRole('link', { name: /delete picture/i })).toHaveAttribute(
+      'href',
+      `/pic/${testProfile.user.avatar!.image.id}/delete`,
+    );
+    await actor.click(screen.getByRole('button', { name: /toggle profile options/i }));
+    await vi.waitFor(() =>
+      expect(screen.queryByRole('menu', { name: /profile options/i })).toBeNull(),
+    );
+    expect(screen.queryByRole('link', { name: /edit profile/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /upload picture/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /delete profile/i })).toBeNull();
+    expect(screen.queryByRole('link', { name: /delete picture/i })).toBeNull();
   });
 });

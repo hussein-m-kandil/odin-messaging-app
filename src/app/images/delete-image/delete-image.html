@@ -1,0 +1,23 @@
+@let _submitting = submitting();
+@let _isAvatar = isAvatar();
+<form (submit)="submit($event)" aria-labelledby="pic-form-label"
+      class="p-4 space-y-4 h-full flex flex-col justify-center">
+  <h2 class="text-2xl text-color text-center font-semibold leading-tight tracking-wider"
+      id="pic-form-label">
+    Delete {{_isAvatar ? 'Picture' : 'Image'}}
+  </h2>
+  @if (errorMessage(); as _errorMessage) {
+  <p-message closable severity="error" size="small" (onClose)="errorMessage.set('')">
+    {{ _errorMessage }}
+  </p-message>
+  }
+  <p-message severity="warn" size="small" styleClass="text-center justify-center">
+    <strong>This action is irreversible!</strong>
+  </p-message>
+  <div class="space-x-2 flex justify-around *:grow">
+    <p-button fluid type="button" severity="secondary" [disabled]="_submitting" label="Cancel"
+              (onClick)="redirect()"></p-button>
+    <p-button fluid type="submit" severity="danger" [loading]="_submitting" [disabled]="_submitting"
+              [label]="_submitting ? 'Deleting...' : 'Delete'"></p-button>
+  </div>
+</form>

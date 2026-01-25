@@ -16,10 +16,22 @@ import { Menu } from 'primeng/menu';
 })
 export class Profile {
   protected readonly optionsMenuItems = computed<MenuItem[]>(() => {
-    if (this.profiles.isCurrentProfile(this.profile().id)) {
+    const profile = this.profile();
+    const imageId = profile.user.avatar?.image.id;
+    if (this.profiles.isCurrentProfile(profile.id)) {
       return [
-        { icon: 'pi pi-camera', routerLink: './pic', label: 'Upload picture' },
         { icon: 'pi pi-pencil', routerLink: './edit', label: 'Edit profile' },
+        { icon: 'pi pi-camera', routerLink: './pic', label: 'Upload picture' },
+        ...(imageId
+          ? [
+              {
+                icon: 'pi pi-trash',
+                routerLink: `./pic/${imageId}/delete`,
+                label: 'Delete picture',
+                labelClass: 'text-(--p-button-text-danger-color)',
+              },
+            ]
+          : []),
         {
           icon: 'pi pi-trash',
           routerLink: './delete',

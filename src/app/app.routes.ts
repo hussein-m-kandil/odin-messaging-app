@@ -1,11 +1,11 @@
-import { Routes, TitleStrategy, RouterStateSnapshot } from '@angular/router';
+import { Routes, TitleStrategy, RouterStateSnapshot, ResolveFn } from '@angular/router';
 import { profileResolver } from './profiles/profile-resolver';
 import { ProfileList } from './profiles/profile-list';
 import { chatResolver } from './chats/chat-resolver';
 import { userResolver } from './auth/user-resolver';
 import { inject, Injectable } from '@angular/core';
+import { ImageForm, DeleteImage } from './images';
 import { Title } from '@angular/platform-browser';
-import { ImageForm } from './images/image-form';
 import { AuthForm, DeleteForm } from './auth';
 import { environment } from '../environments';
 import { authGuard } from './auth/auth-guard';
@@ -76,6 +76,16 @@ export const routes: Routes = [
             component: ImageForm,
             title: 'Upload Profile Picture',
             resolve: { isAvatar: () => true },
+          },
+          {
+            path: ':profileId/pic/:imageId/delete',
+            component: DeleteImage,
+            title: 'Delete Profile Picture',
+            resolve: {
+              isAvatar: () => true,
+              redirectUrl: ((_, state) =>
+                state.url.split('/').slice(0, -3).join('/')) as ResolveFn<string>,
+            },
           },
           {
             path: ':profileId',
