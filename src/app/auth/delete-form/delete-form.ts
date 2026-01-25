@@ -1,29 +1,22 @@
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ButtonDirective, ButtonLabel } from 'primeng/button';
 import { Component, inject, input } from '@angular/core';
 import { FloatLabel } from 'primeng/floatlabel';
 import { InputText } from 'primeng/inputtext';
-import { RouterLink } from '@angular/router';
 import { getResErrMsg } from '../../utils';
 import { Message } from 'primeng/message';
 import { AuthData } from '../auth.types';
+import { Router } from '@angular/router';
+import { Button } from 'primeng/button';
 import { Auth } from '../auth';
 
 @Component({
   selector: 'app-delete-form',
-  imports: [
-    ReactiveFormsModule,
-    ButtonDirective,
-    ButtonLabel,
-    FloatLabel,
-    RouterLink,
-    InputText,
-    Message,
-  ],
+  imports: [ReactiveFormsModule, FloatLabel, InputText, Message, Button],
   templateUrl: './delete-form.html',
   styles: ``,
 })
 export class DeleteForm {
+  private readonly _router = inject(Router);
   private readonly _auth = inject(Auth);
 
   protected readonly form = new FormGroup({
@@ -31,6 +24,11 @@ export class DeleteForm {
   });
 
   readonly user = input.required<AuthData['user']>();
+  readonly redirectUrl = input.required<string>();
+
+  protected redirect() {
+    this._router.navigateByUrl(this.redirectUrl());
+  }
 
   protected submit() {
     if (this.form.enabled && this.form.valid) {

@@ -70,6 +70,10 @@ export const routes: Routes = [
             path: ':profileId/delete',
             component: DeleteForm,
             title: 'Delete Profile',
+            resolve: {
+              redirectUrl: ((_, state) =>
+                state.url.split('/').slice(0, -1).join('/')) as ResolveFn<string>,
+            },
           },
           {
             path: ':profileId/pic',

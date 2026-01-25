@@ -1,18 +1,18 @@
 import { render, screen, RenderComponentOptions } from '@testing-library/angular';
+import { HttpErrorResponse } from '@angular/common/http';
 import { userEvent } from '@testing-library/user-event';
-import { TestBed } from '@angular/core/testing';
 import { Observable, Subscriber } from 'rxjs';
 import { DeleteForm } from './delete-form';
 import { AuthData } from '../auth.types';
 import { Router } from '@angular/router';
 import { Auth } from '../auth';
-import { HttpErrorResponse } from '@angular/common/http';
 
-const user = { id: crypto.randomUUID(), username: 'test_username' } as AuthData['user'];
-
+const redirectUrl = '/foo/bar';
 const authMock = { user: vi.fn(), delete: vi.fn() };
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigateByUrl');
+
+const user = { id: crypto.randomUUID(), username: 'test_username' } as AuthData['user'];
 
 const renderComponent = ({
   inputs,
@@ -21,7 +21,7 @@ const renderComponent = ({
 }: RenderComponentOptions<DeleteForm> = {}) => {
   return render(DeleteForm, {
     providers: [{ provide: Auth, useValue: authMock }, ...(providers || [])],
-    inputs: { user, ...inputs },
+    inputs: { user, redirectUrl, ...inputs },
     autoDetectChanges: false,
     ...options,
   });
@@ -62,8 +62,8 @@ describe('DeleteForm', () => {
     await renderComponent();
     const { cancelBtn } = getElements();
     await actor.click(cancelBtn);
-    expect(navigationSpy).toHaveBeenCalledTimes(1);
     expect(authMock.delete).toHaveBeenCalledTimes(0);
+    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(redirectUrl);
   });
 
   it('should enable the submit button when the input has a value', async () => {
@@ -98,6 +98,7 @@ describe('DeleteForm', () => {
     await actor.click(submitBtn);
     expect(input).toBeInvalid();
     expect(screen.getByText(/wrong/));
+    expect(navigationSpy).toHaveBeenCalledTimes(0);
     expect(authMock.delete).toHaveBeenCalledTimes(0);
     expect(screen.queryByText(/required/)).toBeNull();
   });
@@ -106,7 +107,7 @@ describe('DeleteForm', () => {
     let sub!: Subscriber<''>;
     authMock.delete.mockImplementation(() => new Observable((s) => (sub = s)));
     const actor = userEvent.setup();
-    await renderComponent();
+    const { detectChanges } = await renderComponent();
     const { input, submitBtn, cancelBtn } = getElements();
     await actor.type(input, user.username);
     await actor.click(submitBtn);
@@ -117,7 +118,8 @@ describe('DeleteForm', () => {
     expect(screen.queryByText(/wrong/)).toBeNull();
     sub.next('');
     sub.complete();
-    TestBed.tick();
+    detectChanges();
+    expect(navigationSpy).toHaveBeenCalledTimes(0);
     expect(authMock.delete).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/required/)).toBeNull();
     expect(screen.queryByText(/wrong/)).toBeNull();
@@ -132,7 +134,7 @@ describe('DeleteForm', () => {
     let sub!: Subscriber<''>;
     authMock.delete.mockImplementation(() => new Observable((s) => (sub = s)));
     const actor = userEvent.setup();
-    await renderComponent();
+    const { detectChanges } = await renderComponent();
     const { input, submitBtn, cancelBtn } = getElements();
     await actor.type(input, user.username);
     await actor.click(submitBtn);
@@ -142,7 +144,8 @@ describe('DeleteForm', () => {
     expect(cancelBtn).toBeDisabled();
     expect(screen.queryByText(/wrong/)).toBeNull();
     sub.error(new HttpErrorResponse({ statusText: 'Internal server error', status: 500 }));
-    TestBed.tick();
+    detectChanges();
+    expect(navigationSpy).toHaveBeenCalledTimes(0);
     expect(authMock.delete).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/required/)).toBeNull();
     expect(screen.queryByText(/wrong/)).toBeNull();

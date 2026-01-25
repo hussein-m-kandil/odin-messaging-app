@@ -38,12 +38,9 @@
   </div>
   <div class="space-x-2 flex justify-around *:grow">
     @let _loading = form.disabled;
-    <button pButton type="button" severity="secondary" [disabled]="_loading" routerLink="..">
-      <span pButtonLabel>Cancel</span>
-    </button>
-    <button pButton type="submit" severity="danger" [loading]="_loading"
-            [disabled]="form.invalid || _loading">
-      <span pButtonLabel>Delete</span>
-    </button>
+    <p-button fluid type="button" severity="secondary" [disabled]="_loading" label="Cancel"
+              (onClick)="redirect()" />
+    <p-button fluid type="submit" severity="danger" [loading]="_loading"
+              [disabled]="form.invalid || _loading" label="Delete" />
   </div>
 </form>
