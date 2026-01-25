@@ -12,14 +12,14 @@ export const authGuard: CanActivateFn = (route, state) => {
       const authenticating = isAuthUrl(route.url);
       let redirectCommand: RedirectCommand | undefined;
       if (authenticating && authenticated) {
-        redirectCommand = new RedirectCommand(router.createUrlTree(['/chats']), authNavOpts);
+        redirectCommand = new RedirectCommand(router.createUrlTree(['/']), authNavOpts);
       } else if (!authenticating && !authenticated) {
         redirectCommand = new RedirectCommand(
           router.createUrlTree(['/signin'], { queryParams: { url: state.url } }),
-          authNavOpts
+          authNavOpts,
         );
       }
       return redirectCommand || true;
-    })
+    }),
   );
 };

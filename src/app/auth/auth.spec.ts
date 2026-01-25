@@ -100,7 +100,7 @@ describe('Auth', () => {
       service.authenticated$.subscribe((authenticated) => {
         TestBed.tick();
         expect(navigationSpy).toHaveBeenCalledOnce();
-        expect(navigationSpy.mock.calls[0][0]).toBe('/chats');
+        expect(navigationSpy.mock.calls[0][0]).toBe('/');
         expect(storage.setItem).toHaveBeenCalledOnce();
         expect(req.request.body).toStrictEqual(reqBody);
         expect(service.token()).toStrictEqual(token);
@@ -210,7 +210,7 @@ describe('Auth', () => {
     expect(navigationSpy).toHaveBeenCalledOnce();
     expect(storage.getItem).toHaveBeenCalledOnce();
     expect(storage.setItem).toHaveBeenCalledOnce();
-    expect(navigationSpy.mock.calls[0][0]).toBe('/chats');
+    expect(navigationSpy.mock.calls[0][0]).toBe('/');
     expect(req.request.headers.get('Authorization')).toBe(token);
     expect(service.token()).toStrictEqual(token);
     expect(service.user()).toStrictEqual(user);

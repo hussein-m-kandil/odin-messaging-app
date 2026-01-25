@@ -63,10 +63,10 @@ describe('authGuard', () => {
       const stateUrl = `/xyz/${crypto.randomUUID()}`;
       const guardParameters = getGuardParameters(url, stateUrl);
       const result = await firstValueFrom(
-        executeGuard(...guardParameters) as Observable<RedirectCommand>
+        executeGuard(...guardParameters) as Observable<RedirectCommand>,
       );
       expect(result).toBeInstanceOf(RedirectCommand);
-      expect(result.redirectTo.toString()).toBe('/chats');
+      expect(result.redirectTo.toString()).toBe('/');
       expect(result.redirectTo.queryParams).toStrictEqual({});
     }
     mockAuthService.mockReset();
@@ -103,7 +103,7 @@ describe('authGuard', () => {
       const stateUrl = `/xyz/${crypto.randomUUID()}`;
       const guardParameters = getGuardParameters(url, stateUrl);
       const result = await firstValueFrom(
-        executeGuard(...guardParameters) as Observable<RedirectCommand>
+        executeGuard(...guardParameters) as Observable<RedirectCommand>,
       );
       expect(result).toBeInstanceOf(RedirectCommand);
       expect(result.redirectTo.toString()).toMatch(/\/signin\?.*$/);
