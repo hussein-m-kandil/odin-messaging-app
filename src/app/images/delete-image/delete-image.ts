@@ -32,7 +32,7 @@ export class DeleteImage {
     event.preventDefault();
     this.submitting.set(true);
     this._images
-      .delete(this.imageId())
+      .delete(this.imageId(), this.isAvatar())
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => this.redirect(),

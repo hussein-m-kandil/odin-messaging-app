@@ -94,6 +94,12 @@ export class Auth {
     });
   }
 
+  updateUser(userData: Partial<AuthData['user']>) {
+    this._authData.update(
+      (authData) => authData && { ...authData, user: { ...authData.user, ...userData } },
+    );
+  }
+
   signIn(data: SigninData) {
     return this._http
       .post<AuthData>(`${apiUrl}/auth/signin`, data)

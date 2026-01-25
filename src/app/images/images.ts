@@ -1,8 +1,9 @@
 import { inject, Injectable } from '@angular/core';
 import { Image, NewImageData } from '../app.types';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpEventType } from '@angular/common/http';
 import { environment } from '../../environments';
 import { Auth } from '../auth';
+import { tap } from 'rxjs';
 
 const { apiUrl } = environment;
 
@@ -24,10 +25,20 @@ export class Images {
       imageId || (imagedata.isAvatar && currentAvatarId)
         ? [this._http.put.bind(this._http)<Image>, `${this.baseUrl}/${imageId || currentAvatarId}`]
         : [this._http.post.bind(this._http)<Image>, this.baseUrl];
-    return req(url, body, { observe: 'events', reportProgress: true });
+    return req(url, body, { observe: 'events', reportProgress: true }).pipe(
+      tap(
+        (event) =>
+          event.type === HttpEventType.Response &&
+          imagedata.isAvatar &&
+          event.body &&
+          this._auth.updateUser({ avatar: { image: event.body } }),
+      ),
+    );
   }
 
-  delete(imageId: Image['id']) {
-    return this._http.delete<''>(`${this.baseUrl}/${imageId}`);
+  delete(imageId: Image['id'], isAvatar: boolean) {
+    return this._http
+      .delete<''>(`${this.baseUrl}/${imageId}`)
+      .pipe(tap(() => isAvatar && this._auth.updateUser({ avatar: null })));
   }
 }

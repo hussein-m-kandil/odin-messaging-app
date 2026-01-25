@@ -78,8 +78,8 @@ describe('DeleteImage', () => {
         detectChanges();
         expect(cancelBtn).toBeEnabled();
         expect(submitBtn).toBeEnabled();
-        expect(imagesMock.delete).toHaveBeenCalledExactlyOnceWith(imageId);
         expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(redirectUrl);
+        expect(imagesMock.delete).toHaveBeenCalledExactlyOnceWith(imageId, isAvatar);
       });
 
       it('should fail to submit', async () => {
@@ -96,8 +96,8 @@ describe('DeleteImage', () => {
         expect(cancelBtn).toBeEnabled();
         expect(submitBtn).toBeEnabled();
         expect(navigationSpy).toHaveBeenCalledTimes(0);
-        expect(imagesMock.delete).toHaveBeenCalledExactlyOnceWith(imageId);
         expect(screen.getByText(/deletion failed/i)).toBeVisible();
+        expect(imagesMock.delete).toHaveBeenCalledExactlyOnceWith(imageId, isAvatar);
         await actor.click(screen.getByRole('button', { name: /close/i }));
         expect(screen.queryByText(/deletion failed/i)).toBeNull();
       });

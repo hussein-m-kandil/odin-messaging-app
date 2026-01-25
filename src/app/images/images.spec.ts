@@ -20,7 +20,7 @@ const currentAvatarId = crypto.randomUUID();
 const image = new File([], 'img.png', { type: 'image/png' });
 const imagedata = { xPos: 7, yPos: 7, scale: 1.25, alt: 'Test img alt' };
 
-const authMock = { user: vi.fn() };
+const authMock = { user: vi.fn(), updateUser: vi.fn() };
 
 const assertReqData = (req: TestRequest, isAvatar: boolean) => {
   const reqBody = req.request.body as FormData;
@@ -46,6 +46,8 @@ const setup = () => {
 };
 
 describe('Images', () => {
+  afterEach(vi.resetAllMocks);
+
   it('should upload an avatar image', () => {
     authMock.user.mockImplementationOnce(() => null);
     const { service, httpTesting } = setup();
@@ -66,6 +68,7 @@ describe('Images', () => {
     expect(res).toHaveProperty('status', 200);
     expect(res).toHaveProperty('body', resBody);
     expect(res).toHaveProperty('type', HttpEventType.Response);
+    expect(authMock.updateUser).toHaveBeenCalledExactlyOnceWith({ avatar: { image: resBody } });
     httpTesting.verify();
   });
 
@@ -83,6 +86,7 @@ describe('Images', () => {
     expect(resErr).toBeInstanceOf(HttpErrorResponse);
     expect(resErr).toHaveProperty('error', error);
     expect(resErr).toHaveProperty('status', 0);
+    expect(authMock.updateUser).toHaveBeenCalledTimes(0);
     httpTesting.verify();
   });
 
@@ -100,6 +104,7 @@ describe('Images', () => {
     expect(resErr).toBeInstanceOf(HttpErrorResponse);
     expect(resErr).toHaveProperty('error', error);
     expect(resErr).toHaveProperty('status', 500);
+    expect(authMock.updateUser).toHaveBeenCalledTimes(0);
     httpTesting.verify();
   });
 
@@ -123,6 +128,7 @@ describe('Images', () => {
     expect(res).toHaveProperty('status', 200);
     expect(res).toHaveProperty('body', resBody);
     expect(res).toHaveProperty('type', HttpEventType.Response);
+    expect(authMock.updateUser).toHaveBeenCalledTimes(0);
     httpTesting.verify();
   });
 
@@ -146,6 +152,7 @@ describe('Images', () => {
     expect(res).toHaveProperty('status', 200);
     expect(res).toHaveProperty('body', resBody);
     expect(res).toHaveProperty('type', HttpEventType.Response);
+    expect(authMock.updateUser).toHaveBeenCalledExactlyOnceWith({ avatar: { image: resBody } });
     httpTesting.verify();
   });
 
@@ -169,6 +176,7 @@ describe('Images', () => {
     expect(res).toHaveProperty('status', 200);
     expect(res).toHaveProperty('body', resBody);
     expect(res).toHaveProperty('type', HttpEventType.Response);
+    expect(authMock.updateUser).toHaveBeenCalledTimes(0);
     httpTesting.verify();
   });
 
@@ -192,18 +200,39 @@ describe('Images', () => {
     expect(res).toHaveProperty('status', 200);
     expect(res).toHaveProperty('body', resBody);
     expect(res).toHaveProperty('type', HttpEventType.Response);
+    expect(authMock.updateUser).toHaveBeenCalledExactlyOnceWith({ avatar: { image: resBody } });
     httpTesting.verify();
   });
 
   it('should delete an image', () => {
+    const isAvatar = false;
     const { service, httpTesting } = setup();
     let res, resErr;
-    service.delete(imageId).subscribe({ next: (r) => (res = r), error: (e) => (resErr = e) });
+    service
+      .delete(imageId, isAvatar)
+      .subscribe({ next: (r) => (res = r), error: (e) => (resErr = e) });
     httpTesting
       .expectOne({ method: 'DELETE', url: `${imagesUrl}/${imageId}` }, 'Request to delete an image')
       .flush('', { status: 204, statusText: 'No Content' });
     expect(resErr).toBeUndefined();
     expect(res).toBe('');
+    expect(authMock.updateUser).toHaveBeenCalledTimes(0);
+    httpTesting.verify();
+  });
+
+  it('should delete an avatar', () => {
+    const isAvatar = true;
+    const { service, httpTesting } = setup();
+    let res, resErr;
+    service
+      .delete(imageId, isAvatar)
+      .subscribe({ next: (r) => (res = r), error: (e) => (resErr = e) });
+    httpTesting
+      .expectOne({ method: 'DELETE', url: `${imagesUrl}/${imageId}` }, 'Request to delete an image')
+      .flush('', { status: 204, statusText: 'No Content' });
+    expect(resErr).toBeUndefined();
+    expect(res).toBe('');
+    expect(authMock.updateUser).toHaveBeenCalledExactlyOnceWith({ avatar: null });
     httpTesting.verify();
   });
 });

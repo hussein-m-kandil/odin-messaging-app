@@ -337,4 +337,24 @@ describe('Auth', () => {
     storage.getItem.mockReset();
     httpTesting.verify();
   });
+
+  it('should update user data', async () => {
+    const updatedUserData = { username: 'updated_username' };
+    const { service, httpTesting, storage } = await setup('/signin');
+    storage.getItem.mockImplementation(() => token);
+    service.authenticated$.subscribe();
+    httpTesting
+      .expectOne({ method: 'GET', url: `${apiUrl}/auth/me` }, `Request to verify user auth-token`)
+      .flush(user);
+    service.updateUser(updatedUserData);
+    expect(service.user()).toStrictEqual({ ...user, ...updatedUserData });
+    httpTesting.verify();
+  });
+
+  it('should not update user data', async () => {
+    const updatedUserData = { username: 'updated_username' };
+    const { service } = await setup('/signin');
+    service.updateUser(updatedUserData);
+    expect(service.user()).toStrictEqual(null);
+  });
 });
