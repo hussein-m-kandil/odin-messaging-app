@@ -9,6 +9,6 @@
   <app-image-picker [kind]="_isAvatar ? 'picture' : 'image'" [progress]="progress()"
                     [disabled]="_submitting" (unpicked)="unpick()" (canceled)="goBack()"
                     (picked)="image.set($event)" />
-  <p-button fluid type="submit" [loading]="_submitting" [disabled]="!image()" icon="pi pi-upload"
-            [label]="_submitting ? 'Uploading...' : 'Upload'"></p-button>
+  <p-button fluid type="submit" [loading]="_submitting" [disabled]="_submitting || !image()"
+            icon="pi pi-upload" [label]="_submitting ? 'Uploading...' : 'Upload'"></p-button>
 </form>
