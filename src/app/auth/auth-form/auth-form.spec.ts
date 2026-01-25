@@ -42,11 +42,12 @@ const renderComponent = async ({
           { path: 'signup', component: AuthForm },
           { path: 'edit', component: AuthForm, resolve: { profile: () => profile } },
         ],
-        withComponentInputBinding()
+        withComponentInputBinding(),
       ),
       { provide: Auth, useValue: mockAuthService() },
       ...(providers || []),
     ],
+    autoDetectChanges: false,
     ...options,
   });
   if (options.initialRoute !== undefined) navigationSpy.mockReset();

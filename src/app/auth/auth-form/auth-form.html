@@ -53,7 +53,8 @@
       </div>
       @let _disabled = form.disabled;
       <div>
-        <p-button fluid type="submit" severity="primary" [loading]="_disabled" label="Submit" />
+        <p-button fluid type="submit" severity="primary" [loading]="_disabled"
+                  [disabled]="_disabled" label="Submit" />
       </div>
     </form>
     @if (signingIn || signingUp) {
