@@ -1,6 +1,19 @@
 <!-- prettier-ignore -->
 @let _store = store(); @let _storeList = _store.list(); @let _pluralLabel = pluralLabel();
 <div class="relative size-full overflow-auto">
+  @if (![false, 'false', undefined].includes(searchable())) {
+  <div class="relative">
+    <input #searchbox pInputText fluid pSize="small" placeholder="Search" aria-label="Search"
+           id="profiles-search-box" class="shadow-none rounded-none pe-9" [value]="searchValue()"
+           (input)="searched.emit($event.target.value)" />
+    @if (searchbox.value) {
+    <button pButton pRipple text outlined rounded type="submit" size="small" severity="secondary"
+            aria-label="Clear search" icon="pi pi-times-circle"
+            class="absolute top-1/2 right-0.5 transform-[translateY(-50%)]"
+            (click)="(searchbox.value = ''); searched.emit('')"></button>
+    }
+  </div>
+  }
   @if (_storeList.length) {
   <ul aria-label="{{ singularLabel() }} list">
     @for (_listItem of _storeList; track _listItem.id) {

@@ -54,6 +54,19 @@ describe('Profiles', () => {
     httpTesting.verify();
   });
 
+  it('should load the profiles using the search value', () => {
+    const { service, httpTesting } = setup();
+    const name = 'test name';
+    service.searchValue.set(name);
+    service.load();
+    const req = httpTesting.expectOne({ method: 'GET' }, 'Request to get the profiles');
+    req.flush(profiles);
+    expect(req.request.url).toBe(profilesUrl);
+    expect(req.request.params.get('name')).toBe(name);
+    expect(service.list()).toStrictEqual(profiles);
+    httpTesting.verify();
+  });
+
   it('should fail to load the profiles on the 1st time due to a server error, then succeed on the 2nd', () => {
     const { service, httpTesting } = setup();
     service.load();
@@ -84,6 +97,22 @@ describe('Profiles', () => {
     const req = httpTesting.expectOne(reqInfo, 'Request to get more profiles');
     const resData = [profiles[1]];
     req.flush(resData);
+    expect(service.list()).toStrictEqual(profiles);
+    httpTesting.verify();
+  });
+
+  it('should load more the profiles using the search value', () => {
+    const { service, httpTesting } = setup();
+    const name = 'test name';
+    service.searchValue.set(name);
+    service.list.set([profiles[0]]);
+    service.load();
+    const req = httpTesting.expectOne({ method: 'GET' }, 'Request to get more profiles by name');
+    const resData = [profiles[1]];
+    req.flush(resData);
+    expect(req.request.url).toBe(profilesUrl);
+    expect(req.request.params.get('name')).toBe(name);
+    expect(req.request.params.get('cursor')).toBe(profiles[0].id);
     expect(service.list()).toStrictEqual(profiles);
     httpTesting.verify();
   });

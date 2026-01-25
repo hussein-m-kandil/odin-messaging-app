@@ -9,4 +9,5 @@
     </span>
   </a>
 </ng-template>
-<app-list [store]="profiles" singularLabel="Profile" pluralLabel="Profiles" [itemFragment]="li" />
+<app-list [store]="profiles" singularLabel="Profile" pluralLabel="Profiles" [itemFragment]="li"
+          searchable [searchValue]="name()" (searched)="search($event)" />

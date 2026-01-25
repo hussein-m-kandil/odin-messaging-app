@@ -1,5 +1,5 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DestroyRef, inject, Injectable } from '@angular/core';
+import { DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
@@ -17,16 +17,22 @@ export class Profiles extends ListStore<Profile> {
   private _http = inject(HttpClient);
   private _auth = inject(Auth);
 
+  readonly searchValue = signal('');
+
   protected override loadErrorMessage = 'Failed to load any profiles.';
 
   readonly baseUrl = `${apiUrl}/profiles`;
 
   protected override getMore() {
     const profiles = this.list();
+    const searchValue = this.searchValue();
     const cursor = profiles[profiles.length - 1]?.id;
-    const options = cursor ? { params: { cursor } } : {};
+    const params: Record<string, string> = {
+      ...(searchValue ? { name: searchValue } : {}),
+      ...(cursor ? { cursor } : {}),
+    };
     return this._http
-      .get<Profile[]>(this.baseUrl, options)
+      .get<Profile[]>(this.baseUrl, { params })
       .pipe(takeUntilDestroyed(this._destroyRef));
   }
 
