@@ -1,11 +1,12 @@
-import { render, RenderComponentOptions, screen } from '@testing-library/angular';
-import { HttpErrorResponse } from '@angular/common/http';
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
+import { render, RenderComponentOptions, screen } from '@testing-library/angular';
+import { Observable, of, Subscriber, throwError } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
 import { userEvent } from '@testing-library/user-event';
 import { TestBed } from '@angular/core/testing';
 import { MessageService } from 'primeng/api';
 import { AuthForm } from './auth-form';
-import { of, throwError } from 'rxjs';
+import { Toast } from 'primeng/toast';
 import { Auth } from '../auth';
 
 const user = {
@@ -26,14 +27,16 @@ const EDIT_REGEX = /edit profile/i;
 const signIn = vi.fn(() => of(user));
 const signUp = vi.fn(() => of(user));
 const edit = vi.fn(() => of(user));
-const mockAuthService = vi.fn(() => ({ signIn, signUp, edit }));
+const signInAsGuest = vi.fn(() => of(user));
+const mockAuthService = vi.fn(() => ({ signInAsGuest, signIn, signUp, edit }));
 const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
 
 const renderComponent = async ({
   providers,
   ...options
 }: RenderComponentOptions<AuthForm> = {}) => {
-  const renderResult = await render(`<router-outlet />`, {
+  const renderResult = await render(`<router-outlet /><p-toast/>`, {
+    imports: [Toast],
     providers: [
       MessageService,
       provideRouter(
@@ -253,6 +256,7 @@ describe('AuthForm', () => {
     await user.click(screen.getByRole('button', { name: /cancel/i }));
     TestBed.tick();
     container.querySelectorAll('router-outlet').forEach((element) => element.remove());
+    container.querySelectorAll('p-toast').forEach((element) => element.remove());
     expect(navigationSpy).toHaveBeenCalledOnce();
     expect(container).toBeEmptyDOMElement();
   });
@@ -816,6 +820,7 @@ describe('AuthForm', () => {
     await user.click(screen.getByRole('button', { name: /submit/i }));
     TestBed.tick();
     container.querySelectorAll('router-outlet').forEach((element) => element.remove());
+    container.querySelectorAll('p-toast').forEach((element) => element.remove());
     expect(navigationSpy).toHaveBeenCalledOnce();
     expect(container).toBeEmptyDOMElement();
     expect(signUp).not.toHaveBeenCalled();
@@ -834,6 +839,7 @@ describe('AuthForm', () => {
     await user.click(screen.getByRole('button', { name: /submit/i }));
     TestBed.tick();
     container.querySelectorAll('router-outlet').forEach((element) => element.remove());
+    container.querySelectorAll('p-toast').forEach((element) => element.remove());
     expect(navigationSpy).toHaveBeenCalledOnce();
     expect(container).toBeEmptyDOMElement();
     expect(signUp).not.toHaveBeenCalled();
@@ -847,10 +853,57 @@ describe('AuthForm', () => {
     await user.click(screen.getByRole('button', { name: /submit/i }));
     TestBed.tick();
     container.querySelectorAll('router-outlet').forEach((element) => element.remove());
+    container.querySelectorAll('p-toast').forEach((element) => element.remove());
     expect(navigationSpy).toHaveBeenCalledOnce();
     expect(container).toBeEmptyDOMElement();
     expect(signUp).not.toHaveBeenCalled();
     expect(signIn).not.toHaveBeenCalled();
     expect(edit).toHaveBeenCalled();
   });
+
+  it('should not have a guest sign-in route in the edit form', async () => {
+    await renderComponent({ initialRoute: EDIT_ROUTE });
+    expect(screen.queryByRole('button', { name: /guest/i })).toBeNull();
+  });
+
+  for (const initialRoute of [SIGNIN_ROUTE, SIGNUP_ROUTE]) {
+    describe(`${initialRoute} route`, () => {
+      it('should sign a guest in', async () => {
+        let sub!: Subscriber<typeof user>;
+        signInAsGuest.mockImplementation(() => new Observable((s) => (sub = s)));
+        const actor = userEvent.setup();
+        await renderComponent({ initialRoute });
+        const guestSignInBtn = screen.getByRole('button', { name: /guest/i });
+        expect(guestSignInBtn).toBeVisible();
+        await actor.click(guestSignInBtn);
+        expect(guestSignInBtn).toBeDisabled();
+        sub.next(user);
+        sub.complete();
+        expect(signInAsGuest).toHaveBeenCalledOnce();
+        expect(signIn).not.toHaveBeenCalledOnce();
+        expect(signUp).not.toHaveBeenCalled();
+        expect(edit).not.toHaveBeenCalled();
+      });
+
+      it('should fail to sign a guest in', async () => {
+        let sub!: Subscriber<typeof user>;
+        signInAsGuest.mockImplementation(() => new Observable((s) => (sub = s)));
+        const actor = userEvent.setup();
+        const { detectChanges } = await renderComponent({ initialRoute });
+        const guestSignInBtn = screen.getByRole('button', { name: /guest/i });
+        expect(guestSignInBtn).toBeVisible();
+        await actor.click(guestSignInBtn);
+        expect(guestSignInBtn).toBeDisabled();
+        sub.error(new HttpErrorResponse({ status: 500, statusText: 'Internal server error' }));
+        detectChanges();
+        const errorMessages = screen.getAllByText(/failed/i);
+        expect(errorMessages).toHaveLength(2);
+        errorMessages.forEach((msg) => expect(msg).toBeVisible());
+        expect(signInAsGuest).toHaveBeenCalledOnce();
+        expect(signIn).not.toHaveBeenCalledOnce();
+        expect(signUp).not.toHaveBeenCalled();
+        expect(edit).not.toHaveBeenCalled();
+      });
+    });
+  }
 });

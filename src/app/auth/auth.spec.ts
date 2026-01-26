@@ -189,6 +189,31 @@ describe('Auth', () => {
     });
   }
 
+  it('should sign in a guest', async () => {
+    const { service, httpTesting, storage } = await setup('/signin');
+    let result: unknown, error: unknown;
+    service.signInAsGuest().subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
+    const req = httpTesting.expectOne(
+      { method: 'POST', url: `${apiUrl}/users/guest` },
+      'Request to guest sign-in',
+    );
+    req.flush(authData);
+    TestBed.tick();
+    service.authenticated$.subscribe((authenticated) => {
+      TestBed.tick();
+      expect(navigationSpy).toHaveBeenCalledOnce();
+      expect(navigationSpy.mock.calls[0][0]).toBe('/');
+      expect(storage.setItem).toHaveBeenCalledOnce();
+      expect(req.request.body).toStrictEqual(null);
+      expect(service.token()).toStrictEqual(token);
+      expect(service.user()).toStrictEqual(user);
+      expect(result).toStrictEqual(user);
+      expect(authenticated).toBe(true);
+      expect(error).toBeUndefined();
+      httpTesting.verify();
+    });
+  });
+
   it('should not be authenticated, and not try to verify a non-existent token', async () => {
     const { service, httpTesting } = await setup();
     service.authenticated$.subscribe((authenticated) => {

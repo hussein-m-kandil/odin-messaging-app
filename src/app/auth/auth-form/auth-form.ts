@@ -175,14 +175,34 @@ export class AuthForm implements OnInit {
                 }
               }
               message = endSentence(message);
-            } else if (res.status === 0 && res.error instanceof ProgressEvent) {
-              message = 'Please, check your internet connection and try again.';
             }
           }
           if (this.form.valid) this.form.setErrors({ global: message });
           this._toast.add({ ...this.info.error, severity: 'error' });
         },
       });
+    }
+  }
+
+  protected signInAsGuest() {
+    if (this.form.enabled) {
+      this.form.disable();
+      this._auth
+        .signInAsGuest()
+        .pipe(takeUntilDestroyed(this._destroyRef))
+        .subscribe({
+          next: () => {
+            this.form.enable();
+            const detail = 'You have signed-is as a guest successfully.';
+            this._toast.add({ summary: 'Welcome!', severity: 'success', detail });
+          },
+          error: (res) => {
+            this.form.enable();
+            const detail = getResErrMsg(res) || 'Failed to sign you as a guest.';
+            if (this.form.valid) this.form.setErrors({ global: detail });
+            this._toast.add({ summary: 'Guest sign-in failed!', severity: 'error', detail });
+          },
+        });
     }
   }
 

@@ -63,10 +63,12 @@
       }">
       Or
     </p-divider>
-    <div>
+    <div class="*:block space-y-2">
       <p-button fluid type="button" severity="secondary" [disabled]="_disabled"
                 [label]="signingIn ? SIGN_UP_LABEL : SIGN_IN_LABEL"
                 (onClick)="navigate(['/', signingIn ? 'signup' : 'signin'])" />
+      <p-button fluid type="button" severity="secondary" [disabled]="_disabled"
+                label="Guest Sign-In" (onClick)="signInAsGuest()" />
     </div>
     } @else if (editing) {
     <div>

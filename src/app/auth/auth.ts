@@ -116,6 +116,12 @@ export class Auth {
       .pipe(map(this._saveValidAuthDataAndGetUserOrThrow));
   }
 
+  signInAsGuest() {
+    return this._http
+      .post<AuthData>(`${apiUrl}/users/guest`, null)
+      .pipe(map(this._saveValidAuthDataAndGetUserOrThrow));
+  }
+
   edit(id: AuthData['user']['id'], data: Partial<SignupData>) {
     const reqBody: Record<string, string> = {};
     const dataEntries = Object.entries(data);
