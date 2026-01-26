@@ -4,14 +4,17 @@
   @if (![false, 'false', undefined].includes(searchable())) {
   <div class="relative">
     <input #searchbox pInputText fluid pSize="small" placeholder="Search" aria-label="Search"
-           id="profiles-search-box" class="shadow-none rounded-none pe-9" [value]="searchValue()"
-           (input)="searched.emit($event.target.value)" />
-    @if (searchbox.value) {
-    <button pButton pRipple text outlined rounded type="submit" size="small" severity="secondary"
-            aria-label="Clear search" icon="pi pi-times-circle"
-            class="absolute top-1/2 right-0.5 transform-[translateY(-50%)]"
-            (click)="(searchbox.value = ''); searched.emit('')"></button>
-    }
+           id="profiles-search-box" class="shadow-none rounded-none pe-9 text-center"
+           [value]="searchValue()" (input)="searched.emit($event.target.value)" />
+    <span class="absolute top-1/2 right-0.5 transform-[translateY(-50%)]">
+      @if (searchbox.value) {
+      <button pButton pRipple text outlined rounded type="submit" size="small" severity="secondary"
+              aria-label="Clear search" icon="pi pi-times-circle"
+              (click)="(searchbox.value = ''); searched.emit('')"></button>
+      } @else {
+      <span class="pi pi-search text-muted-color text-xs p-3"></span>
+      }
+    </span>
   </div>
   }
   @if (_storeList.length) {
