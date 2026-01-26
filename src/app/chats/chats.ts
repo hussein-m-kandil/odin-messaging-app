@@ -246,8 +246,10 @@ export class Chats extends ListStore<Chat> {
   }
 
   handleWindowFocus() {
-    const activatedChat = this.activatedChat();
-    if (activatedChat) this.activate(activatedChat);
-    else this.updateChats();
+    if (this._auth.user()) {
+      const activatedChat = this.activatedChat();
+      if (activatedChat) this.activate(activatedChat);
+      else this.updateChats();
+    }
   }
 }
