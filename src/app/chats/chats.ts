@@ -145,13 +145,14 @@ export class Chats extends ListStore<Chat> {
       });
   }
 
-  getChatMessages(chatId: Chat['id'], params?: HttpParams) {
+  getMessages(chatId: Chat['id'], params?: HttpParams) {
     return this._http.get<Message[]>(`${this.baseUrl}/${chatId}/messages`, { params });
   }
 
-  updateChatMessages(chatId: Chat['id'], newMessages: Message[]) {
+  updateMessages(newMessages: Message[]) {
     let updated = false;
     if (newMessages.length) {
+      const chatId = newMessages[0].chatId;
       const activatedChat = this.activatedChat();
       const active = activatedChat && activatedChat.id === chatId;
       const oldChat = active ? activatedChat : this.list().find((c) => c.id === chatId);
@@ -205,7 +206,7 @@ export class Chats extends ListStore<Chat> {
         takeUntilDestroyed(this._destroyRef),
         tap((event) => {
           if (event.type === HttpEventType.Response && event.body) {
-            this.updateChatMessages(chatId, [event.body]);
+            this.updateMessages([event.body]);
           }
         }),
       );

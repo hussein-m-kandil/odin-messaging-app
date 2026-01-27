@@ -27,17 +27,14 @@ export class Messages extends ListStore<Message> {
       const cursor = list[list.length - 1]?.id;
       const params = new HttpParams({ fromObject: { cursor, sort: 'desc' } });
       return this.chats
-        .getChatMessages(activatedChat.id, params)
+        .getMessages(activatedChat.id, params)
         .pipe(takeUntilDestroyed(this._destroyRef));
     }
     return of([]);
   }
 
-  protected override updateList(olderList: Message[]): void {
-    if (olderList.length) {
-      const { chatId } = olderList[0];
-      this.chats.updateChatMessages(chatId, olderList);
-    }
+  protected override updateList(olderMessages: Message[]): void {
+    this.chats.updateMessages(olderMessages);
   }
 
   override reset() {
@@ -63,7 +60,7 @@ export class Messages extends ListStore<Message> {
       const recentOtherMemberMessage = list.find((m) => m.profileName !== currentProfileName);
       const cursor = recentOtherMemberMessage?.id || list[0].id;
       this.chats
-        .getChatMessages(chatId, new HttpParams({ fromObject: { cursor, sort: 'asc' } }))
+        .getMessages(chatId, new HttpParams({ fromObject: { cursor, sort: 'asc' } }))
         .pipe(
           takeUntilDestroyed(this._destroyRef),
           finalize(() => this.loadingRecent.set(false)),
@@ -71,7 +68,7 @@ export class Messages extends ListStore<Message> {
         .subscribe({
           next: (newerList) => {
             if (newerList.length) {
-              const updated = this.chats.updateChatMessages(chatId, newerList.reverse());
+              const updated = this.chats.updateMessages(newerList.reverse());
               if (updated) this.loadRecent(chatId, currentProfileName);
             }
           },

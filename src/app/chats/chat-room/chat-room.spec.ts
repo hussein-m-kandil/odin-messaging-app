@@ -93,7 +93,7 @@ const messagesMock = {
     list: vi.fn<() => unknown[]>(() => []),
     getOtherProfiles: vi.fn<() => unknown[]>(() => []),
     createMessage: vi.fn<() => Observable<unknown>>(() => of({ id: crypto.randomUUID() })),
-    getChatMessages: vi.fn<() => Observable<unknown[]>>(() => of([{ id: crypto.randomUUID() }])),
+    getMessages: vi.fn<() => Observable<unknown[]>>(() => of([{ id: crypto.randomUUID() }])),
     getChat: vi.fn<() => Observable<unknown>>(() => of({ id: crypto.randomUUID(), messages: [] })),
   },
 };

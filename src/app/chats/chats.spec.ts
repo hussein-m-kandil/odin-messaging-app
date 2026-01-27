@@ -66,7 +66,7 @@ const chat: Chat = {
 const { apiUrl } = environment;
 const chatsUrl = `${apiUrl}/chats`;
 
-const message = { id: crypto.randomUUID(), body: 'Hi!' } as Message;
+const message = { id: crypto.randomUUID(), body: 'Hi!', chatId: chat.id } as Message;
 
 const authMock = { user: vi.fn() };
 
@@ -211,6 +211,7 @@ describe('Chats', () => {
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
+        ...message,
         createdAt: new Date(Date.now() - i).toISOString(),
         id: crypto.randomUUID(),
         body: 'blah',
@@ -218,7 +219,7 @@ describe('Chats', () => {
     }
     const { service } = setup();
     service.activate({ ...chat, messages: [messages[2], messages[0]] });
-    const updated = service.updateChatMessages(chatId, [messages[0], messages[1]]);
+    const updated = service.updateMessages([messages[0], messages[1]]);
     const activatedChat = service.activatedChat()!;
     const updatedChat = { ...chat, updatedAt: activatedChat.updatedAt };
     expect(updated).toBe(true);
@@ -235,6 +236,7 @@ describe('Chats', () => {
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
+        ...message,
         createdAt: new Date(Date.now() - i).toISOString(),
         id: crypto.randomUUID(),
         body: 'blah',
@@ -242,7 +244,7 @@ describe('Chats', () => {
     }
     const { service } = setup();
     service.activate({ ...chat, messages: [messages[2], messages[0], messages[1]] });
-    const updated = service.updateChatMessages(chatId, [messages[0], messages[1]]);
+    const updated = service.updateMessages([messages[0], messages[1]]);
     const activatedChat = service.activatedChat()!;
     const updatedChat = { ...chat, updatedAt: activatedChat.updatedAt };
     expect(updated).toBe(false);
@@ -255,7 +257,7 @@ describe('Chats', () => {
 
   it('should not update the activated chat messages, and return `false`', () => {
     const { service } = setup();
-    const updated = service.updateChatMessages(chatId, [
+    const updated = service.updateMessages([
       {
         createdAt: new Date().toISOString(),
         id: crypto.randomUUID(),
@@ -271,6 +273,7 @@ describe('Chats', () => {
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
+        ...message,
         createdAt: new Date(Date.now() - i).toISOString(),
         id: crypto.randomUUID(),
         body: 'blah',
@@ -280,7 +283,7 @@ describe('Chats', () => {
     const { service } = setup();
     service.list.set(chatList);
     service.activate(chatList[0]);
-    const updated = service.updateChatMessages(chatId, messages);
+    const updated = service.updateMessages(messages);
     const activatedChat = service.activatedChat()!;
     const updatedChat = { ...chatList[0], messages, updatedAt: activatedChat.updatedAt };
     expect(updated).toBe(true);
@@ -294,19 +297,21 @@ describe('Chats', () => {
 
   it('should not update the activated chat messages if it has been changed, instead, update its corresponding chat in the chat list', () => {
     authMock.user.mockImplementationOnce(() => user);
+    const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
+        ...message,
+        chatId: chatList[1].id,
         createdAt: new Date(Date.now() - i).toISOString(),
         id: crypto.randomUUID(),
         body: 'blah',
       } as Message;
     }
-    const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
     const { service } = setup();
     service.list.set(chatList);
     service.activate(chatList[0]);
-    const updated = service.updateChatMessages(chatList[1].id, messages);
+    const updated = service.updateMessages(messages);
     expect(updated).toBe(true);
     expect(service.list()[0]).toStrictEqual({
       ...chatList[1],
@@ -319,19 +324,20 @@ describe('Chats', () => {
 
   it('should keep the activated chat updates in the chat list, after deactivating', () => {
     authMock.user.mockImplementationOnce(() => user);
+    const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
     const messages: Message[] = [];
     for (let i = 0; i < 3; i++) {
       messages[i] = {
+        ...message,
         createdAt: new Date(Date.now() - i).toISOString(),
         id: crypto.randomUUID(),
         body: 'blah',
       } as Message;
     }
-    const chatList = [chat, { ...chat, id: crypto.randomUUID() }];
     const { service } = setup();
     service.list.set(chatList);
     service.activate(chatList[0]);
-    const updated = service.updateChatMessages(chatId, messages);
+    const updated = service.updateMessages(messages);
     service.deactivate();
     expect(updated).toBe(true);
     expect(service.activatedChat()).toBeNull();
@@ -994,9 +1000,7 @@ describe('Chats', () => {
   it('should get a chat messages', () => {
     const { service, httpTesting } = setup();
     let res, errRes;
-    service
-      .getChatMessages(chatId)
-      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    service.getMessages(chatId).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     req.flush([message, message]);
@@ -1008,9 +1012,7 @@ describe('Chats', () => {
   it('should fail to get a chat messages due to a server error', () => {
     const { service, httpTesting } = setup();
     let res, errRes;
-    service
-      .getChatMessages(chatId)
-      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    service.getMessages(chatId).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = 'Failed';
@@ -1025,9 +1027,7 @@ describe('Chats', () => {
   it('should fail to get a chat messages due to a network error', () => {
     const { service, httpTesting } = setup();
     let res, errRes;
-    service
-      .getChatMessages(chatId)
-      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    service.getMessages(chatId).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     const error = new ProgressEvent('Network error.');
@@ -1044,7 +1044,7 @@ describe('Chats', () => {
     let res, errRes;
     const cursor = message.id;
     service
-      .getChatMessages(chatId, new HttpParams({ fromObject: { cursor } }))
+      .getMessages(chatId, new HttpParams({ fromObject: { cursor } }))
       .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages?cursor=${cursor}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more of the chat messages');
@@ -1059,7 +1059,7 @@ describe('Chats', () => {
     let res, errRes;
     const cursor = message.id;
     service
-      .getChatMessages(chatId, new HttpParams({ fromObject: { cursor } }))
+      .getMessages(chatId, new HttpParams({ fromObject: { cursor } }))
       .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages?cursor=${cursor}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more of the chat messages');
@@ -1077,7 +1077,7 @@ describe('Chats', () => {
     let res, errRes;
     const cursor = message.id;
     service
-      .getChatMessages(chatId, new HttpParams({ fromObject: { cursor } }))
+      .getMessages(chatId, new HttpParams({ fromObject: { cursor } }))
       .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/${chatId}/messages?cursor=${cursor}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get more of the chat messages');
@@ -1103,24 +1103,25 @@ describe('Chats', () => {
     const reqInfo = { method: 'POST', url: `${chatsUrl}/${activatedChat.id}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a message');
     const reqBody = req.request.body as FormData;
-    req.flush(message);
+    const createdMessage = { ...message, chatId: activatedChat.id };
+    req.flush(createdMessage);
     const expectedChats = [
-      { ...chats[1], messages: [message], updatedAt: service.list()[0].updatedAt },
+      {
+        ...activatedChat,
+        messages: [createdMessage],
+        updatedAt: service.activatedChat()!.updatedAt,
+      },
       chats[0],
     ];
-    const expectedActivatedChat = {
-      ...expectedChats[0],
-      updatedAt: service.activatedChat()!.updatedAt,
-    };
     expect(errRes).toBeUndefined();
     expect(reqBody.get('image')).toBeNull();
     expect(reqBody).toBeInstanceOf(FormData);
     expect(reqBody.get('imagedata')).toBeNull();
     expect(reqBody.get('body')).toBe(newMessageData.body);
-    expect(service.activatedChat()).toStrictEqual(expectedActivatedChat);
+    expect(service.activatedChat()).toStrictEqual(expectedChats[0]);
     expect(service.list()).toStrictEqual(expectedChats);
     expect(res).toBeInstanceOf(HttpResponse);
-    expect(res).toHaveProperty('body', message);
+    expect(res).toHaveProperty('body', createdMessage);
     httpTesting.expectOne(
       { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
       'Request to update chats with the current limit',
@@ -1145,25 +1146,26 @@ describe('Chats', () => {
     const reqInfo = { method: 'POST', url: `${chatsUrl}/${activatedChat.id}/messages` };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a message');
     const reqBody = req.request.body as FormData;
-    req.flush(message);
+    const createdMessage = { ...message, chatId: activatedChat.id };
+    req.flush(createdMessage);
     const expectedChats = [
-      { ...chats[1], messages: [message], updatedAt: service.list()[0].updatedAt },
+      {
+        ...activatedChat,
+        messages: [createdMessage],
+        updatedAt: service.activatedChat()!.updatedAt,
+      },
       chats[0],
     ];
-    const expectedActivatedChat = {
-      ...expectedChats[0],
-      updatedAt: service.activatedChat()!.updatedAt,
-    };
     expect(errRes).toBeUndefined();
     expect(reqBody).toBeInstanceOf(FormData);
     expect(reqBody.get('body')).toBe(newMessageData.body);
     expect(reqBody.get('image')).toBe(newMessageData.image);
     expect(reqBody.get('imagedata[xPos]')).toBe(`${newMessageData.imagedata.xPos}`);
     expect(reqBody.get('imagedata[yPos]')).toBe(`${newMessageData.imagedata.yPos}`);
-    expect(service.activatedChat()).toStrictEqual(expectedActivatedChat);
+    expect(service.activatedChat()).toStrictEqual(expectedChats[0]);
     expect(service.list()).toStrictEqual(expectedChats);
     expect(res).toBeInstanceOf(HttpResponse);
-    expect(res).toHaveProperty('body', message);
+    expect(res).toHaveProperty('body', createdMessage);
     httpTesting.expectOne(
       { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
       'Request to update chats with the current limit',
