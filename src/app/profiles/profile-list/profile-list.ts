@@ -22,12 +22,12 @@ export class ProfileList implements OnChanges {
   readonly user = input.required<AuthData['user']>();
 
   protected search(name: string) {
+    this.profiles.reset();
     this._router.navigate(['.'], { relativeTo: this._route, queryParams: name ? { name } : {} });
   }
 
   ngOnChanges(changes: SimpleChanges<ProfileList>) {
-    this.profiles.reset();
-    this.profiles.searchValue.set(changes.name?.currentValue || '');
-    this.profiles.load();
+    if (changes.name) this.profiles.searchValue.set(changes.name.currentValue || '');
+    if (this.profiles.list().length < 1) this.profiles.load();
   }
 }
