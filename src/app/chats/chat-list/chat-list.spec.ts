@@ -7,7 +7,7 @@ import { DatePipe } from '@angular/common';
 
 const chatsMock = {
   load: vi.fn(),
-  reset: vi.fn(),
+  updateChats: vi.fn(),
   loadError: vi.fn(() => ''),
   loading: vi.fn(() => false),
   hasMore: vi.fn(() => false),
@@ -86,12 +86,22 @@ const renderComponent = ({
 describe('ChatList', () => {
   afterEach(vi.resetAllMocks);
 
-  it('should reset and load the chats on every render', async () => {
+  it('should load the chats on every render if the chat list is empty', async () => {
+    chatsMock.list.mockImplementation(() => []);
     const { rerender } = await renderComponent();
     await rerender({ partialUpdate: true });
     await rerender({ partialUpdate: true });
     expect(chatsMock.load).toHaveBeenCalledTimes(3);
-    expect(chatsMock.reset).toHaveBeenCalledTimes(3);
+    expect(chatsMock.updateChats).toHaveBeenCalledTimes(0);
+  });
+
+  it('should update the chats on every render if the chat list is not empty', async () => {
+    chatsMock.list.mockImplementation(() => chats);
+    const { rerender } = await renderComponent();
+    await rerender({ partialUpdate: true });
+    await rerender({ partialUpdate: true });
+    expect(chatsMock.load).toHaveBeenCalledTimes(0);
+    expect(chatsMock.updateChats).toHaveBeenCalledTimes(3);
   });
 
   it('should display a list of named chats', async () => {
