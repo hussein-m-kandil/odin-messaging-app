@@ -1,5 +1,5 @@
 import { Router, RouterLink, RouterOutlet, NavigationEnd, RouterLinkActive } from '@angular/router';
-import { inject, signal, Component, OnInit } from '@angular/core';
+import { inject, signal, Component, OnInit, effect, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SingularView } from './mainbar/singular-view';
 import { NgTemplateOutlet } from '@angular/common';
@@ -7,6 +7,7 @@ import { Navigator } from './navigation/navigator';
 import { MessageService } from 'primeng/api';
 import { Navigation } from './navigation';
 import { TabsModule } from 'primeng/tabs';
+import { Profiles } from './profiles';
 import { Toast } from 'primeng/toast';
 import { Mainbar } from './mainbar';
 import { Chats } from './chats';
@@ -33,6 +34,7 @@ import { filter } from 'rxjs';
   },
 })
 export class App implements OnInit {
+  protected readonly _profiles = inject(Profiles);
   private readonly _router = inject(Router);
   private readonly _chats = inject(Chats);
 
@@ -63,6 +65,14 @@ export class App implements OnInit {
           this.mainNavItems.findIndex(({ route }) => event.urlAfterRedirects.startsWith(route)),
         );
       });
+
+    effect(() => {
+      this.auth.user();
+      untracked(() => {
+        this._chats.reset();
+        this._profiles.reset();
+      });
+    });
   }
 
   private _isMainMenuUrl(url: string) {
