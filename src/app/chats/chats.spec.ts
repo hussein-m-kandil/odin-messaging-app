@@ -449,6 +449,7 @@ describe('Chats', () => {
     service.activatedChat.set(chats[0]);
     service.list.set(chats);
     service.updateChats();
+    service.updateChats(); // Assert that it does not trigger a new update while updating
     const req = httpTesting.expectOne(
       { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
       'Request to update chats',
@@ -552,6 +553,7 @@ describe('Chats', () => {
     service.activatedChat.set(chat1);
     service.list.set([chat2, chat1]);
     service.updateChats();
+    service.updateChats(); // Assert that it does not trigger a new update while updating
     httpTesting
       .expectOne(
         { method: 'GET', url: `${chatsUrl}?limit=${2}` },

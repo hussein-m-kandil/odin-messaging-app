@@ -2,9 +2,9 @@ import { createChatFormData, findChatByAllMemberIds, createMessageFormData } fro
 import { Chat, Message, ChatProfile, NewChatData, NewMessageData } from './chats.types';
 import { HttpEventType, HttpClient, HttpParams } from '@angular/common/http';
 import { inject, signal, DestroyRef, Injectable } from '@angular/core';
+import { of, map, tap, defer, catchError, Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { mergeDistinctBy, sortByDate } from '../utils';
-import { catchError, defer, map, of, tap } from 'rxjs';
 import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
 import { User, Profile } from '../app.types';
@@ -21,6 +21,8 @@ export class Chats extends ListStore<Chat> {
   private readonly _http = inject(HttpClient);
   private readonly _router = inject(Router);
   private readonly _auth = inject(Auth);
+
+  private _updateSubscription: Subscription | null = null;
 
   protected override loadErrorMessage = 'Failed to load any chats.';
 
@@ -42,7 +44,7 @@ export class Chats extends ListStore<Chat> {
 
   activate(chat: Chat) {
     this.activatedChat.set(chat);
-    this.updateChatLastSeenDate(chat.id, () => this.updateChats());
+    this.updateChatLastSeenDate(chat.id);
   }
 
   deactivate() {
@@ -80,14 +82,16 @@ export class Chats extends ListStore<Chat> {
 
   updateChats() {
     const limit = this.list().length;
-    if (limit) {
-      this._http
+    if (!this._updateSubscription && limit) {
+      this._updateSubscription = this._http
         .get<Chat[]>(this.baseUrl, { params: { limit } })
         .pipe(
           takeUntilDestroyed(this._destroyRef),
           catchError(() => of(null)),
         )
         .subscribe((newChats) => {
+          // No need for next/error blocks, because any error will be caught and get here as a null
+          this._updateSubscription = null;
           if (newChats && newChats.length) {
             const oldChats = this.list();
             const extraChats = newChats.filter((nc) => !oldChats.some((oc) => oc.id === nc.id));
@@ -119,7 +123,7 @@ export class Chats extends ListStore<Chat> {
     }
   }
 
-  updateChatLastSeenDate(chatId: Chat['id'], afterUpdate?: () => void) {
+  updateChatLastSeenDate(chatId: Chat['id']) {
     this._http
       .patch<ChatProfile['lastSeenAt']>(`${this.baseUrl}/${chatId}/seen`, '')
       .pipe(
@@ -141,7 +145,7 @@ export class Chats extends ListStore<Chat> {
           this.list.update((chats) => chats.map((chat) => update(chat, user.username, lastSeenAt)));
           this.activatedChat.update((chat) => chat && update(chat, user.username, lastSeenAt));
         }
-        afterUpdate?.();
+        this.updateChats();
       });
   }
 
