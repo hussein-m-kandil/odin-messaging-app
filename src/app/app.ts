@@ -29,11 +29,12 @@ import { filter } from 'rxjs';
   providers: [MessageService],
   host: {
     '(window:resize)': 'handleWindowResize()',
-    '(window:focus)': 'chats.handleWindowFocus()',
+    '(window:focus)': 'handleWindowFocus()',
   },
 })
 export class App implements OnInit {
   private readonly _router = inject(Router);
+  private readonly _chats = inject(Chats);
 
   protected readonly mainNavItems = [
     { route: '/chats', label: 'Chats', icon: 'pi pi-comments' },
@@ -42,7 +43,6 @@ export class App implements OnInit {
 
   protected readonly singularView = inject(SingularView);
   protected readonly navigation = inject(Navigation);
-  protected readonly chats = inject(Chats);
   protected readonly auth = inject(Auth);
 
   protected readonly vpWidth = signal(0);
@@ -71,6 +71,10 @@ export class App implements OnInit {
 
   protected handleWindowResize() {
     this.vpWidth.set(window.innerWidth);
+  }
+
+  protected handleWindowFocus() {
+    this._chats.handleWindowFocus();
   }
 
   ngOnInit() {

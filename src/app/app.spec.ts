@@ -89,6 +89,7 @@ const renderComponent = ({
     ],
     initialRoute: initialRoute || '/chats',
     routes: routes || testRoutes,
+    autoDetectChanges: false,
     ...options,
   });
 };
@@ -316,9 +317,10 @@ describe('App', () => {
       it('should not display the main menu after narrowing the screen', async () => {
         const originalVPWidth = window.innerWidth;
         window.innerWidth = 720;
-        await renderComponent({ initialRoute });
+        const { detectChanges } = await renderComponent({ initialRoute });
         window.innerWidth = 320;
         fireEvent.resize(window);
+        detectChanges();
         if (initialRoute.endsWith('/chats')) {
           const profilesLink = screen.getByRole('link', { name: /profiles/i });
           const chatsLink = screen.getByRole('link', { name: /chats/i });
@@ -348,9 +350,10 @@ describe('App', () => {
       it('should display the main menu after widening screen', async () => {
         const originalVPWidth = window.innerWidth;
         window.innerWidth = 320;
-        await renderComponent({ initialRoute });
+        const { detectChanges } = await renderComponent({ initialRoute });
         window.innerWidth = 720;
         fireEvent.resize(window);
+        detectChanges();
         const profilesLink = screen.getByRole('link', { name: /profiles/i });
         const chatsLink = screen.getByRole('link', { name: /chats/i });
         if (initialRoute.startsWith('/chats')) {
