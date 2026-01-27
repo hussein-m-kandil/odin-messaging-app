@@ -6,6 +6,7 @@ import {
   viewChild,
   Component,
   OnChanges,
+  OnDestroy,
   ElementRef,
   SimpleChanges,
 } from '@angular/core';
@@ -41,7 +42,7 @@ import { Chat } from '../chats.types';
   ],
   providers: [Messages],
 })
-export class ChatRoom implements OnChanges {
+export class ChatRoom implements OnChanges, OnDestroy {
   private readonly _messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
 
   protected readonly messages = inject(Messages);
@@ -89,5 +90,9 @@ export class ChatRoom implements OnChanges {
   ngOnChanges(changes: SimpleChanges<ChatRoom>) {
     const chat = changes.chat?.currentValue;
     if (chat) this.messages.init(chat);
+  }
+
+  ngOnDestroy() {
+    this.messages.reset();
   }
 }
