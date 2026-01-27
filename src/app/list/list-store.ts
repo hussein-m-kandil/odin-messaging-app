@@ -1,43 +1,51 @@
+import { finalize, Observable, Subscription } from 'rxjs';
 import { createResErrorHandler } from '../utils';
-import { finalize, Observable } from 'rxjs';
-import { signal } from '@angular/core';
+import { computed, linkedSignal, signal } from '@angular/core';
 
 export abstract class ListStore<ItemType> {
   readonly list = signal<ItemType[]>([]);
-  readonly loading = signal(false);
   readonly hasMore = signal(false);
-  readonly loadError = signal('');
+
+  readonly loadingSubscription = signal<Subscription | null>(null);
+
+  readonly loading = computed<boolean>(() => !!this.loadingSubscription());
+
+  readonly loadError = linkedSignal<boolean, string>({
+    source: this.loading,
+    computation: (source, previous) => (source ? '' : previous?.value || ''),
+  });
 
   protected abstract loadErrorMessage: string;
 
   protected abstract getMore(): Observable<ItemType[]>;
 
-  protected prepareLoad() {
-    this.loading.set(true);
-    this.loadError.set('');
+  protected updateList(items: ItemType[]) {
+    if (items.length) this.list.update((listItems) => [...listItems, ...items]);
   }
 
   protected finalizeLoad() {
-    this.loading.set(false);
+    this.loadingSubscription.update((loadSub) => (loadSub?.unsubscribe(), null));
   }
 
   reset() {
-    this.hasMore.set(false);
-    this.loading.set(false);
+    this.finalizeLoad();
     this.loadError.set('');
     this.list.set([]);
+    this.hasMore.set(false);
   }
 
   load() {
-    this.prepareLoad();
-    this.getMore()
-      .pipe(finalize(() => this.finalizeLoad()))
-      .subscribe({
-        next: (moreItems) => {
-          this.hasMore.set(!!moreItems.length);
-          if (this.hasMore()) this.list.update((items) => [...items, ...moreItems]);
-        },
-        error: createResErrorHandler(this.loadError, this.loadErrorMessage),
-      });
+    this.loadingSubscription.update((loadSub) => {
+      loadSub?.unsubscribe();
+      return this.getMore()
+        .pipe(finalize(() => this.finalizeLoad()))
+        .subscribe({
+          next: (items) => {
+            this.updateList(items);
+            this.hasMore.set(!!items.length);
+          },
+          error: createResErrorHandler(this.loadError, this.loadErrorMessage),
+        });
+    });
   }
 }

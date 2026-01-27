@@ -1,4 +1,4 @@
-import { asyncScheduler, observeOn, of, throwError } from 'rxjs';
+import { asyncScheduler, Observable, observeOn, of, throwError } from 'rxjs';
 import { TestBed } from '@angular/core/testing';
 import { Injectable } from '@angular/core';
 import { ListStore } from './list-store';
@@ -43,10 +43,9 @@ describe('ListStore', () => {
 
   it('should reset the state', () => {
     const { service } = setup();
-    service.hasMore.set(true);
-    service.loading.set(true);
-    service.list.set([1, 2, 3]);
+    service.loadingSubscription.set(new Observable().subscribe());
     service.loadError.set('blah');
+    service.list.set([1, 2, 3]);
     service.reset();
     const serviceState = getServiceState(service);
     expect(serviceState.list).toStrictEqual([]);
@@ -78,7 +77,7 @@ describe('ListStore', () => {
   it('should fail to load data', () => {
     vi.useFakeTimers();
     dataReqMock.mockImplementationOnce(() =>
-      throwError(() => new Error('Test load error')).pipe(observeOn(asyncScheduler, 0))
+      throwError(() => new Error('Test load error')).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     service.load();
@@ -123,7 +122,7 @@ describe('ListStore', () => {
     vi.useFakeTimers();
     const initData = [1, 2, 3];
     dataReqMock.mockImplementationOnce(() =>
-      throwError(() => new Error('Test load error')).pipe(observeOn(asyncScheduler, 0))
+      throwError(() => new Error('Test load error')).pipe(observeOn(asyncScheduler, 0)),
     );
     const { service } = setup();
     service.list.set(initData);

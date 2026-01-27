@@ -20,19 +20,24 @@ export class Messages extends ListStore<Message> {
   readonly loadingRecent = signal(false);
   readonly loadRecentError = signal('');
 
-  protected override prepareLoad(): void {
-    super.prepareLoad();
-  }
-
   protected override getMore() {
     const activatedChat = this.chats.activatedChat();
     if (activatedChat) {
       const list = this.list();
       const cursor = list[list.length - 1]?.id;
       const params = new HttpParams({ fromObject: { cursor, sort: 'desc' } });
-      return this.chats.getChatMessages(activatedChat.id, params);
+      return this.chats
+        .getChatMessages(activatedChat.id, params)
+        .pipe(takeUntilDestroyed(this._destroyRef));
     }
     return of([]);
+  }
+
+  protected override updateList(olderList: Message[]): void {
+    if (olderList.length) {
+      const { chatId } = olderList[0];
+      this.chats.updateChatMessages(chatId, olderList);
+    }
   }
 
   override reset() {
@@ -40,25 +45,6 @@ export class Messages extends ListStore<Message> {
     this.loadingRecent.set(false);
     this.loadRecentError.set('');
     this.chats.deactivate();
-  }
-
-  override load() {
-    this.prepareLoad();
-    this.getMore()
-      .pipe(
-        takeUntilDestroyed(this._destroyRef),
-        finalize(() => this.finalizeLoad()),
-      )
-      .subscribe({
-        next: (olderList) => {
-          this.hasMore.set(!!olderList.length);
-          if (this.hasMore()) {
-            const { chatId } = olderList[0];
-            this.chats.updateChatMessages(chatId, olderList);
-          }
-        },
-        error: createResErrorHandler(this.loadError, this.loadErrorMessage),
-      });
   }
 
   init(chat: Chat) {
