@@ -88,7 +88,7 @@ export class Chats extends ListStore<Chat> {
           catchError(() => of(null)),
         )
         .subscribe((newChats) => {
-          if (newChats) {
+          if (newChats && newChats.length) {
             const oldChats = this.list();
             const extraChats = newChats.filter((nc) => !oldChats.some((oc) => oc.id === nc.id));
             const updatedChats = oldChats.map((oldChat) => {
