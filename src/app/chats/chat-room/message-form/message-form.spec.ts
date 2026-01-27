@@ -14,7 +14,7 @@ const chatId = crypto.randomUUID();
 const newMessageData = { body: 'Hi!', image: null };
 const newChatData = { profiles: [profileId], message: newMessageData };
 
-const chatsMock = { create: vi.fn(), createMessage: vi.fn() };
+const chatsMock = { createChat: vi.fn(), createMessage: vi.fn() };
 
 const renderComponent = ({
   providers,
@@ -63,7 +63,7 @@ describe('MessageForm', () => {
     createMock: Mock;
   }[] = [
     { type: 'message', inputs: { chatId }, createMock: chatsMock.createMessage },
-    { type: 'chat', inputs: { profileId }, createMock: chatsMock.create },
+    { type: 'chat', inputs: { profileId }, createMock: chatsMock.createChat },
   ];
 
   for (const { type, createMock, inputs } of testData) {

@@ -65,7 +65,7 @@ export class MessageForm implements OnInit {
       if (chatId) {
         req$ = this._chats.createMessage(chatId, data);
       } else if (profileId) {
-        req$ = this._chats.create({ profiles: [profileId], message: data });
+        req$ = this._chats.createChat({ profiles: [profileId], message: data });
       }
       if (req$) {
         this.form.disable();

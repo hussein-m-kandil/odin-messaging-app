@@ -181,15 +181,16 @@ export class Chats extends ListStore<Chat> {
     return updated;
   }
 
-  create(data: NewChatData) {
+  createChat(data: NewChatData) {
     const body = createChatFormData(data);
     return this._http
       .post<Chat>(`${apiUrl}/chats`, body, { observe: 'events', reportProgress: true })
       .pipe(
         tap((event) => {
           if (event.type === HttpEventType.Response && event.body) {
-            this.load();
-            this._router.navigate(['/chats', event.body.id]);
+            const createdChat = event.body;
+            this.list.update((chats) => [createdChat, ...chats]);
+            this._router.navigate(['/chats', createdChat.id]);
           }
         }),
       );

@@ -661,14 +661,15 @@ describe('Chats', () => {
     const { service, httpTesting } = setup();
     const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
     let res, errRes;
-    service.create(newChatData).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
-    const reqInfo = { method: 'Post', url: chatsUrl };
-    const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
+    service
+      .createChat(newChatData)
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    const req = httpTesting.expectOne(
+      { method: 'POST', url: chatsUrl },
+      'Request to create a chat',
+    );
     const reqBody = req.request.body as FormData;
     req.flush(chat);
-    httpTesting
-      .expectOne({ method: 'Get', url: chatsUrl }, 'Request to get the chats')
-      .flush([chat]);
     expect(reqBody).toBeInstanceOf(FormData);
     expect(Object.fromEntries(reqBody.entries())).toStrictEqual({
       'message[body]': newChatData.message.body,
@@ -692,14 +693,15 @@ describe('Chats', () => {
       },
     };
     let res, errRes;
-    service.create(newChatData).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
-    const reqInfo = { method: 'Post', url: chatsUrl };
-    const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
+    service
+      .createChat(newChatData)
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    const req = httpTesting.expectOne(
+      { method: 'POST', url: chatsUrl },
+      'Request to create a chat',
+    );
     const reqBody = req.request.body as FormData;
     req.flush(chat);
-    httpTesting
-      .expectOne({ method: 'Get', url: chatsUrl }, 'Request to get the chats')
-      .flush([chat]);
     expect(reqBody.get('profiles[0]')).toBe(newChatData.profiles[0]);
     expect(reqBody.get('message[body]')).toBe(newChatData.message.body);
     expect(reqBody.get('image')).toStrictEqual(newChatData.message.image);
@@ -716,12 +718,14 @@ describe('Chats', () => {
     const { service, httpTesting } = setup();
     const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
     let res, errRes;
-    service.create(newChatData).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
-    const reqInfo = { method: 'Post', url: chatsUrl };
+    service
+      .createChat(newChatData)
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    const reqInfo = { method: 'POST', url: chatsUrl };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
     const reqBody = req.request.body as FormData;
     req.flush('Failed', { status: 500, statusText: 'Internal server error' });
-    httpTesting.expectNone({ method: 'Get', url: chatsUrl }, 'Request to get the chats');
+    httpTesting.expectNone({ method: 'GET', url: chatsUrl }, 'Request to get the chats');
     expect(reqBody).toBeInstanceOf(FormData);
     expect(Object.fromEntries(reqBody.entries())).toStrictEqual({
       'message[body]': newChatData.message.body,
@@ -739,13 +743,15 @@ describe('Chats', () => {
     const { service, httpTesting } = setup();
     const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
     let res, errRes;
-    service.create(newChatData).subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
-    const reqInfo = { method: 'Post', url: chatsUrl };
+    service
+      .createChat(newChatData)
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    const reqInfo = { method: 'POST', url: chatsUrl };
     const req = httpTesting.expectOne(reqInfo, 'Request to create a chat');
     const reqBody = req.request.body as FormData;
     const networkError = new ProgressEvent('Network error');
     req.error(networkError);
-    httpTesting.expectNone({ method: 'Get', url: chatsUrl }, 'Request to get the chats');
+    httpTesting.expectNone({ method: 'GET', url: chatsUrl }, 'Request to get the chats');
     expect(reqBody).toBeInstanceOf(FormData);
     expect(Object.fromEntries(reqBody.entries())).toStrictEqual({
       'message[body]': newChatData.message.body,
