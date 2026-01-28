@@ -1,21 +1,36 @@
-@let _pickingImage = pickingImage();
-<form [formGroup]="form" (ngSubmit)="submit()" aria-label="New Message" class="relative">
-  <div class="absolute top-0 left-0 w-full h-0 contain-layout">
-    @if (_pickingImage) {
-    <app-image-picker [progress]="progress()" [disabled]="form.disabled" (unpicked)="unpickImage()"
-                      (canceled)="closeImagePicker()" (picked)="pickedImage.set($event)"
-                      class="block absolute left-4 right-4 bottom-full pb-2"
-                      animate.enter="animate-[slide-down_300ms_ease-in_reverse]"
-                      animate.leave="animate-[slide-down_300ms_ease-in]" />
+@let _picking = picking();
+@let _pickingImage = _picking === 'image';
+@let _pickingEmoji = _picking === 'emoji';
+@let _selectedColorScheme = colorScheme.selectedScheme().value;
+@let _theme = _selectedColorScheme === 'system' ? 'auto' : _selectedColorScheme;
+<form #messageForm [formGroup]="form" (ngSubmit)="submit()" aria-label="New Message"
+      class="relative">
+  <div aria-live="polite" aria-atomic="true"
+       class="absolute top-0 left-0 w-full h-0 contain-layout">
+    @if (_pickingEmoji || _pickingImage) {
+    <div class="block overflow-auto absolute bottom-full left-1 right-1 pb-1"
+         animate.enter="animate-[slide-down_300ms_ease-in_reverse]"
+         animate.leave="animate-[slide-down_300ms_ease-in]">
+      @if (_pickingImage) {
+      <app-image-picker [progress]="progress()" [disabled]="form.disabled"
+                        (unpicked)="unpickImage()" (canceled)="togglePicker('image')"
+                        (picked)="pickedImage.set($event)" />
+      }@else {
+      <app-emoji-picker (picked)="appendPickedEmoji($event)" [theme]="_theme" />
+      }
+    </div>
     }
   </div>
-  <div class="bg-(--p-content-background) flex items-end relative p-2">
+  <div class="bg-(--p-content-background) flex items-end relative p-2 space-x-2">
     <button pButton pRipple rounded size="small" type="button" icon="pi pi-camera"
-            severity="secondary" [disabled]="form.disabled" (click)="toggleImagePicker()"
+            severity="secondary" [disabled]="form.disabled" (click)="togglePicker('image')"
             aria-label="{{`${_pickingImage ? 'Hide' : 'Show'} image picker`}}"></button>
+    <button pButton pRipple rounded size="small" type="button" icon="pi pi-face-smile"
+            severity="secondary" [disabled]="form.disabled" (click)="togglePicker('emoji')"
+            aria-label="{{`${_pickingEmoji ? 'Hide' : 'Show'} emoji picker`}}"></button>
     <textarea #msgInp pTextarea rows="1" pSize="small" variant="filled" id="message-body"
               [autoResize]="true" aria-label="Message" formControlName="body"
-              placeholder="Message..." (onResize)="showScrollbarAsNeeded()" [class]="`grow align-middle max-h-[50vh] rounded-2xl mx-2
+              placeholder="Message..." (onResize)="showScrollbarAsNeeded()" [class]="`grow align-middle max-h-[50vh] rounded-2xl
         text-sm font-semibold tracking-wider placeholder-shown:font-normal`"></textarea>
     <button pButton pRipple rounded size="small" type="submit" aria-label="Send" icon="pi pi-send"
             [disabled]="form.disabled"></button>

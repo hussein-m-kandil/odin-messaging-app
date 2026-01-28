@@ -2,6 +2,8 @@ import { Component, ElementRef, inject, input, OnInit, signal, viewChild } from 
 import { HttpEvent, HttpEventType, HttpUploadProgressEvent } from '@angular/common/http';
 import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ImagePicker } from '../../../images/image-picker';
+import { EmojiPicker, PickedEmoji } from './emoji-picker';
+import { ColorScheme } from '../../../color-scheme';
 import { TextareaModule } from 'primeng/textarea';
 import { ButtonDirective } from 'primeng/button';
 import { getResErrMsg } from '../../../utils';
@@ -12,7 +14,7 @@ import { Chats } from '../../chats';
 
 @Component({
   selector: 'app-message-form',
-  imports: [ReactiveFormsModule, TextareaModule, ButtonDirective, ImagePicker, Ripple],
+  imports: [ReactiveFormsModule, TextareaModule, ButtonDirective, ImagePicker, EmojiPicker, Ripple],
   templateUrl: './message-form.html',
   styles: ``,
 })
@@ -22,13 +24,15 @@ export class MessageForm implements OnInit {
   private readonly _toast = inject(MessageService);
   private readonly _chats = inject(Chats);
 
+  protected readonly colorScheme = inject(ColorScheme);
+
   protected readonly form = new FormGroup({
     body: new FormControl('', { nonNullable: true }),
   });
 
   protected readonly progress = signal<HttpUploadProgressEvent | null>(null);
+  protected readonly picking = signal<'image' | 'emoji' | null>(null);
   protected readonly pickedImage = signal<File | null>(null);
-  protected readonly pickingImage = signal(false);
 
   readonly profileId = input<string>();
   readonly chatId = input<string>();
@@ -38,20 +42,23 @@ export class MessageForm implements OnInit {
     this.progress.set(null);
   }
 
-  protected closeImagePicker() {
-    this.unpickImage();
-    this.pickingImage.set(false);
-  }
-
-  protected toggleImagePicker() {
-    this.pickingImage.update((picking) => {
-      if (picking) this.unpickImage();
-      return !picking;
+  protected togglePicker(picker: 'image' | 'emoji') {
+    this.picking.update((picking) => {
+      if (picking !== picker) return picker;
+      if (picker === 'image') this.unpickImage();
+      return null;
     });
   }
 
+  protected appendPickedEmoji(emoji: PickedEmoji) {
+    this.togglePicker('emoji');
+    const { body } = this.form.controls;
+    body.setValue(body.value + emoji.native);
+  }
+
   protected reset() {
-    this.closeImagePicker();
+    this.picking.set(null);
+    this.unpickImage();
     this.form.reset();
   }
 

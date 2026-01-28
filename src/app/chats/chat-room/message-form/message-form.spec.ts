@@ -1,9 +1,14 @@
 import { asyncScheduler, Observable, observeOn, of, Subscriber, throwError } from 'rxjs';
 import { HttpErrorResponse, HttpEventType, HttpResponse } from '@angular/common/http';
 import { screen, render, RenderComponentOptions } from '@testing-library/angular';
+import { Component, input, output, OutputEmitterRef } from '@angular/core';
+import { ImagePicker } from '../../../images/image-picker';
 import { userEvent } from '@testing-library/user-event';
-import { MessageForm } from './message-form';
+import { ReactiveFormsModule } from '@angular/forms';
+import { ColorScheme } from '../../../color-scheme';
 import { MessageService } from 'primeng/api';
+import { MessageForm } from './message-form';
+import { Textarea } from 'primeng/textarea';
 import { Toast } from 'primeng/toast';
 import { Chats } from '../../chats';
 import { Mock } from 'vitest';
@@ -15,6 +20,12 @@ const newMessageData = { body: 'Hi!', image: null };
 const newChatData = { profiles: [profileId], message: newMessageData };
 
 const chatsMock = { createChat: vi.fn(), createMessage: vi.fn() };
+
+const commonProviders: RenderComponentOptions<MessageForm>['providers'] = [
+  { provide: ColorScheme, useValue: { selectedScheme: vi.fn(() => ({ value: 'light' })) } },
+  { provide: Chats, useValue: chatsMock },
+  MessageService,
+];
 
 const renderComponent = ({
   providers,
@@ -31,8 +42,8 @@ const renderComponent = ({
           ? `<app-message-form profileId="${profileId}" />`
           : `<app-message-form />`;
   return render(`${componentTemplate}<p-toast />`, {
+    providers: [...commonProviders, ...(providers || [])],
     imports: [MessageForm, Toast],
-    providers: [MessageService, { provide: Chats, useValue: chatsMock }, ...(providers || [])],
     autoDetectChanges: false,
     ...options,
   });
@@ -40,10 +51,11 @@ const renderComponent = ({
 
 const getFormElements = () => {
   const imagePickerBtn = screen.getByRole('button', { name: /show image picker/i });
+  const emojiPickerBtn = screen.getByRole('button', { name: /show emoji picker/i });
   const msgInp = screen.getByRole('textbox', { name: /message/i });
   const msgForm = screen.getByRole('form', { name: /message/i });
   const sendBtn = screen.getByRole('button', { name: /send/i });
-  return { imagePickerBtn, sendBtn, msgForm, msgInp };
+  return { imagePickerBtn, emojiPickerBtn, sendBtn, msgForm, msgInp };
 };
 
 describe('MessageForm', () => {
@@ -77,7 +89,7 @@ describe('MessageForm', () => {
         expect(imagePickerBtn).toBeVisible();
       });
 
-      it('should toggle a file input', async () => {
+      it('should toggle an image picker', async () => {
         await renderComponent({ inputs });
         const actor = userEvent.setup();
         const { imagePickerBtn } = getFormElements();
@@ -92,6 +104,73 @@ describe('MessageForm', () => {
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
         expect(screen.queryByRole('progressbar')).toBeNull();
+      });
+
+      it('should toggle an emoji picker', async () => {
+        await renderComponent({ inputs });
+        const actor = userEvent.setup();
+        const { emojiPickerBtn } = getFormElements();
+        expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+        await actor.click(emojiPickerBtn);
+        expect(screen.getByLabelText(/^emoji picker/i)).toBeVisible();
+        await actor.click(emojiPickerBtn);
+        expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+      });
+
+      it('should switch between the pickers when opening one while the other one is open', async () => {
+        await renderComponent({ inputs });
+        const actor = userEvent.setup();
+        const { imagePickerBtn, emojiPickerBtn } = getFormElements();
+        expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
+        expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+        expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        await actor.click(emojiPickerBtn);
+        expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
+        expect(screen.getByLabelText(/^emoji picker/i)).toBeVisible();
+        expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        await actor.click(imagePickerBtn);
+        expect(screen.getByRole('button', { name: /pick .*image/i })).toBeVisible();
+        expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
+        expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+        await actor.click(emojiPickerBtn);
+        expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
+        expect(screen.getByLabelText(/^emoji picker/i)).toBeVisible();
+        expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        await actor.click(imagePickerBtn);
+        expect(screen.getByRole('button', { name: /pick .*image/i })).toBeVisible();
+        expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
+        expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+        await actor.click(imagePickerBtn);
+        expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
+        expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+        expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+      });
+
+      it('should append the picked emoji to the value of the message body input', async () => {
+        const actor = userEvent.setup();
+        let pickedOutputMock!: OutputEmitterRef<unknown>;
+        @Component({ selector: 'app-emoji-picker', template: `` })
+        class EmojiPicker {
+          readonly theme = input<string>();
+          readonly picked = output<unknown>();
+          constructor() {
+            pickedOutputMock = this.picked;
+          }
+        }
+        await render(MessageForm, {
+          componentImports: [ReactiveFormsModule, ImagePicker, EmojiPicker, Textarea],
+          providers: commonProviders,
+          inputs,
+        });
+        const { msgInp, emojiPickerBtn } = getFormElements();
+        const emoji = { native: 'test emoji' };
+        await actor.click(emojiPickerBtn);
+        pickedOutputMock.emit(emoji);
+        expect(msgInp).toHaveValue(emoji.native);
+        pickedOutputMock.emit(emoji);
+        expect(msgInp).toHaveValue(emoji.native + emoji.native);
+        pickedOutputMock.emit(emoji);
+        expect(msgInp).toHaveValue(emoji.native + emoji.native + emoji.native);
       });
 
       it('should create', async () => {
