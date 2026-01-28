@@ -88,8 +88,10 @@ export class ChatRoom implements OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges<ChatRoom>) {
-    const chat = changes.chat?.currentValue;
-    if (chat) this.messages.init(chat);
+    if (changes.chat) {
+      if (changes.chat.currentValue) this.messages.init(changes.chat.currentValue);
+      else this.messages.reset();
+    }
   }
 
   ngOnDestroy() {
