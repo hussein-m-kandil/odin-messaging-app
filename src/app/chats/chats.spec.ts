@@ -117,6 +117,8 @@ describe('Chats', () => {
     const chats = [chat];
     service.list.set(chats);
     service.activate(chat);
+    service.activate(chat);
+    service.activate(chat); // Assert that only one seen-request will be sent (idempotency)
     const req = httpTesting.expectOne(
       { method: 'PATCH', url: `${chatsUrl}/${chat.id}/seen` },
       'Request to update the chat profile last-seen date.',

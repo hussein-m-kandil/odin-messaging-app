@@ -23,6 +23,7 @@ export class Chats extends ListStore<Chat> {
   private readonly _auth = inject(Auth);
 
   private _updateSubscription: Subscription | null = null;
+  private _seenDateSubscription: Subscription | null = null;
 
   protected override loadErrorMessage = 'Failed to load any chats.';
 
@@ -124,29 +125,39 @@ export class Chats extends ListStore<Chat> {
   }
 
   updateChatLastSeenDate(chatId: Chat['id']) {
-    this._http
-      .patch<ChatProfile['lastSeenAt']>(`${this.baseUrl}/${chatId}/seen`, '')
-      .pipe(
-        takeUntilDestroyed(this._destroyRef),
-        catchError(() => of(null)),
-      )
-      .subscribe((lastSeenAt) => {
-        const user = this._auth.user();
-        if (lastSeenAt && user) {
-          const update = (c: Chat, n: ChatProfile['profileName'], d: ChatProfile['lastSeenAt']) =>
-            c.id === chatId
-              ? {
-                  ...c,
-                  profiles: c.profiles.map((cp) =>
-                    cp.profileName === n ? { ...cp, lastSeenAt: d } : cp,
-                  ),
-                }
-              : c;
-          this.list.update((chats) => chats.map((chat) => update(chat, user.username, lastSeenAt)));
-          this.activatedChat.update((chat) => chat && update(chat, user.username, lastSeenAt));
-        }
-        this.updateChats();
-      });
+    if (!this._seenDateSubscription) {
+      this._seenDateSubscription = this._http
+        .patch<ChatProfile['lastSeenAt']>(`${this.baseUrl}/${chatId}/seen`, '')
+        .pipe(
+          takeUntilDestroyed(this._destroyRef),
+          catchError(() => of(null)),
+        )
+        .subscribe((lastSeenAt) => {
+          // No need for next/error blocks, because any error will be caught and get here as a null
+          this._seenDateSubscription = null;
+          const user = this._auth.user();
+          if (lastSeenAt && user) {
+            const update = (
+              c: Chat,
+              n: ChatProfile['profileName'],
+              d: ChatProfile['lastSeenAt'],
+            ) =>
+              c.id === chatId
+                ? {
+                    ...c,
+                    profiles: c.profiles.map((cp) =>
+                      cp.profileName === n ? { ...cp, lastSeenAt: d } : cp,
+                    ),
+                  }
+                : c;
+            this.list.update((chats) =>
+              chats.map((chat) => update(chat, user.username, lastSeenAt)),
+            );
+            this.activatedChat.update((chat) => chat && update(chat, user.username, lastSeenAt));
+          }
+          this.updateChats();
+        });
+    }
   }
 
   getMessages(chatId: Chat['id'], params?: HttpParams) {
