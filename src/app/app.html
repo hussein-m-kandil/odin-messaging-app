@@ -23,7 +23,7 @@
   @if (notFoundRouteActivated()) {
   <ng-container [ngTemplateOutlet]="_mainContent" />
   } @else {
-  <div class="size-full overflow-auto *:h-full flex">
+  <div class="size-full overflow-auto *:h-full *:overflow-auto flex">
     <div class="shrink-0 w-82 border-surface border-r">
       <ng-container [ngTemplateOutlet]="_mainMenu" />
     </div>
