@@ -84,7 +84,7 @@ export class App implements OnInit {
   }
 
   protected handleWindowFocus() {
-    this._chats.handleWindowFocus();
+    if (this.auth.user()) this._chats.refresh();
   }
 
   ngOnInit() {

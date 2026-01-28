@@ -176,33 +176,22 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should reactivate the active chat on window focus', () => {
-    authMock.user.mockImplementationOnce(() => user);
+  it('should reactivate the active chat on refresh', () => {
     const { service } = setup();
     service.activate(chat);
     const activateSpy = vi.spyOn(service, 'activate');
     const updateChatsSpy = vi.spyOn(service, 'updateChats');
-    service.handleWindowFocus();
+    service.refresh();
     expect(activateSpy).toHaveBeenCalledExactlyOnceWith(chat);
     expect(updateChatsSpy).toHaveBeenCalledTimes(0);
   });
 
-  it('should only update the chats on window focus, if there is no an active chat', () => {
-    authMock.user.mockImplementationOnce(() => user);
+  it('should only update the chats on refresh, if there is no an active chat', () => {
     const { service } = setup();
     const activateSpy = vi.spyOn(service, 'activate');
     const updateChatsSpy = vi.spyOn(service, 'updateChats');
-    service.handleWindowFocus();
+    service.refresh();
     expect(updateChatsSpy).toHaveBeenCalledExactlyOnceWith();
-    expect(activateSpy).toHaveBeenCalledTimes(0);
-  });
-
-  it('should not update the chats on window focus, if the user is not authenticated', () => {
-    const { service } = setup();
-    const activateSpy = vi.spyOn(service, 'activate');
-    const updateChatsSpy = vi.spyOn(service, 'updateChats');
-    service.handleWindowFocus();
-    expect(updateChatsSpy).toHaveBeenCalledTimes(0);
     expect(activateSpy).toHaveBeenCalledTimes(0);
   });
 
