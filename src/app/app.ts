@@ -1,5 +1,13 @@
+import {
+  inject,
+  signal,
+  OnInit,
+  effect,
+  untracked,
+  Component,
+  afterNextRender,
+} from '@angular/core';
 import { Router, RouterLink, RouterOutlet, NavigationEnd, RouterLinkActive } from '@angular/router';
-import { inject, signal, Component, OnInit, effect, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SingularView } from './mainbar/singular-view';
 import { NgTemplateOutlet } from '@angular/common';
@@ -73,6 +81,8 @@ export class App implements OnInit {
         this._profiles.reset();
       });
     });
+
+    afterNextRender(() => import('@emoji-mart/data').catch());
   }
 
   private _isMainMenuUrl(url: string) {
