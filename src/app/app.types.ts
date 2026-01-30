@@ -42,6 +42,7 @@ export interface Profile {
   visible: boolean;
   tangible: boolean;
   lastSeen: string;
+  followedByCurrentUser: boolean;
 }
 
 export interface User extends UserBase {
