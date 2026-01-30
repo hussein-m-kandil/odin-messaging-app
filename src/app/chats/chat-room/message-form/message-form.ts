@@ -4,6 +4,7 @@ import { FormGroup, FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ImagePicker } from '../../../images/image-picker';
 import { EmojiPicker, PickedEmoji } from './emoji-picker';
 import { ColorScheme } from '../../../color-scheme';
+import { NgTemplateOutlet } from '@angular/common';
 import { TextareaModule } from 'primeng/textarea';
 import { ButtonDirective } from 'primeng/button';
 import { getResErrMsg } from '../../../utils';
@@ -14,7 +15,15 @@ import { Chats } from '../../chats';
 
 @Component({
   selector: 'app-message-form',
-  imports: [ReactiveFormsModule, TextareaModule, ButtonDirective, ImagePicker, EmojiPicker, Ripple],
+  imports: [
+    ReactiveFormsModule,
+    NgTemplateOutlet,
+    ButtonDirective,
+    TextareaModule,
+    ImagePicker,
+    EmojiPicker,
+    Ripple,
+  ],
   templateUrl: './message-form.html',
   styles: ``,
 })

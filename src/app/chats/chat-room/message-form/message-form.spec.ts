@@ -6,6 +6,8 @@ import { ImagePicker } from '../../../images/image-picker';
 import { userEvent } from '@testing-library/user-event';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ColorScheme } from '../../../color-scheme';
+import { NgTemplateOutlet } from '@angular/common';
+import { ButtonDirective } from 'primeng/button';
 import { MessageService } from 'primeng/api';
 import { MessageForm } from './message-form';
 import { Textarea } from 'primeng/textarea';
@@ -158,7 +160,14 @@ describe('MessageForm', () => {
           }
         }
         await render(MessageForm, {
-          componentImports: [ReactiveFormsModule, ImagePicker, EmojiPicker, Textarea],
+          componentImports: [
+            ReactiveFormsModule,
+            NgTemplateOutlet,
+            ButtonDirective,
+            ImagePicker,
+            EmojiPicker,
+            Textarea,
+          ],
           providers: commonProviders,
           inputs,
         });
