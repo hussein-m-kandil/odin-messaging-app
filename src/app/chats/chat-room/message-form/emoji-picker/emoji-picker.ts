@@ -1,4 +1,12 @@
-import { input, effect, output, inject, signal, Component, ElementRef } from '@angular/core';
+import {
+  input,
+  output,
+  inject,
+  signal,
+  Component,
+  ElementRef,
+  afterRenderEffect,
+} from '@angular/core';
 import { ErrorMessage } from '../../../../error-message';
 import { Spinner } from '../../../../spinner';
 import { Picker } from 'emoji-mart';
@@ -25,24 +33,13 @@ export interface PickedEmoji {
 export class EmojiPicker {
   private readonly _hostElement = inject(ElementRef).nativeElement as HTMLElement;
 
-  protected readonly data = signal<unknown>(undefined);
+  protected readonly data = signal<unknown>(null);
   protected readonly errorMessage = signal('');
 
   readonly theme = input<'auto' | 'light' | 'dark'>('auto');
 
   readonly picked = output<PickedEmoji>();
   readonly closed = output();
-
-  private _displayPicker(picker: HTMLElement) {
-    const assertEveryInputHasId = () => {
-      picker.shadowRoot
-        ?.querySelectorAll('input')
-        .forEach((input, i) => (input.id = input.id || `emoji-picker-input-${i + 1}`));
-    };
-    this._hostElement.childNodes.forEach((node) => this._hostElement.removeChild(node));
-    this._hostElement.appendChild(picker);
-    setTimeout(assertEveryInputHasId, 0);
-  }
 
   protected loadData() {
     this.errorMessage.set('');
@@ -52,22 +49,28 @@ export class EmojiPicker {
   }
 
   constructor() {
-    effect(() => {
+    this.loadData();
+    afterRenderEffect((onCleanup) => {
       const data = this.data();
-      if (!data) {
-        this.loadData();
-      } else {
-        this._displayPicker(
-          new Picker({
-            data,
-            dynamicWidth: true,
-            theme: this.theme(),
-            previewPosition: 'none',
-            skinTonePosition: 'none',
-            onClickOutside: () => this.closed.emit(),
-            onEmojiSelect: (emoji: PickedEmoji) => this.picked.emit(emoji),
-          }) as unknown as HTMLElement,
-        );
+      if (data) {
+        const picker = new Picker({
+          data,
+          dynamicWidth: true,
+          theme: this.theme(),
+          previewPosition: 'none',
+          skinTonePosition: 'none',
+          onClickOutside: () => this.closed.emit(),
+          onEmojiSelect: (emoji: PickedEmoji) => this.picked.emit(emoji),
+        }) as unknown as HTMLElement;
+        this._hostElement.childNodes.forEach((node) => this._hostElement.removeChild(node));
+        this._hostElement.appendChild(picker);
+        const timeoutId = setTimeout(() => {
+          // Assert every input in the picker has an id to avoid browser issues
+          picker.shadowRoot
+            ?.querySelectorAll('input')
+            .forEach((input, i) => (input.id = input.id || `emoji-picker-input-${i + 1}`));
+        }, 0);
+        onCleanup(() => clearTimeout(timeoutId));
       }
     });
   }
