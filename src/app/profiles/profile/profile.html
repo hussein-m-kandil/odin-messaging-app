@@ -30,7 +30,7 @@
     <div class="*:align-middle *:inline-block space-x-2 flex flex-wrap justify-center">
       <p-button rounded type="button" severity="secondary" [disabled]="_loading" icon="pi pi-send"
                 ariaLabel="Chat with {{ _currentProfile ? 'yourself' : _profile.user.username }}"
-                (click)="selfChat()"></p-button>
+                (click)="chat()"></p-button>
       @if (!_currentProfile) {
       @let _followingToggleData = _profile.followedByCurrentUser
       ? { label: 'Unfollow', icon: 'pi pi-user-minus' }

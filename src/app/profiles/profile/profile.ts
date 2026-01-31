@@ -80,8 +80,8 @@ export class Profile {
     }
   }
 
-  protected selfChat() {
-    if (!this.loading()) this._router.navigate(['chat'], { relativeTo: this._activeRoute });
+  protected chat() {
+    if (!this.loading()) this._router.navigate(['/profiles', this.profile().id, 'chat']);
   }
 
   protected goBack() {
