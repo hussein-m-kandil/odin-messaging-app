@@ -1,6 +1,6 @@
 import { render, RenderComponentOptions, screen } from '@testing-library/angular';
+import { userEvent } from '@testing-library/user-event';
 import { ImagePicker } from './image-picker';
-import userEvent from '@testing-library/user-event';
 
 const picked = vi.fn();
 const unpicked = vi.fn();
@@ -10,6 +10,7 @@ const renderComponent = ({ inputs, on, ...options }: RenderComponentOptions<Imag
   return render(ImagePicker, {
     inputs: { progress: null, disabled: false, ...inputs },
     on: { canceled, unpicked, picked, ...on },
+    autoDetectChanges: false,
     ...options,
   });
 };
