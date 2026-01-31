@@ -13,7 +13,7 @@ import { List } from '../../list';
   styles: ``,
 })
 export class ProfileList implements OnChanges {
-  private _route = inject(ActivatedRoute);
+  private _activeRoute = inject(ActivatedRoute);
   private _router = inject(Router);
 
   protected readonly profiles = inject(Profiles);
@@ -22,11 +22,25 @@ export class ProfileList implements OnChanges {
   readonly user = input.required<AuthData['user']>();
 
   protected search(name: string) {
-    this.profiles.reset();
-    this._router.navigate(['.'], { relativeTo: this._route, queryParams: name ? { name } : {} });
+    this._router.navigate(['.'], {
+      relativeTo: this._activeRoute,
+      queryParams: name ? { name } : {},
+    });
   }
 
   ngOnChanges(changes: SimpleChanges<ProfileList>) {
+    this.profiles.reset();
+    const checkUrl = (path: string) => this._router.url.startsWith(path);
+    switch (true) {
+      case checkUrl('/followers'):
+        this.profiles.path.set('followers');
+        break;
+      case checkUrl('/following'):
+        this.profiles.path.set('following');
+        break;
+      default:
+        this.profiles.path.set('');
+    }
     if (changes.name) this.profiles.searchValue.set(changes.name.currentValue || '');
     if (this.profiles.list().length < 1) this.profiles.load();
   }

@@ -44,15 +44,19 @@ const setup = () => {
 };
 
 describe('Profiles', () => {
-  it('should load the profiles', () => {
-    const { service, httpTesting } = setup();
-    service.load();
-    const reqInfo = { method: 'GET', url: profilesUrl };
-    const req = httpTesting.expectOne(reqInfo, 'Request to get the profiles');
-    req.flush(profiles);
-    expect(service.list()).toStrictEqual(profiles);
-    httpTesting.verify();
-  });
+  for (const path of ['', 'followers', 'following'] as const) {
+    const resource = path || 'profiles';
+    it(`should load the ${resource}`, () => {
+      const { service, httpTesting } = setup();
+      service.path.set(path);
+      service.load();
+      const reqInfo = { method: 'GET', url: `${profilesUrl}${path && '/' + path}` };
+      const req = httpTesting.expectOne(reqInfo, `Request to get the ${resource}`);
+      req.flush(profiles);
+      expect(service.list()).toStrictEqual(profiles);
+      httpTesting.verify();
+    });
+  }
 
   it('should load the profiles using the search value', () => {
     const { service, httpTesting } = setup();

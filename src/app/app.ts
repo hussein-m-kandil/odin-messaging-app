@@ -49,6 +49,8 @@ export class App implements OnInit {
   protected readonly mainNavItems = [
     { route: '/chats', label: 'Chats', icon: 'pi pi-comments' },
     { route: '/profiles', label: 'Profiles', icon: 'pi pi-users' },
+    { route: '/followers', label: 'Followers', icon: 'pi pi-users' },
+    { route: '/following', label: 'Following', icon: 'pi pi-users' },
   ] as const;
 
   protected readonly singularView = inject(SingularView);

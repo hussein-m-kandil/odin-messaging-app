@@ -37,7 +37,7 @@
   <nav class="size-full flex flex-col">
     <p-tabs [value]="activeMenuIndex()">
       <p-tablist>
-        @for(_navItem of mainNavItems; track _navItem){
+        @for(_navItem of mainNavItems; track _navItem.route){
         <p-tab [value]="$index" class="grow p-0">
           <a ariaCurrentWhenActive="page" routerLinkActive="p-tab-active"
              [routerLink]="[_navItem.route]" [routerLinkActiveOptions]="{ exact: true }"

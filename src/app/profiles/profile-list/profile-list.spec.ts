@@ -1,7 +1,7 @@
+import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { render, RenderComponentOptions, screen } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
 import { ProfileList } from './profile-list';
-import { Router } from '@angular/router';
 import { Profiles } from '../profiles';
 import { User } from '../../app.types';
 
@@ -15,6 +15,7 @@ const profilesMock = {
   hasMore: vi.fn(() => false),
   list: vi.fn<() => unknown[]>(() => []),
   searchValue: { set: vi.fn() },
+  path: { set: vi.fn() },
 };
 
 const profiles = [
@@ -40,13 +41,35 @@ const renderComponent = ({
 describe('ProfileList', () => {
   afterEach(vi.resetAllMocks);
 
-  it('should set the search value if present and load if the profile list is empty', async () => {
+  const paths = ['', 'following', 'followers'];
+  for (const path of paths) {
+    it(`should set the path to "${path || 'profiles'}"`, async () => {
+      profilesMock.list.mockImplementation(() => []);
+      const routes = [{ path: '**', component: ProfileList, resolve: { user: () => user } }];
+      await renderComponent({
+        initialRoute: `/${path || 'profiles'}?key=value`,
+        providers: [provideRouter(routes, withComponentInputBinding())],
+      });
+      expect(profilesMock.path.set).toHaveBeenCalledTimes(1);
+      expect(profilesMock.path.set).toHaveBeenNthCalledWith(1, path);
+      expect(profilesMock.searchValue.set).toHaveBeenCalledTimes(0);
+      expect(profilesMock.load).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('should set the path, the search value if present, and load if the profile list is empty', async () => {
     profilesMock.list.mockImplementation(() => []);
     const searchValues = ['foo', 'bar', 'tar'];
     const { rerender } = await renderComponent();
     await rerender({ partialUpdate: true });
     await rerender({ partialUpdate: true });
+    expect(profilesMock.path.set).toHaveBeenCalledTimes(3);
     expect(profilesMock.load).toHaveBeenCalledTimes(3);
+    for (let i = 0; i < 3; i++) {
+      const n = i + 1;
+      expect(profilesMock.load).toHaveBeenNthCalledWith(n);
+      expect(profilesMock.path.set).toHaveBeenNthCalledWith(n, '');
+    }
     profilesMock.load.mockClear();
     for (let i = 0; i < searchValues.length; i++) {
       const name = searchValues[i];
@@ -93,12 +116,11 @@ describe('ProfileList', () => {
     const searchValue = 'test name';
     await renderComponent();
     await actor.type(screen.getByRole('textbox', { name: /search/i }), searchValue);
-    expect(profilesMock.reset).toHaveBeenCalledTimes(searchValue.length);
     expect(navigationSpy).toHaveBeenCalledTimes(searchValue.length);
+    expect(profilesMock.reset).toHaveBeenCalledTimes(1);
     for (let i = 0; i < searchValue.length; i++) {
       const n = i + 1;
       const currentValue = searchValue.slice(0, n);
-      expect(profilesMock.reset).toHaveBeenNthCalledWith(n);
       expect(navigationSpy.mock.calls[i][0]).toStrictEqual(['.']);
       expect(navigationSpy.mock.calls[i][1]).toHaveProperty('queryParams', { name: currentValue });
     }

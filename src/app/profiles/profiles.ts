@@ -14,16 +14,18 @@ const { apiUrl } = environment;
 })
 export class Profiles extends ListStore<Profile> {
   private readonly _destroyRef = inject(DestroyRef);
-  private _http = inject(HttpClient);
-  private _auth = inject(Auth);
-
-  readonly searchValue = signal('');
+  private readonly _http = inject(HttpClient);
+  private readonly _auth = inject(Auth);
 
   protected override loadErrorMessage = 'Failed to load any profiles.';
+
+  readonly path = signal<'' | 'following' | 'followers'>('');
+  readonly searchValue = signal('');
 
   readonly baseUrl = `${apiUrl}/profiles`;
 
   protected override getMore() {
+    const path = this.path();
     const profiles = this.list();
     const searchValue = this.searchValue();
     const cursor = profiles[profiles.length - 1]?.id;
@@ -32,8 +34,14 @@ export class Profiles extends ListStore<Profile> {
       ...(cursor ? { cursor } : {}),
     };
     return this._http
-      .get<Profile[]>(this.baseUrl, { params })
+      .get<Profile[]>(`${this.baseUrl}${path && '/' + path}`, { params })
       .pipe(takeUntilDestroyed(this._destroyRef));
+  }
+
+  override reset() {
+    this.searchValue.set('');
+    this.path.set('');
+    super.reset();
   }
 
   getProfile(id: Profile['id']) {

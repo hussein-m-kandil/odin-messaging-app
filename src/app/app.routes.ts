@@ -51,9 +51,17 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'followers',
+        children: [{ path: '', component: ProfileList, title: 'Followers', outlet: 'mainMenu' }],
+      },
+      {
+        path: 'following',
+        children: [{ path: '', component: ProfileList, title: 'Following', outlet: 'mainMenu' }],
+      },
+      {
         path: 'profiles',
         children: [
-          { path: '', outlet: 'mainMenu', component: ProfileList, title: 'Profiles' },
+          { path: '', component: ProfileList, title: 'Profiles', outlet: 'mainMenu' },
           {
             path: ':profileId/chat',
             component: ChatRoom,
