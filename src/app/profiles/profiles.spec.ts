@@ -145,11 +145,24 @@ describe('Profiles', () => {
     httpTesting.verify();
   });
 
-  it('should get a profile from the current list', () => {
+  it('should get a profile by id from the current list', () => {
     const { service, httpTesting } = setup();
     const profile = profiles[1];
     service.list.set(profiles);
     const profile$ = service.getProfile(profile.id);
+    let resData, resError;
+    profile$.subscribe({ next: (d) => (resData = d), error: (e) => (resError = e) });
+    httpTesting.expectNone(`${profilesUrl}/${profile.id}`, 'Request to get a profile');
+    expect(resData).toEqual(profile);
+    expect(resError).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should get a profile by username from the current list', () => {
+    const { service, httpTesting } = setup();
+    const profile = profiles[1];
+    service.list.set(profiles);
+    const profile$ = service.getProfile(profile.user.username);
     let resData, resError;
     profile$.subscribe({ next: (d) => (resData = d), error: (e) => (resError = e) });
     httpTesting.expectNone(`${profilesUrl}/${profile.id}`, 'Request to get a profile');

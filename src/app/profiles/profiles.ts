@@ -44,11 +44,13 @@ export class Profiles extends ListStore<Profile> {
     super.reset();
   }
 
-  getProfile(id: Profile['id']) {
+  getProfile(idOrUsername: string) {
     return defer(() => {
-      const foundProfile = this.list().find((p) => p.id === id);
+      const foundProfile = this.list().find(
+        (p) => p.id === idOrUsername || p.user.username === idOrUsername,
+      );
       if (foundProfile) return of(foundProfile);
-      return this._http.get<Profile>(`${this.baseUrl}/${id}`);
+      return this._http.get<Profile>(`${this.baseUrl}/${idOrUsername}`);
     });
   }
 
