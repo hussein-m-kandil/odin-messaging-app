@@ -222,4 +222,172 @@ describe('Profiles', () => {
     const { service } = setup();
     expect(service.isCurrentProfile(profile.id)).toBe(false);
   });
+
+  it('should follow a profile that exist in the profile list', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const testProfile = { ...profile, followedByCurrentUser: false };
+    service.list.set([testProfile]);
+    service
+      .toggleFollowing(testProfile)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'POST', url: `${profilesUrl}/following/${testProfile.id}` },
+      'Request to follow a profile',
+    );
+    req.flush('', { status: 201, statusText: 'Created' });
+    expect(service.list()[0]).toHaveProperty('followedByCurrentUser', true);
+    expect(req.request.body).toBeNull();
+    expect(err).toBeUndefined();
+    expect(res).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should follow a profile that is not exist in the profile list', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const testProfile = { ...profile, followedByCurrentUser: false };
+    service.list.set([profile2]);
+    service
+      .toggleFollowing(testProfile)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'POST', url: `${profilesUrl}/following/${testProfile.id}` },
+      'Request to follow a profile',
+    );
+    req.flush('', { status: 201, statusText: 'Created' });
+    expect(service.list()).toStrictEqual([profile2]);
+    expect(req.request.body).toBeNull();
+    expect(err).toBeUndefined();
+    expect(res).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should fail to follow a profile due to a server error', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const testProfile = { ...profile, followedByCurrentUser: false };
+    service
+      .toggleFollowing(testProfile)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'POST', url: `${profilesUrl}/following/${testProfile.id}` },
+      'Request to follow a profile',
+    );
+    const error = 'Failed';
+    req.flush(error, { status: 500, statusText: 'Internal server error' });
+    expect(req.request.body).toBeNull();
+    expect(service.list()).toStrictEqual([]);
+    expect(err).toBeInstanceOf(HttpErrorResponse);
+    expect(err).toHaveProperty('error', error);
+    expect(err).toHaveProperty('status', 500);
+    expect(res).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should fail to follow a profile due to a network error', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const testProfile = { ...profile, followedByCurrentUser: false };
+    service
+      .toggleFollowing(testProfile)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'POST', url: `${profilesUrl}/following/${testProfile.id}` },
+      'Request to follow a profile',
+    );
+    const error = new ProgressEvent('Network error');
+    req.error(error);
+    expect(req.request.body).toBeNull();
+    expect(service.list()).toStrictEqual([]);
+    expect(err).toBeInstanceOf(HttpErrorResponse);
+    expect(err).toHaveProperty('error', error);
+    expect(err).toHaveProperty('status', 0);
+    expect(res).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should unfollow a profile that exist in the profile list', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const testProfile = { ...profile, followedByCurrentUser: true };
+    service.list.set([testProfile]);
+    service
+      .toggleFollowing(testProfile)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'DELETE', url: `${profilesUrl}/following/${testProfile.id}` },
+      'Request to unfollow a profile',
+    );
+    req.flush('', { status: 204, statusText: 'No content' });
+    expect(service.list()[0]).toHaveProperty('followedByCurrentUser', false);
+    expect(req.request.body).toBeNull();
+    expect(err).toBeUndefined();
+    expect(res).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should unfollow a profile that is not exist in the profile list', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const testProfile = { ...profile, followedByCurrentUser: true };
+    service.list.set([profile2]);
+    service
+      .toggleFollowing(testProfile)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'DELETE', url: `${profilesUrl}/following/${testProfile.id}` },
+      'Request to unfollow a profile',
+    );
+    req.flush('', { status: 204, statusText: 'No content' });
+    expect(service.list()).toStrictEqual([profile2]);
+    expect(req.request.body).toBeNull();
+    expect(err).toBeUndefined();
+    expect(res).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should fail to unfollow a profile due to a server error', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const testProfile = { ...profile, followedByCurrentUser: true };
+    service
+      .toggleFollowing(testProfile)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'DELETE', url: `${profilesUrl}/following/${testProfile.id}` },
+      'Request to unfollow a profile',
+    );
+    const error = 'Failed';
+    req.flush(error, { status: 500, statusText: 'Internal server error' });
+    expect(req.request.body).toBeNull();
+    expect(service.list()).toStrictEqual([]);
+    expect(err).toBeInstanceOf(HttpErrorResponse);
+    expect(err).toHaveProperty('error', error);
+    expect(err).toHaveProperty('status', 500);
+    expect(res).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should fail to unfollow a profile due to a network error', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const testProfile = { ...profile, followedByCurrentUser: true };
+    service
+      .toggleFollowing(testProfile)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'DELETE', url: `${profilesUrl}/following/${testProfile.id}` },
+      'Request to unfollow a profile',
+    );
+    const error = new ProgressEvent('Network error');
+    req.error(error);
+    expect(req.request.body).toBeNull();
+    expect(service.list()).toStrictEqual([]);
+    expect(err).toBeInstanceOf(HttpErrorResponse);
+    expect(err).toHaveProperty('error', error);
+    expect(err).toHaveProperty('status', 0);
+    expect(res).toBeUndefined();
+    httpTesting.verify();
+  });
 });

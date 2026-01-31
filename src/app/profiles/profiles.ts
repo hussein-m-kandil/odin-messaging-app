@@ -1,10 +1,10 @@
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef, inject, Injectable, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
 import { Profile } from '../app.types';
-import { defer, of } from 'rxjs';
+import { defer, map, of } from 'rxjs';
 import { Auth } from '../auth';
 
 const { apiUrl } = environment;
@@ -42,6 +42,21 @@ export class Profiles extends ListStore<Profile> {
       if (foundProfile) return of(foundProfile);
       return this._http.get<Profile>(`${this.baseUrl}/${id}`);
     });
+  }
+
+  toggleFollowing(profile: Profile) {
+    const profileId = profile.id;
+    const following = profile.followedByCurrentUser;
+    const url = `${this.baseUrl}/following/${profileId}`;
+    return (following ? this._http.delete<''>(url) : this._http.post<''>(url, null)).pipe(
+      map((res) => {
+        this.list.update((profiles) => {
+          const followedByCurrentUser = !following;
+          return profiles.map((p) => (p.id === profileId ? { ...p, followedByCurrentUser } : p));
+        });
+        return res;
+      }),
+    );
   }
 
   isCurrentProfile(id: Profile['id']) {
