@@ -1,15 +1,16 @@
-@let _profile = profile(); @let _isCurrentProfile = profiles.isCurrentProfile(_profile.id);
+@let _loading = loading();
+@let _profile = profile(); @let _currentProfile = profiles.isCurrentProfile(_profile.id);
 <section class="size-full overflow-auto flex flex-col">
   <ul class="flex justify-between">
     <li>
-      <a pButton pRipple text rounded outlined size="small" routerLink=".." aria-label="Go back"
-         icon="pi pi-arrow-left"></a>
+      <p-button text rounded outlined type="button" size="small" ariaLabel="Go back"
+                [disabled]="_loading" (click)="goBack()" icon="pi pi-arrow-left"></p-button>
     </li>
-    @if(_isCurrentProfile) {
+    @if(_currentProfile) {
     <li>
-      <button pButton pRipple text rounded outlined size="small" type="button"
-              icon="pi pi-ellipsis-v" aria-label="Toggle profile options"
-              (click)="optionsMenu.toggle($event)"></button>
+      <p-button text rounded outlined size="small" type="button" [disabled]="_loading"
+                icon="pi pi-ellipsis-v" ariaLabel="Toggle profile options"
+                (click)="optionsMenu.toggle($event)"></p-button>
       <p-menu #optionsMenu [model]="optionsMenuItems()" ariaLabel="Profile options menu"
               [popup]="true" />
     </li>
@@ -26,9 +27,18 @@
         {{ _profile.user.bio }}
       </p>
     </div>
-    <div>
-      <a pButton pRipple rounded icon="pi pi-send" routerLink="chat"
-         aria-label="Chat with {{ _isCurrentProfile ? 'yourself' : _profile.user.username }}"></a>
+    <div class="*:align-middle *:inline-block space-x-2 flex flex-wrap justify-center">
+      <p-button rounded type="button" severity="secondary" [disabled]="_loading" icon="pi pi-send"
+                ariaLabel="Chat with {{ _currentProfile ? 'yourself' : _profile.user.username }}"
+                (click)="selfChat()"></p-button>
+      @if (!_currentProfile) {
+      @let _followingToggleData = _profile.followedByCurrentUser
+      ? { label: 'Unfollow', icon: 'pi pi-user-minus' }
+      : { label: 'Follow', icon: 'pi pi-user-plus' };
+      <p-button rounded type="button" severity="secondary" [disabled]="_loading"
+                [loading]="_loading" [icon]="_followingToggleData.icon"
+                ariaLabel="{{_followingToggleData.label}}" (click)="toggleFollowing()"></p-button>
+      }
     </div>
   </div>
 </section>

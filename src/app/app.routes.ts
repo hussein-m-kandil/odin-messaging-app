@@ -96,6 +96,7 @@ export const routes: Routes = [
             component: Profile,
             title: 'Profile',
             resolve: { profile: profileResolver },
+            runGuardsAndResolvers: 'always',
           },
         ],
       },
