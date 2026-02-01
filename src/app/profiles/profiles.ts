@@ -44,6 +44,19 @@ export class Profiles extends ListStore<Profile> {
     super.reset();
   }
 
+  constructor() {
+    super();
+    this._auth.userUpdated.subscribe((user) =>
+      this.list.update((profiles) =>
+        profiles.map((oldProfile) =>
+          oldProfile.user.id === user.id
+            ? { ...oldProfile, user: { ...oldProfile.user, ...user } }
+            : oldProfile,
+        ),
+      ),
+    );
+  }
+
   getProfile(idOrUsername: string) {
     return defer(() => {
       const foundProfile = this.list().find(

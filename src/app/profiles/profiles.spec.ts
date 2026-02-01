@@ -28,7 +28,10 @@ user2.profile = profile2;
 
 const profiles = [profile, profile2] as Profile[];
 
-const authMock = { user: vi.fn(() => null as typeof user | null) };
+const authMock = {
+  user: vi.fn(() => null as typeof user | null),
+  userUpdated: { subscribe: vi.fn() },
+};
 
 const setup = () => {
   TestBed.configureTestingModule({
@@ -44,6 +47,17 @@ const setup = () => {
 };
 
 describe('Profiles', () => {
+  it('should update current user profile', () => {
+    let userUpdatedHandler!: (user: unknown) => void;
+    authMock.userUpdated.subscribe.mockImplementationOnce((fn) => (userUpdatedHandler = fn));
+    const { service } = setup();
+    const updatedProfile = { ...profile, user: { ...profile.user, username: 'updated_username' } };
+    service.list.set([profile2, profile]);
+    userUpdatedHandler(updatedProfile.user);
+    expect(authMock.userUpdated.subscribe).toHaveBeenCalledTimes(1);
+    expect(service.list()).toStrictEqual([profile2, updatedProfile]);
+  });
+
   for (const path of ['', 'followers', 'following'] as const) {
     const resource = path || 'profiles';
     it(`should load the ${resource}`, () => {
