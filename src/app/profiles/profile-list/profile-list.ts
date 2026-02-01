@@ -42,6 +42,6 @@ export class ProfileList implements OnChanges {
         this.profiles.path.set('');
     }
     if (changes.name) this.profiles.searchValue.set(changes.name.currentValue || '');
-    if (this.profiles.list().length < 1) this.profiles.load();
+    if (this.profiles.list().length < 1 && !this.profiles.loading()) this.profiles.load();
   }
 }

@@ -57,13 +57,14 @@ describe('ProfileList', () => {
     });
   }
 
-  it('should set the path, the search value if present, and load if the profile list is empty', async () => {
+  it('should reset profiles, set the path, the search value if present, and load if the profile list is empty', async () => {
     profilesMock.list.mockImplementation(() => []);
     const searchValues = ['foo', 'bar', 'tar'];
     const { rerender } = await renderComponent();
     await rerender({ partialUpdate: true });
     await rerender({ partialUpdate: true });
     expect(profilesMock.path.set).toHaveBeenCalledTimes(3);
+    expect(profilesMock.reset).toHaveBeenCalledTimes(3);
     expect(profilesMock.load).toHaveBeenCalledTimes(3);
     for (let i = 0; i < 3; i++) {
       const n = i + 1;
@@ -71,16 +72,20 @@ describe('ProfileList', () => {
       expect(profilesMock.path.set).toHaveBeenNthCalledWith(n, '');
     }
     profilesMock.load.mockClear();
+    profilesMock.reset.mockClear();
+    profilesMock.path.set.mockClear();
     for (let i = 0; i < searchValues.length; i++) {
       const name = searchValues[i];
       await rerender({ inputs: { name }, partialUpdate: true });
       expect(profilesMock.searchValue.set).toHaveBeenNthCalledWith(i + 1, name);
     }
     expect(profilesMock.searchValue.set).toHaveBeenCalledTimes(searchValues.length);
+    expect(profilesMock.path.set).toHaveBeenCalledTimes(searchValues.length);
+    expect(profilesMock.reset).toHaveBeenCalledTimes(searchValues.length);
     expect(profilesMock.load).toHaveBeenCalledTimes(searchValues.length);
   });
 
-  it('should set the search value if present and not load, if the profile list is not empty', async () => {
+  it('should reset profiles, set the search value if present, but not load, if the profile list is not empty', async () => {
     profilesMock.list.mockImplementation(() => profiles);
     const searchValues = ['foo', 'bar', 'tar'];
     const { rerender } = await renderComponent();
@@ -92,6 +97,17 @@ describe('ProfileList', () => {
       expect(profilesMock.searchValue.set).toHaveBeenNthCalledWith(i + 1, name);
     }
     expect(profilesMock.searchValue.set).toHaveBeenCalledTimes(searchValues.length);
+    expect(profilesMock.reset).toHaveBeenCalledTimes(searchValues.length + 3);
+    expect(profilesMock.load).toHaveBeenCalledTimes(0);
+  });
+
+  it('should reset profiles, but not load, if profiles is loading', async () => {
+    profilesMock.list.mockImplementation(() => profiles);
+    profilesMock.loading.mockImplementation(() => true);
+    const { rerender } = await renderComponent();
+    await rerender({ partialUpdate: true });
+    await rerender({ partialUpdate: true });
+    expect(profilesMock.reset).toHaveBeenCalledTimes(3);
     expect(profilesMock.load).toHaveBeenCalledTimes(0);
   });
 
