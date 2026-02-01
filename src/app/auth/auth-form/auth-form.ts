@@ -11,17 +11,17 @@ import { Component, DestroyRef, inject, input, OnInit, signal } from '@angular/c
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { FloatLabelModule } from 'primeng/floatlabel';
 import { AuthData, SignupData } from '../auth.types';
-import { InputTextModule } from 'primeng/inputtext';
 import { NgTemplateOutlet } from '@angular/common';
-import { TextareaModule } from 'primeng/textarea';
-import { DividerModule } from 'primeng/divider';
-import { MessageModule } from 'primeng/message';
-import { ButtonModule } from 'primeng/button';
+import { FloatLabel } from 'primeng/floatlabel';
+import { InputText } from 'primeng/inputtext';
 import { MessageService } from 'primeng/api';
+import { Textarea } from 'primeng/textarea';
 import { getResErrMsg } from '../../utils';
+import { Divider } from 'primeng/divider';
+import { Message } from 'primeng/message';
 import { Profile } from '../../app.types';
+import { Button } from 'primeng/button';
 import { Observable } from 'rxjs';
 import { Auth } from '../auth';
 
@@ -43,12 +43,12 @@ export const passwordsMatchValidator: ValidatorFn = (
   imports: [
     ReactiveFormsModule,
     NgTemplateOutlet,
-    FloatLabelModule,
-    InputTextModule,
-    TextareaModule,
-    DividerModule,
-    MessageModule,
-    ButtonModule,
+    FloatLabel,
+    InputText,
+    Textarea,
+    Divider,
+    Message,
+    Button,
   ],
   templateUrl: './auth-form.html',
 })

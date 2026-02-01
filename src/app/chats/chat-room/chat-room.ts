@@ -10,11 +10,11 @@ import {
   ElementRef,
   SimpleChanges,
 } from '@angular/core';
+import { Message as PMessage } from 'primeng/message';
 import { ListLoader } from '../../list/list-loader';
 import { ErrorMessage } from '../../error-message';
 import { AuthData } from '../../auth/auth.types';
 import { ButtonDirective } from 'primeng/button';
-import { MessageModule } from 'primeng/message';
 import { MessageForm } from './message-form';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
@@ -30,12 +30,12 @@ import { Chat } from '../chats.types';
   selector: 'app-chat-room',
   imports: [
     ButtonDirective,
-    MessageModule,
     ErrorMessage,
     MessageForm,
     RouterLink,
     ListLoader,
     DatePipe,
+    PMessage,
     Spinner,
     Ripple,
     Image,

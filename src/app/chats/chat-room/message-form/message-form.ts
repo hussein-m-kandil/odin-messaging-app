@@ -5,11 +5,11 @@ import { ImagePicker } from '../../../images/image-picker';
 import { EmojiPicker, PickedEmoji } from './emoji-picker';
 import { ColorScheme } from '../../../color-scheme';
 import { NgTemplateOutlet } from '@angular/common';
-import { TextareaModule } from 'primeng/textarea';
 import { ButtonDirective } from 'primeng/button';
 import { getResErrMsg } from '../../../utils';
 import { MessageService } from 'primeng/api';
 import { finalize, Observable } from 'rxjs';
+import { Textarea } from 'primeng/textarea';
 import { Ripple } from 'primeng/ripple';
 import { Chats } from '../../chats';
 
@@ -19,9 +19,9 @@ import { Chats } from '../../chats';
     ReactiveFormsModule,
     NgTemplateOutlet,
     ButtonDirective,
-    TextareaModule,
     ImagePicker,
     EmojiPicker,
+    Textarea,
     Ripple,
   ],
   templateUrl: './message-form.html',

@@ -4,9 +4,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SingularView } from './mainbar/singular-view';
 import { NgTemplateOutlet } from '@angular/common';
 import { Navigator } from './navigation/navigator';
+import { Tab, Tabs, TabList } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
 import { Navigation } from './navigation';
-import { TabsModule } from 'primeng/tabs';
 import { Profiles } from './profiles';
 import { Toast } from 'primeng/toast';
 import { Mainbar } from './mainbar';
@@ -21,10 +21,12 @@ import { filter } from 'rxjs';
     RouterLinkActive,
     RouterOutlet,
     RouterLink,
-    TabsModule,
     Navigator,
     Mainbar,
     Toast,
+    Tab,
+    Tabs,
+    TabList,
   ],
   templateUrl: './app.html',
   providers: [MessageService],
