@@ -1,17 +1,17 @@
 import { render, RenderComponentOptions } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
+import { User, Profile } from '../../app.types';
 import { Chat, Message } from '../chats.types';
 import { screen } from '@testing-library/dom';
 import { MessageService } from 'primeng/api';
 import { Profiles } from '../../profiles';
 import { Router } from '@angular/router';
-import { User } from '../../app.types';
 import { ChatRoom } from './chat-room';
 import { Observable, of } from 'rxjs';
 import { Messages } from './messages';
 
 const user = { id: crypto.randomUUID(), username: 'test_user_1' } as User;
-const profile = { id: crypto.randomUUID() } as User['profile'];
+const profile = { id: crypto.randomUUID() } as Profile;
 user.profile = profile;
 profile.user = user;
 

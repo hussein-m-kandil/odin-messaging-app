@@ -28,23 +28,23 @@ export interface Image extends ImageBase {
 
 export type NewImageData = Partial<ImageBase & { isAvatar: boolean }>;
 
-export interface UserBase extends Common {
-  bio: string;
-  username: string;
-  fullname: string;
-  isAdmin: boolean;
-  avatar?: { image: Image } | null;
-}
-
-export interface Profile {
+export interface ProfileBase {
   id: string;
-  user: UserBase;
   visible: boolean;
   tangible: boolean;
   lastSeen: string;
   followedByCurrentUser: boolean;
 }
 
-export interface User extends UserBase {
-  profile: Profile;
+export interface User extends Common {
+  bio: string;
+  username: string;
+  fullname: string;
+  isAdmin: boolean;
+  profile: ProfileBase;
+  avatar?: { image: Image } | null;
+}
+
+export interface Profile extends ProfileBase {
+  user: User;
 }
