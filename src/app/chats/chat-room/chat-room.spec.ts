@@ -59,12 +59,14 @@ const chat = {
       lastSeenAt: null,
       profileId: crypto.randomUUID(),
       profileName: messages[0].profileName,
+      profile: { ...profile, id: crypto.randomUUID() },
     },
     {
       lastReceivedAt: null,
       lastSeenAt: null,
       profileId: crypto.randomUUID(),
       profileName: messages[1].profileName,
+      profile: { ...profile, id: crypto.randomUUID() },
     },
   ],
 } as Chat;

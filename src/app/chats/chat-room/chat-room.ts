@@ -48,19 +48,19 @@ export class ChatRoom implements OnChanges, OnDestroy {
   protected readonly messages = inject(Messages);
 
   protected readonly title = computed<{ url: string | null; label: string }>(() => {
+    const createProfileUrl = (profile?: Profile | null) => {
+      return profile ? `/profiles/${profile.user.username}` : null;
+    };
     const profile = this.profile();
     const chat = this.chat();
     const user = this.user();
     if (chat) {
-      const memberId = this.messages.chats.getOtherProfiles(chat, user)[0]?.profileId;
       return {
+        url: createProfileUrl(this.messages.chats.getOtherProfiles(chat, user)[0]?.profile),
         label: this.messages.chats.generateTitle(chat, user),
-        url: memberId ? `/profiles/${memberId}` : null,
       };
-    } else if (profile) {
-      return { label: profile.user.username, url: `${`/profiles/${profile.id}`}` };
     }
-    return { label: 'Untitled', url: null };
+    return { url: createProfileUrl(profile), label: profile?.user.username || 'Untitled' };
   });
 
   readonly user = input.required<AuthData['user']>();

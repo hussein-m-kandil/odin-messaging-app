@@ -30,7 +30,7 @@ export class Mainbar {
       {
         icon: 'pi pi-user',
         label: user.username,
-        routerLink: `/profiles/${user.profile.id}`,
+        routerLink: `/profiles/${user.username}`,
       },
       {
         icon: 'pi pi-sign-out',

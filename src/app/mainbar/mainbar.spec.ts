@@ -74,7 +74,7 @@ describe('Mainbar', () => {
     expect(
       screen.getByRole('button', {
         name: new RegExp(`change .*${SCHEMES[2].value}.* color scheme`, 'i'),
-      })
+      }),
     ).toBeVisible();
   });
 
@@ -100,11 +100,11 @@ describe('Mainbar', () => {
       const scheme = SCHEMES[i];
       await click(screen.getByRole('button', { name: /change .* color scheme/i }));
       await vi.waitFor(() =>
-        expect(screen.getByRole('menu', { name: /color scheme/i })).toBeVisible()
+        expect(screen.getByRole('menu', { name: /color scheme/i })).toBeVisible(),
       );
       await click(screen.getByText(new RegExp(scheme.value, 'i')));
       await vi.waitFor(() =>
-        expect(screen.queryByRole('menu', { name: /color scheme/i })).toBeNull()
+        expect(screen.queryByRole('menu', { name: /color scheme/i })).toBeNull(),
       );
       expect(colorSchemeMock.select).toHaveBeenNthCalledWith(i + 1, scheme);
     }
@@ -137,7 +137,7 @@ describe('Mainbar', () => {
     expect(profileMenu).toContainElement(signoutBtn);
     expect(profileMenu).toContainElement(profileLink);
     expect(profileLink).toBeInstanceOf(HTMLAnchorElement);
-    expect(profileLink).toHaveAttribute('href', `/profiles/${user.profile.id}`);
+    expect(profileLink).toHaveAttribute('href', `/profiles/${user.username}`);
   });
 
   it('should sign-out', async () => {

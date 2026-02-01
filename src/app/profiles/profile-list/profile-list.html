@@ -1,6 +1,6 @@
 <ng-template #li let-_profile>
   <a pRipple ariaCurrentWhenActive="page" routerLinkActive="bg-highlight"
-     [title]="_profile.user.username" [routerLink]="['/profiles', _profile.id]"
+     [title]="_profile.user.username" [routerLink]="['/profiles', _profile.user.username]"
      [routerLinkActiveOptions]="{ exact: true }"
      class="block leading-tight w-full px-2 py-3 border-surface border-b **:align-middle">
     <app-avatar [user]="_profile.user" size="sm" class="me-2 text-center" />
