@@ -936,7 +936,7 @@ describe('Chats', () => {
 
   it('should get a chat by member profile id from the current list', () => {
     const { service, httpTesting } = setup();
-    service.list.set([chat]);
+    service.list.set([{ ...chat, id: crypto.randomUUID(), profiles: [chat.profiles[0]] }, chat]);
     let res, errRes;
     service
       .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
@@ -956,7 +956,7 @@ describe('Chats', () => {
       .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId!}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
-    req.flush([chat]);
+    req.flush([{ ...chat, id: crypto.randomUUID(), profiles: [chat.profiles[0]] }, chat]);
     expect(errRes).toBeUndefined();
     expect(res).toStrictEqual(chat);
     httpTesting.verify();

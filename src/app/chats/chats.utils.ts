@@ -1,5 +1,6 @@
-import { Profile } from '../app.types';
 import { Chat, NewChatData, NewMessageData } from './chats.types';
+import { mergeDistinctBy } from '../utils';
+import { Profile } from '../app.types';
 
 export const createMessageFormData = (data: NewMessageData, chatFormData?: FormData) => {
   const prefixKey = (k: string) => (chatFormData ? `message[${k}]` : k);
@@ -22,7 +23,10 @@ export const createChatFormData = (data: NewChatData) => {
 };
 
 export const findChatByAllMemberIds = (chats: Chat[], memberIds: Profile['id'][]) => {
-  return chats.find((chat) =>
-    chat.profiles.every((c) => c.profileId && memberIds.includes(c.profileId)),
+  const distinctMemberIds = mergeDistinctBy(memberIds, [], (id) => id);
+  return chats.find(
+    (chat) =>
+      chat.profiles.length === distinctMemberIds.length &&
+      chat.profiles.every((c) => c.profileId && distinctMemberIds.includes(c.profileId)),
   );
 };
