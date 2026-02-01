@@ -148,7 +148,7 @@ describe('MessageForm', () => {
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
       });
 
-      it('should append the picked emoji to the value of the message body input', async () => {
+      it('should insert the picked emoji at the cart place of the message textbox', async () => {
         const actor = userEvent.setup();
         let pickedOutputMock!: OutputEmitterRef<unknown>;
         @Component({ selector: 'app-emoji-picker', template: `` })
@@ -172,14 +172,17 @@ describe('MessageForm', () => {
           inputs,
         });
         const { msgInp, emojiPickerBtn } = getFormElements();
-        const emoji = { native: 'test emoji' };
+        const textValue = 'Hello, Emojis!';
         await actor.click(emojiPickerBtn);
-        pickedOutputMock.emit(emoji);
-        expect(msgInp).toHaveValue(emoji.native);
-        pickedOutputMock.emit(emoji);
-        expect(msgInp).toHaveValue(emoji.native + emoji.native);
-        pickedOutputMock.emit(emoji);
-        expect(msgInp).toHaveValue(emoji.native + emoji.native + emoji.native);
+        await actor.type(msgInp, textValue);
+        pickedOutputMock.emit({ native: '😎' });
+        await actor.click(emojiPickerBtn);
+        await actor.pointer([{ target: msgInp, offset: 5, keys: '[MouseLeft>]' }, { offset: 7 }]);
+        pickedOutputMock.emit({ native: '🎉' });
+        await actor.click(emojiPickerBtn);
+        await actor.pointer({ target: msgInp, offset: 13, keys: '[MouseLeft]' });
+        pickedOutputMock.emit({ native: '🤡' });
+        expect(msgInp).toHaveValue('Hello🎉Emojis🤡!😎');
       });
 
       it('should create', async () => {

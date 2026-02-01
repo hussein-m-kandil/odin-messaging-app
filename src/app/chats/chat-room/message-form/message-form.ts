@@ -59,10 +59,13 @@ export class MessageForm implements OnInit {
     });
   }
 
-  protected appendPickedEmoji(emoji: PickedEmoji) {
+  protected insertPickedEmoji(emoji: PickedEmoji) {
     this.togglePicker('emoji');
     const { body } = this.form.controls;
-    body.setValue(body.value + emoji.native);
+    const splittedValue = body.value.split('');
+    const { selectionStart, selectionEnd } = this._messageInput().nativeElement;
+    splittedValue.splice(selectionStart, selectionEnd - selectionStart, emoji.native);
+    body.setValue(splittedValue.join(''));
   }
 
   protected reset() {

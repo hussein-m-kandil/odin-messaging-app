@@ -17,7 +17,7 @@
                                           (canceled)="togglePicker('image')"
                                           (picked)="pickedImage.set($event)" />
                         }@else {
-                        <app-emoji-picker (picked)="appendPickedEmoji($event)" [theme]="_theme" />
+                        <app-emoji-picker (picked)="insertPickedEmoji($event)" [theme]="_theme" />
                         }
                 </div>
                 }
