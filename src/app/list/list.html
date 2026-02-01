@@ -1,7 +1,7 @@
 <!-- prettier-ignore -->
 @let _store = store(); @let _storeList = _store.list(); @let _pluralLabel = pluralLabel();
 <div class="relative size-full overflow-auto">
-  @if (![false, 'false', undefined].includes(searchable())) {
+  @if (searchable()) {
   <div class="relative">
     <input #searchbox pInputText fluid pSize="small" placeholder="Search" aria-label="Search"
            id="profiles-search-box" class="shadow-none rounded-none pe-9 text-center"

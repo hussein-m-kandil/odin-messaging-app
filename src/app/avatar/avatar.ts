@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { booleanAttribute, Component, input } from '@angular/core';
 import { Image } from '../images/image';
 import { Profile } from '../app.types';
 
@@ -10,8 +10,8 @@ import { Profile } from '../app.types';
 })
 export class Avatar {
   readonly user = input.required<Partial<Pick<Profile['user'], 'username' | 'avatar'>>>();
+  readonly preview = input(false, { transform: booleanAttribute });
   readonly size = input<'xs' | 'sm' | 'md' | 'lg' | 'xl'>('md');
-  readonly preview = input<ReturnType<Image['preview']>>();
 
   protected getUpdatedImgSrc() {
     const image = this.user().avatar?.image;

@@ -1,4 +1,4 @@
-import { input, output, Component, TemplateRef } from '@angular/core';
+import { input, output, Component, TemplateRef, booleanAttribute } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { ButtonDirective } from 'primeng/button';
 import { InputText } from 'primeng/inputtext';
@@ -18,7 +18,7 @@ export class List {
   readonly singularLabel = input.required<string>();
   readonly pluralLabel = input.required<string>();
 
-  readonly searchable = input<boolean | string>();
+  readonly searchable = input(false, { transform: booleanAttribute });
   readonly searchValue = input('');
 
   readonly searched = output<string>();
