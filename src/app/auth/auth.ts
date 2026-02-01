@@ -1,5 +1,5 @@
 import { computed, signal, inject, Injectable, effect, untracked } from '@angular/core';
-import { catchError, of, map, Observable, switchMap, defer, tap } from 'rxjs';
+import { catchError, of, map, Observable, switchMap, defer, tap, Subject } from 'rxjs';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { SigninData, SignupData, AuthData } from './auth.types';
 import { authNavOpts, isAuthData, isAuthUrl } from './utils';
@@ -25,7 +25,7 @@ export class Auth {
   private readonly _authData = signal<AuthData | null>(null);
 
   private readonly _setAuthData = (authData: AuthData | null) => {
-    this._authData.set(authData);
+    this._authData.set(authData && JSON.parse(JSON.stringify(authData)));
     if (authData) this._storage.setItem(AUTH_KEY, authData.token);
     else this._storage.removeItem(AUTH_KEY);
   };
@@ -34,8 +34,10 @@ export class Auth {
     if (!isAuthData(authRes)) {
       throw new HttpErrorResponse({ status: 500, statusText: 'malformed server response' });
     }
+    const user = authRes.user;
     this._setAuthData(authRes);
-    return authRes.user;
+    this.userUpdated.next(user);
+    return user;
   };
 
   private _verify = (): Observable<boolean> => {
@@ -74,6 +76,9 @@ export class Auth {
     switchMap((authData) => (authData ? of(true) : this._verify())),
   );
 
+  readonly userUpdated = new Subject<AuthData['user']>();
+  readonly userSignedOut = new Subject<null>();
+
   constructor() {
     let initialized = false;
     effect(() => {
@@ -95,9 +100,15 @@ export class Auth {
   }
 
   updateUser(userData: Partial<AuthData['user']>) {
-    this._authData.update(
-      (authData) => authData && { ...authData, user: { ...authData.user, ...userData } },
-    );
+    const authData = this._authData();
+    if (authData) {
+      try {
+        const updatedAuthData = { ...authData, user: { ...authData.user, ...userData } };
+        this._saveValidAuthDataAndGetUserOrThrow(updatedAuthData);
+      } catch (error) {
+        console.log(error);
+      }
+    }
   }
 
   signIn(data: SigninData) {
@@ -108,6 +119,7 @@ export class Auth {
 
   signOut() {
     this._setAuthData(null);
+    this.userSignedOut.next(null);
   }
 
   signUp(data: SignupData) {

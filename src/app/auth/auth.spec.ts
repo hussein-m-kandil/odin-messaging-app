@@ -13,6 +13,9 @@ const appStorageMock = { removeItem: vi.fn(), getItem: vi.fn(), setItem: vi.fn()
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigateByUrl');
 
+const userSignedOutHandlerMock = vi.fn();
+const userUpdatedHandlerMock = vi.fn();
+
 @Component({ template: '<h1>Dummy</h1>' })
 class Dummy {}
 
@@ -53,7 +56,7 @@ const signupData: SignupData = {
 };
 
 describe('Auth', () => {
-  afterEach(vi.clearAllMocks);
+  afterEach(vi.resetAllMocks);
 
   const testData = [
     {
@@ -90,6 +93,7 @@ describe('Auth', () => {
 
     it(`should ${action}`, async () => {
       const { service, httpTesting, storage } = await setup('/signin');
+      service.userUpdated.subscribe(userUpdatedHandlerMock);
       const user$ =
         methodName === 'edit' ? service.edit(user.id, reqData) : service[methodName](reqData);
       let result: unknown, error: unknown;
@@ -97,6 +101,7 @@ describe('Auth', () => {
       const req = httpTesting.expectOne({ method, url }, `Request to ${action}`);
       req.flush(authData);
       TestBed.tick();
+      expect(userUpdatedHandlerMock).toHaveBeenCalledExactlyOnceWith(user);
       service.authenticated$.subscribe((authenticated) => {
         TestBed.tick();
         expect(navigationSpy).toHaveBeenCalledOnce();
@@ -114,6 +119,7 @@ describe('Auth', () => {
 
     it(`should handle malformed ${action} response`, async () => {
       const { service, httpTesting, storage } = await setup();
+      service.userUpdated.subscribe(userUpdatedHandlerMock);
       const malformedResponses = [
         { user },
         { token },
@@ -131,6 +137,7 @@ describe('Auth', () => {
         user$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
         const req = httpTesting.expectOne({ method, url }, `Request to ${action}`);
         req.flush(malResData);
+        expect(userUpdatedHandlerMock).toHaveBeenCalledTimes(0);
         expect(req.request.body).toStrictEqual(reqBody);
         expect(service.user()).toStrictEqual(null);
         expect(service.token()).toStrictEqual('');
@@ -145,6 +152,7 @@ describe('Auth', () => {
 
     it('should throw backend errors', async () => {
       const { service, httpTesting, storage } = await setup();
+      service.userUpdated.subscribe(userUpdatedHandlerMock);
       const backendErrors = [
         { status: 500, statusText: 'Server error' },
         { status: 400, statusText: 'Client error' },
@@ -156,6 +164,7 @@ describe('Auth', () => {
         user$.subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
         const req = httpTesting.expectOne({ method, url }, `Request to ${action}`);
         req.flush(null, resError);
+        expect(userUpdatedHandlerMock).toHaveBeenCalledTimes(0);
         expect(req.request.body).toStrictEqual(reqBody);
         expect(service.user()).toStrictEqual(null);
         expect(service.token()).toStrictEqual('');
@@ -170,6 +179,7 @@ describe('Auth', () => {
 
     it('should throw backend errors', async () => {
       const { service, httpTesting, storage } = await setup();
+      service.userUpdated.subscribe(userUpdatedHandlerMock);
       const user$ =
         methodName === 'edit' ? service.edit(user.id, reqData) : service[methodName](reqData);
       let result, error;
@@ -177,6 +187,7 @@ describe('Auth', () => {
       const req = httpTesting.expectOne({ method, url }, `Request to ${action}`);
       const networkError = new ProgressEvent('Network error!');
       req.error(networkError);
+      expect(userUpdatedHandlerMock).toHaveBeenCalledTimes(0);
       expect(req.request.body).toStrictEqual(reqBody);
       expect(service.user()).toStrictEqual(null);
       expect(service.token()).toStrictEqual('');
@@ -191,6 +202,7 @@ describe('Auth', () => {
 
   it('should sign in a guest', async () => {
     const { service, httpTesting, storage } = await setup('/signin');
+    service.userUpdated.subscribe(userUpdatedHandlerMock);
     let result: unknown, error: unknown;
     service.signInAsGuest().subscribe({ next: (r) => (result = r), error: (e) => (error = e) });
     const req = httpTesting.expectOne(
@@ -199,6 +211,7 @@ describe('Auth', () => {
     );
     req.flush(authData);
     TestBed.tick();
+    expect(userUpdatedHandlerMock).toHaveBeenCalledExactlyOnceWith(user);
     service.authenticated$.subscribe((authenticated) => {
       TestBed.tick();
       expect(navigationSpy).toHaveBeenCalledOnce();
@@ -288,6 +301,7 @@ describe('Auth', () => {
   it('should sign out', async () => {
     let testToken: string | null = 'test_token';
     const { service, httpTesting, storage } = await setup();
+    service.userSignedOut.subscribe(userSignedOutHandlerMock);
     storage.getItem.mockImplementation(() => testToken);
     storage.removeItem.mockImplementation(() => (testToken = null));
     let result: unknown, error: unknown;
@@ -304,6 +318,7 @@ describe('Auth', () => {
     expect(error).toBeUndefined();
     expect(navigationSpy).toHaveBeenCalledOnce();
     expect(navigationSpy.mock.calls[0][0]).toBe('/signin');
+    expect(userSignedOutHandlerMock).toHaveBeenCalledTimes(1);
     expect(storage.removeItem).toHaveBeenCalledOnce();
     storage.removeItem.mockReset();
     storage.getItem.mockReset();
@@ -371,15 +386,19 @@ describe('Auth', () => {
     httpTesting
       .expectOne({ method: 'GET', url: `${apiUrl}/auth/me` }, `Request to verify user auth-token`)
       .flush(user);
+    service.userUpdated.subscribe(userUpdatedHandlerMock);
     service.updateUser(updatedUserData);
     expect(service.user()).toStrictEqual({ ...user, ...updatedUserData });
+    expect(userUpdatedHandlerMock).toHaveBeenCalledTimes(1);
     httpTesting.verify();
   });
 
   it('should not update user data', async () => {
     const updatedUserData = { username: 'updated_username' };
-    const { service } = await setup('/signin');
+    const { service, httpTesting } = await setup('/signin');
     service.updateUser(updatedUserData);
     expect(service.user()).toStrictEqual(null);
+    expect(userUpdatedHandlerMock).toHaveBeenCalledTimes(0);
+    httpTesting.verify();
   });
 });
