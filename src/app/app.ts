@@ -1,13 +1,5 @@
-import {
-  inject,
-  signal,
-  OnInit,
-  effect,
-  untracked,
-  Component,
-  afterNextRender,
-} from '@angular/core';
 import { Router, RouterLink, RouterOutlet, NavigationEnd, RouterLinkActive } from '@angular/router';
+import { inject, signal, OnInit, Component, afterNextRender } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SingularView } from './mainbar/singular-view';
 import { NgTemplateOutlet } from '@angular/common';
@@ -76,19 +68,18 @@ export class App implements OnInit {
         );
       });
 
-    effect(() => {
-      this.auth.user();
-      untracked(() => {
-        this._chats.reset();
-        this._profiles.reset();
-      });
-    });
-
     afterNextRender(() => import('@emoji-mart/data').catch());
+
+    this.auth.userSignedOut.subscribe(this._reset.bind(this));
   }
 
   private _isMainMenuUrl(url: string) {
     return this.mainNavItems.some(({ route }) => new RegExp(`${route}/?$`).test(url));
+  }
+
+  private _reset() {
+    this._profiles.reset();
+    this._chats.reset();
   }
 
   protected handleWindowResize() {

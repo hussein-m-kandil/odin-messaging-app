@@ -6,6 +6,8 @@ import { Component } from '@angular/core';
 import { Auth } from './auth';
 import { App } from './app';
 import { of } from 'rxjs';
+import { Chats } from './chats';
+import { Profiles } from './profiles';
 
 const user = {
   profile: { id: crypto.randomUUID() },
@@ -25,7 +27,9 @@ const singularViewMock = {
 
 const navigationMock = { isInitial: vi.fn(), navigating: vi.fn(), error: vi.fn() };
 
-const authMock = { user: vi.fn(() => user) };
+const authMock = { user: vi.fn(() => user), userSignedOut: { subscribe: vi.fn() } };
+const chatsMock = { reset: vi.fn(), refresh: vi.fn() };
+const profilesMock = { reset: vi.fn() };
 
 const resolve = { testData: vi.fn(() => of(null)) };
 
@@ -84,6 +88,8 @@ const renderComponent = ({
     providers: [
       { provide: SingularView, useValue: singularViewMock },
       { provide: Navigation, useValue: navigationMock },
+      { provide: Profiles, useValue: profilesMock },
+      { provide: Chats, useValue: chatsMock },
       { provide: Auth, useValue: authMock },
       ...(providers || []),
     ],
@@ -376,6 +382,14 @@ describe('App', () => {
           expect(screen.getByText(ChatRoomMock.TITLE)).toBeVisible();
         }
         window.innerWidth = originalVPWidth;
+      });
+
+      it('should reset app state when the user signed out', async () => {
+        authMock.userSignedOut.subscribe.mockImplementation((resetter) => resetter());
+        await renderComponent({ initialRoute });
+        expect(chatsMock.reset).toHaveBeenCalledTimes(1);
+        expect(profilesMock.reset).toHaveBeenCalledTimes(1);
+        expect(authMock.userSignedOut.subscribe).toHaveBeenCalledTimes(1);
       });
     });
   }
