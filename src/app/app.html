@@ -23,14 +23,15 @@
   @if (notFoundRouteActivated()) {
   <ng-container [ngTemplateOutlet]="_mainContent" />
   } @else {
-  <div class="size-full overflow-auto *:h-full *:overflow-auto flex">
-    <div class="shrink-0 w-82 border-surface border-r">
+  <p-splitter [panelSizes]="[35, 65]" [minSizes]="[25, 25]" [gutterSize]="1"
+              class="size-full overflow-auto *:h-full *:overflow-auto">
+    <ng-template #panel>
       <ng-container [ngTemplateOutlet]="_mainMenu" />
-    </div>
-    <div class="grow">
+    </ng-template>
+    <ng-template #panel>
       <ng-container [ngTemplateOutlet]="_mainContent" />
-    </div>
-  </div>
+    </ng-template>
+  </p-splitter>
   }
 </ng-template>
 <ng-template #_mainMenu>

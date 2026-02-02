@@ -6,6 +6,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Navigator } from './navigation/navigator';
 import { Tab, Tabs, TabList } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
+import { Splitter } from 'primeng/splitter';
 import { Navigation } from './navigation';
 import { Profiles } from './profiles';
 import { Toast } from 'primeng/toast';
@@ -22,6 +23,7 @@ import { filter } from 'rxjs';
     RouterOutlet,
     RouterLink,
     Navigator,
+    Splitter,
     Mainbar,
     Toast,
     Tab,
