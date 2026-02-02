@@ -1,18 +1,11 @@
 import { Routes, TitleStrategy, RouterStateSnapshot, ResolveFn } from '@angular/router';
 import { profileResolver } from './profiles/profile-resolver';
-import { ProfileList } from './profiles/profile-list';
 import { chatResolver } from './chats/chat-resolver';
 import { userResolver } from './auth/user-resolver';
 import { inject, Injectable } from '@angular/core';
-import { ImageForm, DeleteImage } from './images';
 import { Title } from '@angular/platform-browser';
-import { AuthForm, DeleteForm } from './auth';
 import { environment } from '../environments';
 import { authGuard } from './auth/auth-guard';
-import { ChatRoom } from './chats/chat-room';
-import { ChatList } from './chats/chat-list';
-import { Profile } from './profiles/profile';
-import { NotFound } from './not-found';
 
 @Injectable({ providedIn: 'root' })
 export class RouteTitleStrategy extends TitleStrategy {
@@ -28,83 +21,97 @@ export class RouteTitleStrategy extends TitleStrategy {
   }
 }
 
+const loadProfileList = async () => (await import('./profiles/profile-list')).ProfileList;
+const loadDeleteImage = async () => (await import('./images/delete-image')).DeleteImage;
+const loadDeleteForm = async () => (await import('./auth/delete-form')).DeleteForm;
+const loadImageForm = async () => (await import('./images/image-form')).ImageForm;
+const loadChatList = async () => (await import('./chats/chat-list')).ChatList;
+const loadChatRoom = async () => (await import('./chats/chat-room')).ChatRoom;
+const loadAuthForm = async () => (await import('./auth/auth-form')).AuthForm;
+const loadProfile = async () => (await import('./profiles/profile')).Profile;
+const loadNotFound = async () => (await import('./not-found')).NotFound;
+
 export const routes: Routes = [
-  { path: 'signin', canActivate: [authGuard], component: AuthForm, title: 'Sing In' },
-  { path: 'signup', canActivate: [authGuard], component: AuthForm, title: 'Sing Up' },
+  { path: 'signin', canActivate: [authGuard], title: 'Sing In', loadComponent: loadAuthForm },
+  { path: 'signup', canActivate: [authGuard], title: 'Sing Up', loadComponent: loadAuthForm },
   {
     path: '',
     canActivate: [authGuard],
     resolve: { user: userResolver },
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'chats' },
-      { path: 'not-found', component: NotFound, title: 'Not Found' },
+      { path: 'not-found', title: 'Not Found', loadComponent: loadNotFound },
       {
         path: 'chats',
         children: [
-          { path: '', outlet: 'mainMenu', component: ChatList, title: 'Chats' },
+          { path: '', outlet: 'mainMenu', title: 'Chats', loadComponent: loadChatList },
           {
             path: ':chatId',
-            component: ChatRoom,
             title: 'Chat',
             resolve: { chat: chatResolver },
+            loadComponent: loadChatRoom,
           },
         ],
       },
       {
         path: 'followers',
-        children: [{ path: '', component: ProfileList, title: 'Followers', outlet: 'mainMenu' }],
+        children: [
+          { path: '', title: 'Followers', outlet: 'mainMenu', loadComponent: loadProfileList },
+        ],
       },
       {
         path: 'following',
-        children: [{ path: '', component: ProfileList, title: 'Following', outlet: 'mainMenu' }],
+        children: [
+          { path: '', title: 'Following', outlet: 'mainMenu', loadComponent: loadProfileList },
+        ],
       },
       {
         path: 'profiles',
         children: [
-          { path: '', component: ProfileList, title: 'Profiles', outlet: 'mainMenu' },
+          { path: '', title: 'Profiles', outlet: 'mainMenu', loadComponent: loadProfileList },
           {
             path: ':profileId/chat',
-            component: ChatRoom,
             title: 'Chat',
             resolve: { chat: chatResolver, profile: profileResolver },
+            loadComponent: loadChatRoom,
           },
           {
             path: ':profileId/edit',
-            component: AuthForm,
             title: 'Update Profile',
             resolve: { profile: profileResolver },
+            loadComponent: loadAuthForm,
           },
           {
             path: ':profileId/delete',
-            component: DeleteForm,
             title: 'Delete Profile',
             resolve: {
               redirectUrl: ((_, state) =>
                 state.url.split('/').slice(0, -1).join('/')) as ResolveFn<string>,
             },
+            loadComponent: loadDeleteForm,
           },
           {
             path: ':profileId/pic',
-            component: ImageForm,
             title: 'Upload Profile Picture',
             resolve: { isAvatar: () => true },
+            loadComponent: loadImageForm,
           },
           {
             path: ':profileId/pic/:imageId/delete',
-            component: DeleteImage,
             title: 'Delete Profile Picture',
             resolve: {
               isAvatar: () => true,
               redirectUrl: ((_, state) =>
                 state.url.split('/').slice(0, -3).join('/')) as ResolveFn<string>,
             },
+            loadComponent: loadDeleteImage,
           },
           {
             path: ':profileId',
-            component: Profile,
             title: 'Profile',
-            resolve: { profile: profileResolver },
             runGuardsAndResolvers: 'always',
+            resolve: { profile: profileResolver },
+            loadComponent: loadProfile,
           },
         ],
       },
