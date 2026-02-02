@@ -1,5 +1,5 @@
 import { Router, RouterLink, RouterOutlet, NavigationEnd, RouterLinkActive } from '@angular/router';
-import { inject, signal, OnInit, Component, afterNextRender } from '@angular/core';
+import { inject, signal, OnInit, Component, afterNextRender, OnDestroy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SingularView } from './mainbar/singular-view';
 import { NgTemplateOutlet } from '@angular/common';
@@ -37,10 +37,12 @@ import { filter } from 'rxjs';
     '(window:focus)': 'handleWindowFocus()',
   },
 })
-export class App implements OnInit {
+export class App implements OnInit, OnDestroy {
   protected readonly _profiles = inject(Profiles);
   private readonly _router = inject(Router);
   private readonly _chats = inject(Chats);
+
+  private _httpPollingIntervalId = 0;
 
   protected readonly mainNavItems = [
     { route: '/chats', label: 'Chats', icon: 'pi pi-comments' },
@@ -72,9 +74,12 @@ export class App implements OnInit {
         );
       });
 
-    afterNextRender(() => import('@emoji-mart/data').catch());
+    afterNextRender(() => {
+      import('@emoji-mart/data').catch();
+      this._httpPollingIntervalId = setInterval(() => this._chats.refresh(), 5000);
+    });
 
-    this.auth.userSignedOut.subscribe(this._reset.bind(this));
+    this.auth.userSignedOut.subscribe(() => this._reset());
   }
 
   private _isMainMenuUrl(url: string) {
@@ -96,5 +101,9 @@ export class App implements OnInit {
 
   ngOnInit() {
     this.handleWindowResize();
+  }
+
+  ngOnDestroy() {
+    clearInterval(this._httpPollingIntervalId);
   }
 }
