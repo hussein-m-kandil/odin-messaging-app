@@ -4,8 +4,9 @@
   "version": "0.0.0",
   "scripts": {
     "type-check": "tsc --noEmit -p ./tsconfig.app.json && tsc --noEmit -p ./tsconfig.spec.json",
-    "build:zip": "npm run build && cd ./dist/browser/ && zip -r ../$npm_package_name.zip .",
+    "zip": "cd ./dist/$npm_package_name/browser/ && zip -r ../../$npm_package_name.zip .",
     "watch": "ng build --watch --configuration development",
+    "build:zip": "npm run build && npm run zip",
     "lint": "ng lint --silent",
     "start": "ng serve",
     "build": "ng build",
