@@ -47,7 +47,7 @@
 
 <ng-template #_mainMenu>
   <nav class="size-full flex flex-col">
-    <p-tabs [value]="activeMenuIndex()">
+    <p-tabs scrollable [value]="activeMenuIndex()">
       <p-tablist>
         @for(_navItem of mainNavItems; track _navItem.route){
         <p-tab [value]="$index" class="grow p-0">
