@@ -7,7 +7,9 @@ import { Navigator } from './navigation/navigator';
 import { Tab, Tabs, TabList } from 'primeng/tabs';
 import { MessageService } from 'primeng/api';
 import { Splitter } from 'primeng/splitter';
+import { AppStorage } from './app-storage';
 import { Navigation } from './navigation';
+import { Message } from 'primeng/message';
 import { Profiles } from './profiles';
 import { Toast } from 'primeng/toast';
 import { Mainbar } from './mainbar';
@@ -25,6 +27,7 @@ import { filter } from 'rxjs';
     Navigator,
     Splitter,
     Mainbar,
+    Message,
     Toast,
     Tab,
     Tabs,
@@ -38,11 +41,13 @@ import { filter } from 'rxjs';
   },
 })
 export class App implements OnInit, OnDestroy {
-  protected readonly _profiles = inject(Profiles);
+  private readonly _profiles = inject(Profiles);
   private readonly _router = inject(Router);
   private readonly _chats = inject(Chats);
 
   private _httpPollingIntervalId = 0;
+
+  protected readonly DISCLAIMER_KEY = 'disclaimed';
 
   protected readonly mainNavItems = [
     { route: '/chats', label: 'Chats', icon: 'pi pi-comments' },
@@ -53,9 +58,11 @@ export class App implements OnInit, OnDestroy {
 
   protected readonly singularView = inject(SingularView);
   protected readonly navigation = inject(Navigation);
+  protected readonly storage = inject(AppStorage);
   protected readonly auth = inject(Auth);
 
   protected readonly vpWidth = signal(0);
+  protected readonly disclaimed = signal(true);
   protected readonly activeMenuIndex = signal(0);
   protected readonly notFoundRouteActivated = signal(this._router.url === '/not-found');
   protected readonly mainMenuRouteActivated = signal(this._isMainMenuUrl(this._router.url));
@@ -77,6 +84,7 @@ export class App implements OnInit, OnDestroy {
     afterNextRender(() => {
       import('@emoji-mart/data').catch();
       this._httpPollingIntervalId = setInterval(() => this._chats.refresh(), 5000);
+      this.disclaimed.set(!!this.storage.getItem(this.DISCLAIMER_KEY));
     });
 
     this.auth.userSignedOut.subscribe(() => this._reset());

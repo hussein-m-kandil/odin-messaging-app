@@ -3,6 +3,13 @@
   @let _narrowScreen = vpWidth() < 720; <!-- -->
     <header>
       <app-mainbar [togglableView]="!_narrowScreen" />
+      @if (!disclaimed()) {
+      <p-message closable severity="warn" size="small" icon="pi pi-info-circle"
+                 styleClass="rounded-none" [pt]="{ closeButton: { ariaLabel: 'Close disclaimer' } }"
+                 (onClose)="disclaimed.set(true); storage.setItem(DISCLAIMER_KEY, 'Yes!')">
+        This is a demo web application, and data will be wiped periodically.
+      </p-message>
+      }
     </header>
     <main class="grow overflow-auto">
       @if (navigation.isInitial()) {

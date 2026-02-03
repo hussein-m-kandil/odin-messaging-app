@@ -1,13 +1,14 @@
 import { render, screen, fireEvent, RenderComponentOptions } from '@testing-library/angular';
 import { userEvent } from '@testing-library/user-event';
 import { SingularView } from './mainbar/singular-view';
+import { AppStorage } from './app-storage';
 import { Navigation } from './navigation';
 import { Component } from '@angular/core';
+import { Profiles } from './profiles';
+import { Chats } from './chats';
 import { Auth } from './auth';
 import { App } from './app';
 import { of } from 'rxjs';
-import { Chats } from './chats';
-import { Profiles } from './profiles';
 
 const user = {
   profile: { id: crypto.randomUUID() },
@@ -78,6 +79,8 @@ const testRoutes = [
   },
 ];
 
+const storageMock = { getItem: vi.fn(() => 'value'), setItem: vi.fn() };
+
 const renderComponent = ({
   initialRoute,
   providers,
@@ -88,6 +91,7 @@ const renderComponent = ({
     providers: [
       { provide: SingularView, useValue: singularViewMock },
       { provide: Navigation, useValue: navigationMock },
+      { provide: AppStorage, useValue: storageMock },
       { provide: Profiles, useValue: profilesMock },
       { provide: Chats, useValue: chatsMock },
       { provide: Auth, useValue: authMock },
@@ -102,6 +106,27 @@ const renderComponent = ({
 
 describe('App', () => {
   afterEach(vi.resetAllMocks);
+
+  it('should show a dismissable disclaimer', async () => {
+    const actor = userEvent.setup();
+    storageMock.getItem.mockImplementation(() => '');
+    await renderComponent();
+    expect(screen.getByText(/demo web application/i)).toBeVisible();
+    await actor.click(screen.getByRole('button', { name: /close disclaimer/i }));
+    expect(screen.queryByRole('button', { name: /close disclaimer/i })).toBeNull();
+    expect(screen.queryByText(/demo web application/i)).toBeNull();
+    expect(storageMock.getItem).toHaveBeenCalledTimes(1);
+    expect(storageMock.setItem).toHaveBeenCalledTimes(1);
+    expect(storageMock.setItem.mock.calls[0][0]).toBeTruthy();
+    expect(storageMock.setItem.mock.calls[0][1]).toBeTruthy();
+  });
+
+  it('should not show a dismissable disclaimer', async () => {
+    storageMock.getItem.mockImplementation(() => 'v');
+    await renderComponent();
+    expect(screen.queryByText(/demo web application/i)).toBeNull();
+    expect(screen.queryByRole('button', { name: /close disclaimer/i })).toBeNull();
+  });
 
   it('should display the chat list', async () => {
     await renderComponent();
