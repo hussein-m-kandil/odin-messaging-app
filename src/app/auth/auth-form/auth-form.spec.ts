@@ -44,6 +44,7 @@ const renderComponent = async ({
           { path: 'signin', component: AuthForm },
           { path: 'signup', component: AuthForm },
           { path: 'edit', component: AuthForm, resolve: { profile: () => profile } },
+          { path: 'profiles/:idOrUsername', component: class {} },
         ],
         withComponentInputBinding(),
       ),

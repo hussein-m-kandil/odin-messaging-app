@@ -59,14 +59,14 @@ export class AuthForm implements OnInit {
   protected readonly passwordHidden = signal(true);
   protected readonly confirmHidden = signal(true);
 
-  private readonly _activatedRoute = inject(ActivatedRoute);
+  private readonly _activeRoute = inject(ActivatedRoute);
   private readonly _toast = inject(MessageService);
   private readonly _router = inject(Router);
   private readonly _auth = inject(Auth);
 
   readonly profile = input<Profile>();
 
-  private readonly _activatedPath = this._activatedRoute.snapshot.url.at(-1)?.path || '';
+  private readonly _activatedPath = this._activeRoute.snapshot.url.at(-1)?.path || '';
 
   protected readonly info = this._activatedPath.endsWith('signup')
     ? ({
@@ -121,7 +121,12 @@ export class AuthForm implements OnInit {
   protected navigate(url: string[]) {
     if (this.form.enabled) {
       const { queryParams } = this._router.routerState.snapshot.root;
-      this._router.navigate(url, { queryParams, relativeTo: this._activatedRoute });
+      this._router.navigate(url, {
+        queryParams,
+        replaceUrl: true,
+        relativeTo: this._activeRoute,
+        onSameUrlNavigation: 'reload',
+      });
     }
   }
 
@@ -148,10 +153,10 @@ export class AuthForm implements OnInit {
         return;
       }
       req$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe({
-        next: () => {
+        next: (user) => {
           this.form.enable();
           this._toast.add({ ...this.info.success, severity: 'success' });
-          if (this.editing) this.navigate(['..']);
+          if (this.editing) this.navigate(['/profiles', user.username]);
         },
         error: (res) => {
           this.form.enable();
