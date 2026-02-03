@@ -33,7 +33,7 @@
   @if (notFoundRouteActivated()) {
   <ng-container [ngTemplateOutlet]="_mainContent" />
   } @else {
-  <p-splitter [panelSizes]="[35, 65]" [minSizes]="[25, 25]" [gutterSize]="1"
+  <p-splitter [panelSizes]="[40, 60]" [minSizes]="[25, 25]" [gutterSize]="1"
               class="size-full overflow-auto *:h-full *:overflow-auto">
     <ng-template #panel>
       <ng-container [ngTemplateOutlet]="_mainMenu" />
