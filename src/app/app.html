@@ -15,10 +15,13 @@
       }
     </main>
 </div>
-<p-toast position="bottom-right" />
+
+<p-toast position="bottom-right" class="w-[calc(100%-40px)] max-w-md" />
+
 <ng-template #_singularView>
   <ng-container [ngTemplateOutlet]="mainMenuRouteActivated() ? _mainMenu : _mainContent" />
 </ng-template>
+
 <ng-template #_compoundView>
   @if (notFoundRouteActivated()) {
   <ng-container [ngTemplateOutlet]="_mainContent" />
@@ -34,6 +37,7 @@
   </p-splitter>
   }
 </ng-template>
+
 <ng-template #_mainMenu>
   <nav class="size-full flex flex-col">
     <p-tabs [value]="activeMenuIndex()">
@@ -54,6 +58,7 @@
     </div>
   </nav>
 </ng-template>
+
 <ng-template #_mainContent>
   @if (navigation.navigating() || navigation.error()) {
   <app-navigator />
