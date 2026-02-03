@@ -2,7 +2,7 @@
 @let _data = data();
 @if (!_data) {
 <div
-     class="bg-(--p-content-background) rounded-lg shadow-xs min-h-[50vh] flex flex-col justify-center">
+     class="bg-(--p-content-background) rounded-lg min-h-[min(432px,70vh)] flex flex-col justify-center">
   @if (_errorMessage) {
   <app-error-message [message]="_errorMessage" (retry)="loadData()" />
   } @else {

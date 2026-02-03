@@ -26,7 +26,8 @@ export interface PickedEmoji {
   imports: [ErrorMessage, Spinner],
   templateUrl: './emoji-picker.html',
   host: {
-    class: '*:w-full *:max-h-[calc(100vh-132px)] *:mx-auto *:overflow-auto',
+    class:
+      '*:w-full *:max-h-[calc(100vh-132px)] *:mx-auto *:overflow-auto *:border-surface *:border *:shadow-none',
     'aria-label': 'Emoji Picker',
   },
 })
