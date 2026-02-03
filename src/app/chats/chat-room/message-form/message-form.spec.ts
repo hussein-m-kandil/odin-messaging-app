@@ -291,11 +291,10 @@ describe('MessageForm', () => {
         const { msgInp, sendBtn } = getFormElements();
         await actor.type(msgInp, newMessageData.body);
         await actor.click(sendBtn);
-        await actor.click(sendBtn);
-        await actor.click(sendBtn);
         if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(newChatData);
         else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
         expect(msgInp).toHaveValue(newMessageData.body);
+        expect(sendBtn).toBeDisabled();
         expect(sendBtn).toHaveFocus();
       });
 

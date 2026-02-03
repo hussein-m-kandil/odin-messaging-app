@@ -42,14 +42,14 @@
                           formControlName="body" placeholder="Message..."
                           (onResize)="showScrollbarAsNeeded()" [class]="`grow align-middle max-h-[50vh] rounded-2xl
         text-sm font-semibold tracking-wider placeholder-shown:font-normal`"></textarea>
-                <ng-container [ngTemplateOutlet]="btn" [ngTemplateOutletContext]="{ 
-                                $implicit: { label: 'Send', type: 'submit', severity: 'primary', icon: 'pi pi-send' } 
-                                }" />
+                <ng-container [ngTemplateOutlet]="btn" [ngTemplateOutletContext]="{
+                        $implicit: { loading: form.disabled, severity: 'primary',  icon: 'pi pi-send', type: 'submit', label: 'Send' }
+                }" />
         </div>
 </form>
 <ng-template #btn let-_props>
         <button pButton pRipple rounded size="small" type="{{ _props.type || 'button' }}"
-                [severity]="_props.severity || 'secondary'" [disabled]="form.disabled"
-                aria-label="{{_props.label}}" [icon]="_props.icon"
+                [disabled]="form.disabled" aria-label="{{_props.label}}" [icon]="_props.icon"
+                [severity]="_props.severity || 'secondary'" [loading]="!!_props.loading"
                 (click)="_props.onClick?.()"></button>
 </ng-template>
