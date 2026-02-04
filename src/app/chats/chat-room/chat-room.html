@@ -97,7 +97,8 @@
   @if (_chatId || _profileId) {
   <div>
     @if (_chatId && messages.chats.isDeadChat(_chatId, _user)) {
-    <p-message severity="info" styleClass="rounded-none text-center **:text-xs **:tracking-wider">
+    <p-message severity="info"
+               styleClass="rounded-none text-center **:mx-auto **:text-xs **:tracking-wider">
       This chat cannot receive new messages because the other member's profile
       have been deleted.
     </p-message>
