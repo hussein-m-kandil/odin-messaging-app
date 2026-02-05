@@ -1,9 +1,11 @@
-import { ResolveFn } from '@angular/router';
+import { ResolveFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { Chat } from './chats.types';
 import { Chats } from './chats';
 
 export const chatResolver: ResolveFn<Chat | null> = (route) => {
+  const chat = inject(Router).currentNavigation()?.extras.state?.['chat'];
+  if (chat) return chat;
   const chats = inject(Chats);
   const { chatId, profileId } = route.params;
   if (chatId) return chats.getChat(chatId);

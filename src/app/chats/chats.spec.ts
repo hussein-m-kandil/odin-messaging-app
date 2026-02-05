@@ -650,7 +650,7 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should create a chat', () => {
+  it('should create a chat, then reload the chats', () => {
     const { service, httpTesting } = setup();
     const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
     let res, errRes;
@@ -671,11 +671,12 @@ describe('Chats', () => {
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', chat);
     expect(errRes).toBeUndefined();
-    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
+    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id], { state: { chat } });
+    httpTesting.expectOne({ method: 'GET', url: chatsUrl }, 'Request to reload chats');
     httpTesting.verify();
   });
 
-  it('should create a chat with image message', () => {
+  it('should create a chat with image message, then reload the chats', () => {
     const { service, httpTesting } = setup();
     const newChatData = {
       profiles: [crypto.randomUUID()],
@@ -703,7 +704,8 @@ describe('Chats', () => {
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', chat);
     expect(errRes).toBeUndefined();
-    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id]);
+    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id], { state: { chat } });
+    httpTesting.expectOne({ method: 'GET', url: chatsUrl }, 'Request to reload chats');
     httpTesting.verify();
   });
 

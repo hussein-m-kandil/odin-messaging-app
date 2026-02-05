@@ -205,8 +205,9 @@ export class Chats extends ListStore<Chat> {
         tap((event) => {
           if (event.type === HttpEventType.Response && event.body) {
             const createdChat = event.body;
-            this.list.update((chats) => [createdChat, ...chats]);
-            this._router.navigate(['/chats', createdChat.id]);
+            this.reset();
+            this.load();
+            this._router.navigate(['/chats', createdChat.id], { state: { chat: createdChat } });
           }
         }),
       );
