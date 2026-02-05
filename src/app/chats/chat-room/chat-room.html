@@ -38,36 +38,38 @@
         @let _fromCurrentUser = _msg.profileName === _user.username;
         @if (_msg.body || _msg.image) {
         <article aria-label="Message from {{_msg.profileName}}" aria-atomic="true"
-                 class="bg-highlight-emphasis max-w-xs text-left rounded-3xl p-3"
-                 [class]="_fromCurrentUser ? 'ms-auto rounded-br-none' : 'me-auto rounded-bl-none'">
-          <main>
-            @if (_msg.image; as _img) {
-            <app-image preview class="block mb-2 rounded-lg overflow-hidden max-h-[50vh]"
-                       [width]="_img.width" [src]="_img.src" alt="{{ _img.alt || '' }}"
-                       [height]="_img.height" />
-            }
-            @if (_msg.body) {
-            <div class="mb-2 text-sm font-semibold tracking-wider">{{ _msg.body }}</div>
-            }
-          </main>
-          <footer [class]="`text-muted-color leading-none *:leading-none *:align-bottom *:text-xs
-              flex gap-1 justify-between`">
-            @if (_fromCurrentUser) {
-            @let _received = messages.hasBeenReceived(_msg, _chat,
-            _user.username);
-            @let _seen = messages.hasBeenSeen(_msg, _chat, _user.username);
-            <span [aria-label]="_seen ? 'seen' : _received ? 'received' : 'sent'" class="pi me-1.5"
-                  [class]="{
-                'pi-arrow-circle-up': !_seen && !_received,
-                'pi-check': !_seen && _received,
-                'pi-check-circle': _seen,
-              }">
-            </span>
-            }
-            <time [attr.datetime]="_msg.createdAt">
-              {{ _msg.createdAt | date : 'shortTime' }}
-            </time>
-          </footer>
+                 [class]="_fromCurrentUser ? 'ms-auto ps-12' : 'me-auto pe-12'">
+          <div class="bg-highlight-emphasis max-w-lg text-left rounded-3xl p-3"
+               [class]="_fromCurrentUser ? 'rounded-br-none' : 'rounded-bl-none'">
+            <main>
+              @if (_msg.image; as _img) {
+              <app-image preview class="block mb-2 rounded-lg overflow-hidden max-h-[50vh]"
+                         [width]="_img.width" [src]="_img.src" alt="{{ _img.alt || '' }}"
+                         [height]="_img.height" />
+              }
+              @if (_msg.body) {
+              <div class="mb-2 text-sm font-semibold tracking-wider">{{ _msg.body }}</div>
+              }
+            </main>
+            <footer [class]="`text-muted-color leading-none *:leading-none *:align-bottom *:text-xs
+                flex gap-1 justify-between`">
+              @if (_fromCurrentUser) {
+              @let _received = messages.hasBeenReceived(_msg, _chat,
+              _user.username);
+              @let _seen = messages.hasBeenSeen(_msg, _chat, _user.username);
+              <span [aria-label]="_seen ? 'seen' : _received ? 'received' : 'sent'"
+                    class="pi me-1.5" [class]="{
+                  'pi-arrow-circle-up': !_seen && !_received,
+                  'pi-check': !_seen && _received,
+                  'pi-check-circle': _seen,
+                }">
+              </span>
+              }
+              <time [attr.datetime]="_msg.createdAt">
+                {{ _msg.createdAt | date : 'shortTime' }}
+              </time>
+            </footer>
+          </div>
         </article>
         }
         @let _msgDayDate = _msg.createdAt | date : 'mediumDate';
