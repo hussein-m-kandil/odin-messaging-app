@@ -22,11 +22,15 @@ export const createChatFormData = (data: NewChatData) => {
   return createMessageFormData(data.message || {}, formData);
 };
 
-export const findChatByAllMemberIds = (chats: Chat[], memberIds: Profile['id'][]) => {
-  const distinctMemberIds = mergeDistinctBy(memberIds, [], (id) => id);
+export const findChatByAllMember = (chats: Chat[], idsOrUsernames: Profile['id'][]) => {
+  const distinctIdsOrUsernames = mergeDistinctBy(idsOrUsernames, [], (id) => id);
   return chats.find(
     (chat) =>
-      chat.profiles.length === distinctMemberIds.length &&
-      chat.profiles.every((c) => c.profileId && distinctMemberIds.includes(c.profileId)),
+      chat.profiles.length === distinctIdsOrUsernames.length &&
+      chat.profiles.every(
+        (c) =>
+          distinctIdsOrUsernames.includes(c.profileName) ||
+          (c.profileId && distinctIdsOrUsernames.includes(c.profileId)),
+      ),
   );
 };

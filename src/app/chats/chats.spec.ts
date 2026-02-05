@@ -68,7 +68,7 @@ const chatsUrl = `${apiUrl}/chats`;
 
 const message = { id: crypto.randomUUID(), body: 'Hi!', chatId: chat.id } as Message;
 
-const authMock = { user: vi.fn() };
+const authMock = { user: vi.fn(() => user) };
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
 
@@ -606,7 +606,7 @@ describe('Chats', () => {
     const { service, httpTesting } = setup();
     service.list.set([chat]);
     const memberProfileId = profile2.id;
-    const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
+    const req$ = service.navigateToChatByMember(memberProfileId);
     let res: unknown, errRes: unknown;
     req$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const url = `${chatsUrl}/members/${memberProfileId}`;
@@ -621,7 +621,7 @@ describe('Chats', () => {
   it('should navigate to old chat if got from the backend by member and user profile ids', async () => {
     const { service, httpTesting } = setup();
     const memberProfileId = profile2.id;
-    const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
+    const req$ = service.navigateToChatByMember(memberProfileId);
     let res: unknown, errRes: unknown;
     req$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
@@ -637,7 +637,7 @@ describe('Chats', () => {
   it('should not navigate to old chat if not found by member and user profile ids', async () => {
     const { service, httpTesting } = setup();
     const memberProfileId = profile.id;
-    const req$ = service.navigateToChatByMemberProfileId(memberProfileId, user.profile.id);
+    const req$ = service.navigateToChatByMember(memberProfileId);
     let res: unknown, errRes: unknown;
     req$.subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${memberProfileId}` };
@@ -939,7 +939,21 @@ describe('Chats', () => {
     service.list.set([{ ...chat, id: crypto.randomUUID(), profiles: [chat.profiles[0]] }, chat]);
     let res, errRes;
     service
-      .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
+      .getChatByMember(chat.profiles[1].profileId!)
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    const url = `${chatsUrl}/members/${chat.profiles[1].profileId}`;
+    httpTesting.expectNone(url, 'Request to get the chat messages');
+    expect(res).toStrictEqual(chat);
+    expect(errRes).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should get a chat by member username from the current list', () => {
+    const { service, httpTesting } = setup();
+    service.list.set([{ ...chat, id: crypto.randomUUID(), profiles: [chat.profiles[0]] }, chat]);
+    let res, errRes;
+    service
+      .getChatByMember(chat.profiles[1].profileName)
       .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const url = `${chatsUrl}/members/${chat.profiles[1].profileId}`;
     httpTesting.expectNone(url, 'Request to get the chat messages');
@@ -952,9 +966,23 @@ describe('Chats', () => {
     const { service, httpTesting } = setup();
     let res, errRes;
     service
-      .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
+      .getChatByMember(chat.profiles[1].profileId!)
       .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId!}` };
+    const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
+    req.flush([{ ...chat, id: crypto.randomUUID(), profiles: [chat.profiles[0]] }, chat]);
+    expect(errRes).toBeUndefined();
+    expect(res).toStrictEqual(chat);
+    httpTesting.verify();
+  });
+
+  it('should get a chat by member profile id from the backend', () => {
+    const { service, httpTesting } = setup();
+    let res, errRes;
+    service
+      .getChatByMember(chat.profiles[1].profileName)
+      .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
+    const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileName}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
     req.flush([{ ...chat, id: crypto.randomUUID(), profiles: [chat.profiles[0]] }, chat]);
     expect(errRes).toBeUndefined();
@@ -966,7 +994,7 @@ describe('Chats', () => {
     const { service, httpTesting } = setup();
     let res, errRes;
     service
-      .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
+      .getChatByMember(chat.profiles[1].profileId!)
       .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');
@@ -983,7 +1011,7 @@ describe('Chats', () => {
     const { service, httpTesting } = setup();
     let res, errRes;
     service
-      .getChatByMemberProfileId(chat.profiles[1].profileId!, chat.profiles[0].profileId!)
+      .getChatByMember(chat.profiles[1].profileId!)
       .subscribe({ next: (d) => (res = d), error: (e) => (errRes = e) });
     const reqInfo = { method: 'GET', url: `${chatsUrl}/members/${chat.profiles[1].profileId}` };
     const req = httpTesting.expectOne(reqInfo, 'Request to get the chat messages');

@@ -1,4 +1,4 @@
-import { createChatFormData, findChatByAllMemberIds, createMessageFormData } from './chats.utils';
+import { createChatFormData, findChatByAllMember, createMessageFormData } from './chats.utils';
 import { Chat, Message, ChatProfile, NewChatData, NewMessageData } from './chats.types';
 import { HttpEventType, HttpClient, HttpParams } from '@angular/common/http';
 import { inject, signal, DestroyRef, Injectable } from '@angular/core';
@@ -7,8 +7,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { mergeDistinctBy, sortByDate } from '../utils';
 import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
-import { User, Profile } from '../app.types';
 import { Router } from '@angular/router';
+import { User } from '../app.types';
 import { Auth } from '../auth';
 
 const { apiUrl } = environment;
@@ -60,20 +60,21 @@ export class Chats extends ListStore<Chat> {
     });
   }
 
-  getChatByMemberProfileId(memberProfileId: Profile['id'], userProfileId: Profile['id']) {
+  getChatByMember(memberIdOrUsername: string) {
     return defer(() => {
-      const foundChat = findChatByAllMemberIds(this.list(), [memberProfileId, userProfileId]);
+      const user = this._auth.user();
+      if (!user) throw Error('Missing a `user`');
+      const memberIdsOrUsernames = [memberIdOrUsername, user.username];
+      const foundChat = findChatByAllMember(this.list(), memberIdsOrUsernames);
       if (foundChat) return of(foundChat);
       return this._http
-        .get<Chat[]>(`${this.baseUrl}/members/${memberProfileId}`)
-        .pipe(
-          map((chats) => findChatByAllMemberIds(chats, [memberProfileId, userProfileId]) || null),
-        );
+        .get<Chat[]>(`${this.baseUrl}/members/${memberIdOrUsername}`)
+        .pipe(map((chats) => findChatByAllMember(chats, memberIdsOrUsernames) || null));
     });
   }
 
-  navigateToChatByMemberProfileId(...args: Parameters<typeof this.getChatByMemberProfileId>) {
-    return this.getChatByMemberProfileId(...args).pipe(
+  navigateToChatByMember(...args: Parameters<typeof this.getChatByMember>) {
+    return this.getChatByMember(...args).pipe(
       map((chat) => {
         if (chat) return this._router.navigate(['/chats', chat.id]);
         return Promise.resolve(false);
