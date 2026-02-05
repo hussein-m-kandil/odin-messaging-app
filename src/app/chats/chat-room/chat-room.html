@@ -1,4 +1,6 @@
 @let _user = user(); @let _title = title();
+@let _chat = chat(); @let _profile = profile();
+@let _chatId = _chat?.id || chatId(); @let _profileId = _profile?.id || profileId();
 <div class="relative size-full overflow-auto flex flex-col" [aria-label]="`${_title} chat room`">
   <nav class="bg-(--p-content-background) border-surface border-b">
     <div class="size-full flex justify-between items-center">
@@ -22,7 +24,7 @@
   </nav>
   <div #messagesContainer aria-live="assertive" aria-label="Messages"
        class="grow overflow-auto flex flex-col-reverse px-2">
-    @if (chat(); as _chat) {
+    @if (_chat) {
     <div>
       <div class="flex flex-col-reverse justify-end min-h-full space-y-4">
         @if(messages.loadingRecent()) {
@@ -93,7 +95,6 @@
     </div>
     }
   </div>
-  @let _chatId = chatId(); @let _profileId = profileId();
   @if (_chatId || _profileId) {
   <div>
     @if (_chatId && messages.chats.isDeadChat(_chatId, _user)) {

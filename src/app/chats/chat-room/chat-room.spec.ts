@@ -264,8 +264,8 @@ describe('ChatRoom', () => {
     expect(screen.getByText(/cannot receive new messages/i)).toBeVisible();
   });
 
-  it('should not have a form if a profile and chat IDs', async () => {
-    await renderComponent({ inputs: { user, chat } });
+  it('should not have a form if a profile and chat IDs/objects', async () => {
+    await renderComponent({ inputs: { user, chat: null } });
     expect(screen.queryByRole('form', { name: /message/i })).toBeNull();
     expect(screen.queryByText(/cannot receive new messages/i)).toBeNull();
   });
