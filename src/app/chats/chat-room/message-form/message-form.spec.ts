@@ -160,7 +160,10 @@ describe('MessageForm', () => {
       it('should insert the picked emoji at the cart place of the message textbox', async () => {
         const actor = userEvent.setup();
         let pickedOutputMock!: OutputEmitterRef<unknown>;
-        @Component({ selector: 'app-emoji-picker', template: `` })
+        @Component({
+          selector: 'app-emoji-picker',
+          template: `<div aria-label="Emoji Picker"></div>`,
+        })
         class EmojiPicker {
           readonly theme = input<string>();
           readonly picked = output<unknown>();
@@ -191,6 +194,41 @@ describe('MessageForm', () => {
         pickedOutputMock.emit({ native: '🤡' });
         pickedOutputMock.emit({ native: '🎉' });
         expect(msgInp).toHaveValue('Hello😌Emojis🤡🎉!😎');
+      });
+
+      it('should close the emoji picker', async () => {
+        const actor = userEvent.setup();
+        let closedOutputMock!: OutputEmitterRef<void>;
+        @Component({
+          selector: 'app-emoji-picker',
+          template: `<div aria-label="Emoji Picker"></div>`,
+        })
+        class EmojiPicker {
+          readonly theme = input<string>();
+          readonly closed = output();
+          constructor() {
+            closedOutputMock = this.closed;
+          }
+        }
+        const { detectChanges } = await render(MessageForm, {
+          componentImports: [
+            ReactiveFormsModule,
+            NgTemplateOutlet,
+            ButtonDirective,
+            ImagePicker,
+            EmojiPicker,
+            Textarea,
+          ],
+          providers: commonProviders,
+          inputs,
+        });
+        const { emojiPickerBtn } = getFormElements();
+        expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+        await actor.click(emojiPickerBtn);
+        expect(screen.getByLabelText(/^emoji picker/i)).toBeVisible();
+        closedOutputMock.emit();
+        detectChanges();
+        expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
       });
 
       it('should create', async () => {

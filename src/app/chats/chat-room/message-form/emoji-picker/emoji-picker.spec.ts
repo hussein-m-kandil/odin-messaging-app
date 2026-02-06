@@ -1,4 +1,5 @@
 import { render, screen, RenderComponentOptions } from '@testing-library/angular';
+import { userEvent } from '@testing-library/user-event';
 import { EmojiPicker } from './emoji-picker';
 import emojisData from '@emoji-mart/data';
 
@@ -52,5 +53,59 @@ describe('EmojiPicker', () => {
     expect(screen.queryByLabelText(/loading emojis/i)).toBeNull();
     expect(screen.queryByText(/failed/i)).toBeNull();
     expect(emojisDataModuleMock).toHaveBeenCalledOnce();
+  });
+
+  it('should emit `closed` on click outside', async () => {
+    const closed = vi.fn();
+    const actor = userEvent.setup();
+    await renderComponent({ inputs: { closeableOnClickOutSide: true }, on: { closed } });
+    await vi.dynamicImportSettled();
+    await actor.click(document.body);
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not emit `closed` on click outside', async () => {
+    const closed = vi.fn();
+    const actor = userEvent.setup();
+    await renderComponent({ inputs: { closeableOnClickOutSide: false }, on: { closed } });
+    await vi.dynamicImportSettled();
+    await actor.click(document.body);
+    expect(closed).toHaveBeenCalledTimes(0);
+  });
+
+  it('should not emit `closed` on click outside, by default', async () => {
+    const closed = vi.fn();
+    const actor = userEvent.setup();
+    await renderComponent({ on: { closed } });
+    await vi.dynamicImportSettled();
+    await actor.click(document.body);
+    expect(closed).toHaveBeenCalledTimes(0);
+  });
+
+  it('should emit `closed` on press Escape', async () => {
+    const closed = vi.fn();
+    const actor = userEvent.setup();
+    await renderComponent({ inputs: { closeableOnEscapeKey: true }, on: { closed } });
+    await vi.dynamicImportSettled();
+    await actor.keyboard('{Escape}');
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not emit `closed` on press Escape', async () => {
+    const closed = vi.fn();
+    const actor = userEvent.setup();
+    await renderComponent({ inputs: { closeableOnEscapeKey: false }, on: { closed } });
+    await vi.dynamicImportSettled();
+    await actor.keyboard('{Escape}');
+    expect(closed).toHaveBeenCalledTimes(0);
+  });
+
+  it('should not emit `closed` on press Escape, by default', async () => {
+    const closed = vi.fn();
+    const actor = userEvent.setup();
+    await renderComponent({ on: { closed } });
+    await vi.dynamicImportSettled();
+    await actor.keyboard('{Escape}');
+    expect(closed).toHaveBeenCalledTimes(0);
   });
 });

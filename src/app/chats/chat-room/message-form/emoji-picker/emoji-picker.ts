@@ -6,6 +6,7 @@ import {
   Component,
   ElementRef,
   afterRenderEffect,
+  booleanAttribute,
 } from '@angular/core';
 import { ErrorMessage } from '../../../../error-message';
 import { Spinner } from '../../../../spinner';
@@ -29,6 +30,7 @@ export interface PickedEmoji {
     class:
       '*:w-full *:max-h-[calc(100vh-132px)] *:mx-auto *:overflow-auto *:border-surface *:border *:shadow-none',
     'aria-label': 'Emoji Picker',
+    '(window:keydown.escape)': 'handleEscapeKey()',
   },
 })
 export class EmojiPicker {
@@ -37,6 +39,8 @@ export class EmojiPicker {
   protected readonly data = signal<unknown>(null);
   protected readonly errorMessage = signal('');
 
+  readonly closeableOnClickOutSide = input(false, { transform: booleanAttribute });
+  readonly closeableOnEscapeKey = input(false, { transform: booleanAttribute });
   readonly theme = input<'auto' | 'light' | 'dark'>('auto');
 
   readonly picked = output<PickedEmoji>();
@@ -60,7 +64,7 @@ export class EmojiPicker {
           theme: this.theme(),
           previewPosition: 'none',
           skinTonePosition: 'none',
-          onClickOutside: () => this.closed.emit(),
+          onClickOutside: () => this.handleClickOutside(),
           onEmojiSelect: (emoji: PickedEmoji) => this.picked.emit(emoji),
         }) as unknown as HTMLElement;
         this._hostElement.childNodes.forEach((node) => this._hostElement.removeChild(node));
@@ -74,5 +78,13 @@ export class EmojiPicker {
         onCleanup(() => clearTimeout(timeoutId));
       }
     });
+  }
+
+  protected handleClickOutside() {
+    if (this.closeableOnClickOutSide()) this.closed.emit();
+  }
+
+  protected handleEscapeKey() {
+    if (this.closeableOnEscapeKey()) this.closed.emit();
   }
 }
