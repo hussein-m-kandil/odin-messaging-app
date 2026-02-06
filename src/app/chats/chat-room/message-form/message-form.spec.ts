@@ -94,7 +94,7 @@ describe('MessageForm', () => {
       it('should toggle an image picker', async () => {
         await renderComponent({ inputs });
         const actor = userEvent.setup();
-        const { imagePickerBtn } = getFormElements();
+        const { imagePickerBtn, msgInp } = getFormElements();
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
         expect(screen.queryByRole('progressbar')).toBeNull();
@@ -102,27 +102,31 @@ describe('MessageForm', () => {
         expect(screen.getByRole('button', { name: /pick .*image/i })).toBeVisible();
         expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
         expect(screen.getByRole('progressbar')).toHaveValue(0);
+        expect(msgInp).not.toHaveFocus();
         await actor.click(imagePickerBtn);
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
         expect(screen.queryByRole('progressbar')).toBeNull();
+        expect(msgInp).toHaveFocus();
       });
 
       it('should toggle an emoji picker', async () => {
         await renderComponent({ inputs });
         const actor = userEvent.setup();
-        const { emojiPickerBtn } = getFormElements();
+        const { emojiPickerBtn, msgInp } = getFormElements();
         expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
         await actor.click(emojiPickerBtn);
         expect(screen.getByLabelText(/^emoji picker/i)).toBeVisible();
+        expect(msgInp).not.toHaveFocus();
         await actor.click(emojiPickerBtn);
         expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+        expect(msgInp).toHaveFocus();
       });
 
       it('should switch between the pickers when opening one while the other one is open', async () => {
         await renderComponent({ inputs });
         const actor = userEvent.setup();
-        const { imagePickerBtn, emojiPickerBtn } = getFormElements();
+        const { imagePickerBtn, emojiPickerBtn, msgInp } = getFormElements();
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
@@ -130,22 +134,27 @@ describe('MessageForm', () => {
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.getByLabelText(/^emoji picker/i)).toBeVisible();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        expect(msgInp).not.toHaveFocus();
         await actor.click(imagePickerBtn);
         expect(screen.getByRole('button', { name: /pick .*image/i })).toBeVisible();
         expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
         expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+        expect(msgInp).not.toHaveFocus();
         await actor.click(emojiPickerBtn);
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.getByLabelText(/^emoji picker/i)).toBeVisible();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        expect(msgInp).not.toHaveFocus();
         await actor.click(imagePickerBtn);
         expect(screen.getByRole('button', { name: /pick .*image/i })).toBeVisible();
         expect(screen.getByLabelText(/browse files/i)).toBeInTheDocument();
         expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
+        expect(msgInp).not.toHaveFocus();
         await actor.click(imagePickerBtn);
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
+        expect(msgInp).toHaveFocus();
       });
 
       it('should insert the picked emoji at the cart place of the message textbox', async () => {

@@ -55,6 +55,7 @@ export class MessageForm implements OnInit {
     this.picking.update((picking) => {
       if (picking !== picker) return picker;
       if (picker === 'image') this.unpickImage();
+      this._messageInput().nativeElement.focus();
       return null;
     });
   }
