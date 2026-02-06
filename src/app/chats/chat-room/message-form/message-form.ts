@@ -60,12 +60,16 @@ export class MessageForm implements OnInit {
   }
 
   protected insertPickedEmoji(emoji: PickedEmoji) {
-    this.togglePicker('emoji');
-    const { body } = this.form.controls;
-    const splittedValue = body.value.split('');
-    const { selectionStart, selectionEnd } = this._messageInput().nativeElement;
-    splittedValue.splice(selectionStart, selectionEnd - selectionStart, emoji.native);
-    body.setValue(splittedValue.join(''));
+    const { nativeElement: messageInput } = this._messageInput();
+    const splittedValue = messageInput.value.split('');
+    const insertionIndex = messageInput.selectionStart;
+    const nextInsertionIndex = insertionIndex + emoji.native.length;
+    const replacedCharsCount = messageInput.selectionEnd - messageInput.selectionStart;
+    splittedValue.splice(insertionIndex, replacedCharsCount, emoji.native);
+    this.form.controls.body.setValue(splittedValue.join(''));
+    messageInput.focus();
+    messageInput.selectionEnd = nextInsertionIndex;
+    messageInput.selectionStart = nextInsertionIndex;
   }
 
   protected reset() {

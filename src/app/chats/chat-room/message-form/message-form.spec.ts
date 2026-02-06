@@ -176,13 +176,12 @@ describe('MessageForm', () => {
         await actor.click(emojiPickerBtn);
         await actor.type(msgInp, textValue);
         pickedOutputMock.emit({ native: '😎' });
-        await actor.click(emojiPickerBtn);
         await actor.pointer([{ target: msgInp, offset: 5, keys: '[MouseLeft>]' }, { offset: 7 }]);
-        pickedOutputMock.emit({ native: '🎉' });
-        await actor.click(emojiPickerBtn);
+        pickedOutputMock.emit({ native: '😌' });
         await actor.pointer({ target: msgInp, offset: 13, keys: '[MouseLeft]' });
         pickedOutputMock.emit({ native: '🤡' });
-        expect(msgInp).toHaveValue('Hello🎉Emojis🤡!😎');
+        pickedOutputMock.emit({ native: '🎉' });
+        expect(msgInp).toHaveValue('Hello😌Emojis🤡🎉!😎');
       });
 
       it('should create', async () => {
