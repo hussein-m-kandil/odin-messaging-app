@@ -5,6 +5,7 @@ import { SigninData, SignupData, AuthData } from './auth.types';
 import { authNavOpts, isAuthData, isAuthUrl } from './utils';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { environment } from '../../environments';
+import { io, Socket } from 'socket.io-client';
 import { AppStorage } from '../app-storage';
 import { Router } from '@angular/router';
 
@@ -24,19 +25,29 @@ export class Auth {
 
   private readonly _authData = signal<AuthData | null>(null);
 
+  private _socket: Socket | null = null;
+
   private readonly _setAuthData = (authData: AuthData | null) => {
     this._authData.set(authData && JSON.parse(JSON.stringify(authData)));
     if (authData) this._storage.setItem(AUTH_KEY, authData.token);
     else this._storage.removeItem(AUTH_KEY);
   };
 
-  private readonly _saveValidAuthDataAndGetUserOrThrow = (authRes: AuthData) => {
-    if (!isAuthData(authRes)) {
+  private readonly _saveValidAuthDataAndGetUserOrThrow = (authData: AuthData) => {
+    if (!isAuthData(authData)) {
       throw new HttpErrorResponse({ status: 500, statusText: 'malformed server response' });
     }
-    const user = authRes.user;
-    this._setAuthData(authRes);
-    this.userUpdated.next(user);
+    const user = authData.user;
+    this._setAuthData(authData);
+    if (this._socket) {
+      this._socket.removeAllListeners();
+      this._socket.disconnect();
+    }
+    this._socket = io(environment.backendUrl, { auth: authData });
+    this._socket.on('connect_error', () => {
+      if (this._socket && !this._socket.active && this.user()) this._socket.connect();
+    });
+    this.userUpdated.next({ ...user, socket: this._socket });
     return user;
   };
 
@@ -76,8 +87,12 @@ export class Auth {
     switchMap((authData) => (authData ? of(true) : this._verify())),
   );
 
-  readonly userUpdated = new Subject<AuthData['user']>();
+  readonly userUpdated = new Subject<AuthData['user'] & { socket: Socket }>();
   readonly userSignedOut = new Subject<null>();
+
+  get socket() {
+    return this._socket;
+  }
 
   constructor() {
     let initialized = false;
@@ -119,6 +134,10 @@ export class Auth {
 
   signOut() {
     this._setAuthData(null);
+    if (this._socket) {
+      this._socket.disconnect();
+      this._socket = null;
+    }
     this.userSignedOut.next(null);
   }
 

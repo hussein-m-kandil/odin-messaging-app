@@ -43,6 +43,13 @@ export class Chats extends ListStore<Chat> {
     super.reset();
   }
 
+  constructor() {
+    super();
+    this._auth.userUpdated.subscribe(({ socket }) => {
+      socket.on('chats:updated', () => this.updateChats());
+    });
+  }
+
   activate(chat: Chat) {
     this.activatedChat.set(chat);
     this.updateChatLastSeenDate(chat.id);

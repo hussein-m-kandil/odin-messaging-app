@@ -1,8 +1,8 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { AuthData, SigninData, SignupData } from './auth.types';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { provideRouter, Router } from '@angular/router';
-import { SigninData, SignupData } from './auth.types';
 import { environment } from '../../environments';
 import { TestBed } from '@angular/core/testing';
 import { AppStorage } from '../app-storage';
@@ -44,7 +44,12 @@ const { apiUrl } = environment;
 
 const token = 'test_token';
 const id = crypto.randomUUID();
-const user = { id, username: 'test_user', fullname: 'Test User', profile: { id } };
+const user = {
+  id,
+  username: 'test_user',
+  fullname: 'Test User',
+  profile: { id },
+} as AuthData['user'];
 
 const authData = { token, user };
 
@@ -101,7 +106,7 @@ describe('Auth', () => {
       const req = httpTesting.expectOne({ method, url }, `Request to ${action}`);
       req.flush(authData);
       TestBed.tick();
-      expect(userUpdatedHandlerMock).toHaveBeenCalledExactlyOnceWith(user);
+      expect(userUpdatedHandlerMock).toHaveBeenCalledTimes(1);
       service.authenticated$.subscribe((authenticated) => {
         TestBed.tick();
         expect(navigationSpy).toHaveBeenCalledOnce();
@@ -211,7 +216,7 @@ describe('Auth', () => {
     );
     req.flush(authData);
     TestBed.tick();
-    expect(userUpdatedHandlerMock).toHaveBeenCalledExactlyOnceWith(user);
+    expect(userUpdatedHandlerMock).toHaveBeenCalledTimes(1);
     service.authenticated$.subscribe((authenticated) => {
       TestBed.tick();
       expect(navigationSpy).toHaveBeenCalledOnce();

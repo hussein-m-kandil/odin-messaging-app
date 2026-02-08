@@ -68,7 +68,7 @@ const chatsUrl = `${apiUrl}/chats`;
 
 const message = { id: crypto.randomUUID(), body: 'Hi!', chatId: chat.id } as Message;
 
-const authMock = { user: vi.fn(() => user) };
+const authMock = { user: vi.fn(() => user), userUpdated: { subscribe: vi.fn() } };
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
 
