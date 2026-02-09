@@ -43,6 +43,5 @@ export class ChatList implements OnChanges {
 
   ngOnChanges() {
     if (this.chats.list().length < 1) this.chats.load();
-    else this.chats.updateChats();
   }
 }

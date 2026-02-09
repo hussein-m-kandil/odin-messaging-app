@@ -86,7 +86,7 @@ const renderComponent = ({
 describe('ChatList', () => {
   afterEach(vi.resetAllMocks);
 
-  it('should load the chats on every render if the chat list is empty', async () => {
+  it('should load the chats, and not update it', async () => {
     chatsMock.list.mockImplementation(() => []);
     const { rerender } = await renderComponent();
     await rerender({ partialUpdate: true });
@@ -95,13 +95,13 @@ describe('ChatList', () => {
     expect(chatsMock.updateChats).toHaveBeenCalledTimes(0);
   });
 
-  it('should update the chats on every render if the chat list is not empty', async () => {
+  it('should not load/update the chats', async () => {
     chatsMock.list.mockImplementation(() => chats);
     const { rerender } = await renderComponent();
     await rerender({ partialUpdate: true });
     await rerender({ partialUpdate: true });
     expect(chatsMock.load).toHaveBeenCalledTimes(0);
-    expect(chatsMock.updateChats).toHaveBeenCalledTimes(3);
+    expect(chatsMock.updateChats).toHaveBeenCalledTimes(0);
   });
 
   it('should display a list of named chats', async () => {

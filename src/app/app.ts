@@ -35,10 +35,7 @@ import { filter } from 'rxjs';
   ],
   templateUrl: './app.html',
   providers: [MessageService],
-  host: {
-    '(window:resize)': 'handleWindowResize()',
-    '(window:focus)': 'handleWindowFocus()',
-  },
+  host: { '(window:resize)': 'handleWindowResize()' },
 })
 export class App implements OnInit {
   private readonly _profiles = inject(Profiles);
@@ -98,10 +95,6 @@ export class App implements OnInit {
 
   protected handleWindowResize() {
     this.vpWidth.set(window.innerWidth);
-  }
-
-  protected handleWindowFocus() {
-    if (this.auth.user()) this._chats.refresh();
   }
 
   ngOnInit() {

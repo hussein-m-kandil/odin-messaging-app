@@ -91,7 +91,11 @@ export class Chats extends ListStore<Chat> {
 
   updateChats() {
     const limit = this.list().length;
-    if (!this._updateSubscription && limit) {
+    this._updateSubscription?.unsubscribe();
+    if (!limit) {
+      this.load();
+      this._updateSubscription = null;
+    } else {
       this._updateSubscription = this._http
         .get<Chat[]>(this.baseUrl, { params: { limit } })
         .pipe(
@@ -102,11 +106,12 @@ export class Chats extends ListStore<Chat> {
           // No need for next/error blocks, because any error will be caught and get here as a null
           this._updateSubscription = null;
           if (newChats && newChats.length) {
+            let activeChatReceivedNewMessages = false;
             const oldChats = this.list();
+            const activatedChat = this.activatedChat();
             const extraChats = newChats.filter((nc) => !oldChats.some((oc) => oc.id === nc.id));
             const updatedChats = oldChats.map((oldChat) => {
               const updatedChat = newChats.find((newChat) => newChat.id === oldChat.id);
-              const activatedChat = this.activatedChat();
               if (updatedChat && activatedChat && updatedChat.id === activatedChat.id) {
                 const updatedActivatedChat = {
                   ...updatedChat,
@@ -115,6 +120,8 @@ export class Chats extends ListStore<Chat> {
                     (msg) => msg.createdAt,
                   ),
                 };
+                activeChatReceivedNewMessages =
+                  updatedActivatedChat.messages[0]?.id !== activatedChat.messages[0]?.id;
                 this.activatedChat.set(updatedActivatedChat);
                 return updatedActivatedChat;
               }
@@ -126,7 +133,11 @@ export class Chats extends ListStore<Chat> {
                 (chat) => chat.updatedAt,
               ),
             );
-            if (extraChats.length) this.updateChats(); // Update again with the extended limit
+            if (extraChats.length) {
+              this.updateChats(); // Update again with the extended limit
+            } else if (activatedChat && activeChatReceivedNewMessages) {
+              this.updateChatLastSeenDate(activatedChat.id);
+            }
           }
         });
     }
@@ -163,7 +174,6 @@ export class Chats extends ListStore<Chat> {
             );
             this.activatedChat.update((chat) => chat && update(chat, user.username, lastSeenAt));
           }
-          this.updateChats();
         });
     }
   }
@@ -197,8 +207,7 @@ export class Chats extends ListStore<Chat> {
             (chat) => chat.updatedAt,
           ),
         );
-        if (active) this.activatedChat.set(updatedChat);
-        this.updateChats();
+        if (active) this.activate(updatedChat);
       }
     }
     return updated;
@@ -211,9 +220,14 @@ export class Chats extends ListStore<Chat> {
       .pipe(
         tap((event) => {
           if (event.type === HttpEventType.Response && event.body) {
+            this._auth.socket?.once('chats:received', () => this.updateChats());
             const createdChat = event.body;
-            this.reset();
-            this.load();
+            this.list.update((chats) =>
+              sortByDate(
+                mergeDistinctBy([createdChat], chats, (chat) => chat.id),
+                (chat) => chat.updatedAt,
+              ),
+            );
             this._router.navigate(['/chats', createdChat.id], { state: { chat: createdChat } });
           }
         }),
@@ -231,6 +245,7 @@ export class Chats extends ListStore<Chat> {
         takeUntilDestroyed(this._destroyRef),
         tap((event) => {
           if (event.type === HttpEventType.Response && event.body) {
+            this._auth.socket?.once('chats:received', () => this.updateChats());
             this.updateMessages([event.body]);
           }
         }),
@@ -269,11 +284,5 @@ export class Chats extends ListStore<Chat> {
       );
     }
     return false;
-  }
-
-  refresh() {
-    const activatedChat = this.activatedChat();
-    if (activatedChat) this.activate(activatedChat);
-    else this.updateChats();
   }
 }

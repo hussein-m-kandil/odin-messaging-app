@@ -133,10 +133,6 @@ describe('Chats', () => {
     req.flush(lastSeenAt);
     expect(service.activatedChat()).toStrictEqual(expectedChats[0]);
     expect(service.list()).toStrictEqual(expectedChats);
-    httpTesting.expectOne(
-      { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
-      'Request to update chats',
-    );
     httpTesting.verify();
   });
 
@@ -152,10 +148,6 @@ describe('Chats', () => {
     req.error(new ProgressEvent('Network error'));
     expect(service.activatedChat()).toStrictEqual(chat);
     expect(service.list()).toStrictEqual([chat]);
-    httpTesting.expectOne(
-      { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
-      'Request to update chats with the current limit',
-    );
     httpTesting.verify();
   });
 
@@ -171,30 +163,7 @@ describe('Chats', () => {
     req.flush('Failed', { status: 500, statusText: 'Internal server error' });
     expect(service.activatedChat()).toStrictEqual(chat);
     expect(service.list()).toStrictEqual([chat]);
-    httpTesting.expectOne(
-      { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
-      'Request to update chats with the current limit',
-    );
     httpTesting.verify();
-  });
-
-  it('should reactivate the active chat on refresh', () => {
-    const { service } = setup();
-    service.activate(chat);
-    const activateSpy = vi.spyOn(service, 'activate');
-    const updateChatsSpy = vi.spyOn(service, 'updateChats');
-    service.refresh();
-    expect(activateSpy).toHaveBeenCalledExactlyOnceWith(chat);
-    expect(updateChatsSpy).toHaveBeenCalledTimes(0);
-  });
-
-  it('should only update the chats on refresh, if there is no an active chat', () => {
-    const { service } = setup();
-    const activateSpy = vi.spyOn(service, 'activate');
-    const updateChatsSpy = vi.spyOn(service, 'updateChats');
-    service.refresh();
-    expect(updateChatsSpy).toHaveBeenCalledExactlyOnceWith();
-    expect(activateSpy).toHaveBeenCalledTimes(0);
   });
 
   it('should update and sort the activated chat messages, without duplications, and return `true`', () => {
@@ -410,13 +379,13 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should do nothing if the current chat list is empty', () => {
+  it('should load if the current chat list is empty', () => {
     const { service, httpTesting } = setup();
-    const initialList = service.list();
     service.updateChats();
-    httpTesting.expectNone('Request to load chats');
-    expect(service.list()).toStrictEqual(initialList);
-    expect(service.list()).toHaveLength(0);
+    const req = httpTesting.expectOne({ method: 'GET', url: chatsUrl }, 'Request to get the chats');
+    const chats = [chat];
+    req.flush(chats);
+    expect(service.list()).toStrictEqual(chats);
     httpTesting.verify();
   });
 
@@ -440,7 +409,11 @@ describe('Chats', () => {
     service.activatedChat.set(chats[0]);
     service.list.set(chats);
     service.updateChats();
-    service.updateChats(); // Assert that it does not trigger a new update while updating
+    const req1 = httpTesting.expectOne(
+      { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
+      'Request to update chats',
+    );
+    service.updateChats(); // The previous one must be canceled
     const req = httpTesting.expectOne(
       { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
       'Request to update chats',
@@ -480,6 +453,11 @@ describe('Chats', () => {
     ]);
     expect(service.activatedChat()).toStrictEqual(expectedChats[0]);
     expect(service.list()).toStrictEqual(expectedChats);
+    expect(req1.cancelled).toBe(true);
+    httpTesting.expectOne(
+      { method: 'PATCH', url: `${chatsUrl}/${service.activatedChat()!.id}/seen` },
+      'Request to mark active chat as seen',
+    );
     httpTesting.verify();
   });
 
@@ -541,10 +519,15 @@ describe('Chats', () => {
         ],
       },
     ];
+    const chats = [chat2, chat1];
     service.activatedChat.set(chat1);
-    service.list.set([chat2, chat1]);
+    service.list.set(chats);
     service.updateChats();
-    service.updateChats(); // Assert that it does not trigger a new update while updating
+    const req1 = httpTesting.expectOne(
+      { method: 'GET', url: `${chatsUrl}?limit=${chats.length}` },
+      'Request to update chats',
+    );
+    service.updateChats(); // The previous one must be canceled
     httpTesting
       .expectOne(
         { method: 'GET', url: `${chatsUrl}?limit=${2}` },
@@ -573,6 +556,7 @@ describe('Chats', () => {
       );
     expect(service.activatedChat()).toStrictEqual(expectedChats[3]);
     expect(service.list()).toStrictEqual(expectedChats);
+    expect(req1.cancelled).toBe(true);
     httpTesting.verify();
   });
 
@@ -650,8 +634,9 @@ describe('Chats', () => {
     httpTesting.verify();
   });
 
-  it('should create a chat, then reload the chats', () => {
+  it('should create a chat', () => {
     const { service, httpTesting } = setup();
+    service.list.set([chat, chat]); // Should be deduped after a chat creation
     const newChatData = { profiles: [crypto.randomUUID()], message: { body: 'Hello!' } };
     let res, errRes;
     service
@@ -662,21 +647,24 @@ describe('Chats', () => {
       'Request to create a chat',
     );
     const reqBody = req.request.body as FormData;
-    req.flush(chat);
+    const createdChat = { ...chat, id: crypto.randomUUID() };
+    req.flush(createdChat);
     expect(reqBody).toBeInstanceOf(FormData);
     expect(Object.fromEntries(reqBody.entries())).toStrictEqual({
       'message[body]': newChatData.message.body,
       'profiles[0]': newChatData.profiles[0],
     });
-    expect(res).toBeInstanceOf(HttpResponse);
-    expect(res).toHaveProperty('body', chat);
     expect(errRes).toBeUndefined();
-    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id], { state: { chat } });
-    httpTesting.expectOne({ method: 'GET', url: chatsUrl }, 'Request to reload chats');
+    expect(res).toBeInstanceOf(HttpResponse);
+    expect(res).toHaveProperty('body', createdChat);
+    expect(service.list()).toStrictEqual([createdChat, chat]);
+    expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', createdChat.id], {
+      state: { chat: createdChat },
+    });
     httpTesting.verify();
   });
 
-  it('should create a chat with image message, then reload the chats', () => {
+  it('should create a chat with image message', () => {
     const { service, httpTesting } = setup();
     const newChatData = {
       profiles: [crypto.randomUUID()],
@@ -704,8 +692,8 @@ describe('Chats', () => {
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', chat);
     expect(errRes).toBeUndefined();
+    expect(service.list()).toStrictEqual([chat]);
     expect(navigationSpy).toHaveBeenCalledExactlyOnceWith(['/chats', chat.id], { state: { chat } });
-    httpTesting.expectOne({ method: 'GET', url: chatsUrl }, 'Request to reload chats');
     httpTesting.verify();
   });
 
@@ -1152,8 +1140,8 @@ describe('Chats', () => {
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', createdMessage);
     httpTesting.expectOne(
-      { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
-      'Request to update chats with the current limit',
+      { method: 'PATCH', url: `${chatsUrl}/${service.activatedChat()!.id}/seen` },
+      'Request to mark active chat as seen',
     );
     httpTesting.verify();
   });
@@ -1196,8 +1184,8 @@ describe('Chats', () => {
     expect(res).toBeInstanceOf(HttpResponse);
     expect(res).toHaveProperty('body', createdMessage);
     httpTesting.expectOne(
-      { method: 'GET', url: `${chatsUrl}?limit=${service.list().length}` },
-      'Request to update chats with the current limit',
+      { method: 'PATCH', url: `${chatsUrl}/${service.activatedChat()!.id}/seen` },
+      'Request to mark active chat as seen',
     );
     httpTesting.verify();
   });
