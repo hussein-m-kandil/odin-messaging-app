@@ -86,4 +86,8 @@ export class Profiles extends ListStore<Profile> {
     const currentUser = this._auth.user();
     return !!currentUser && currentUser.profile.id === id;
   }
+
+  isOnline(id: Profile['id']) {
+    return this._http.get<boolean>(`${this.baseUrl}/${id}/online`);
+  }
 }

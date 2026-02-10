@@ -421,4 +421,18 @@ describe('Profiles', () => {
     expect(res).toBeUndefined();
     httpTesting.verify();
   });
+
+  it('should get the profile online-status', () => {
+    const { service, httpTesting } = setup();
+    let result!: boolean;
+    service.isOnline(profile.id).subscribe((res) => (result = res));
+    httpTesting
+      .expectOne(
+        { method: 'GET', url: `${profilesUrl}/${profile.id}/online` },
+        'Request to get online status',
+      )
+      .flush(true);
+    expect(result).toBe(true);
+    httpTesting.verify();
+  });
 });
