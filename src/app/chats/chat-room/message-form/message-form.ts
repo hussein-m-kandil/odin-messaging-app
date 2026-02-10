@@ -71,6 +71,7 @@ export class MessageForm implements OnInit {
     messageInput.focus();
     messageInput.selectionEnd = nextInsertionIndex;
     messageInput.selectionStart = nextInsertionIndex;
+    messageInput.blur();
   }
 
   protected reset() {
