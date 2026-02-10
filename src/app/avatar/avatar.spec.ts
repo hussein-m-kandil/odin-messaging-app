@@ -1,17 +1,40 @@
 import { render, RenderComponentOptions, screen } from '@testing-library/angular';
-import { Profile } from '../app.types';
+import { ProfileBase, User } from '../app.types';
+import { Profiles } from '../profiles';
 import { Avatar } from './avatar';
+import { Auth } from '../auth';
+import { of } from 'rxjs';
 
 const updatedAt = new Date(Date.now() + 777).toISOString();
 const user = {
   username: 'test_username',
   avatar: { image: { src: 'img.png', alt: 'user_image', updatedAt } },
-} as Profile['user'];
+} as User;
+
+const profile: ProfileBase = {
+  lastSeen: new Date().toDateString(),
+  followedByCurrentUser: true,
+  id: crypto.randomUUID(),
+  tangible: true,
+  visible: true,
+};
 
 const mockUser = vi.fn(() => user);
 
-const renderComponent = ({ inputs, ...options }: RenderComponentOptions<Avatar> = {}) => {
+const authMock = { socket: { on: vi.fn(), removeListener: vi.fn() } };
+const profilesMock = { isCurrentProfile: vi.fn(() => false), isOnline: vi.fn(() => of(true)) };
+
+const renderComponent = ({
+  providers,
+  inputs,
+  ...options
+}: RenderComponentOptions<Avatar> = {}) => {
   return render(Avatar, {
+    providers: [
+      { provide: Profiles, useValue: profilesMock },
+      { provide: Auth, useValue: authMock },
+      ...(providers || []),
+    ],
     inputs: { user: mockUser(), ...inputs },
     autoDetectChanges: false,
     ...options,
@@ -106,5 +129,98 @@ describe('Avatar', () => {
       sizes.push(currSize);
     }
     expect(sizes).toHaveLength(sizeValues.length);
+  });
+
+  it('should not display online status for the current profile', async () => {
+    profilesMock.isCurrentProfile.mockImplementation(() => true);
+    profilesMock.isOnline.mockImplementation(() => of(true));
+    await renderComponent();
+    expect(screen.queryByLabelText(/online/i)).toBeNull();
+  });
+
+  it('should not display online status if not online', async () => {
+    profilesMock.isCurrentProfile.mockImplementation(() => false);
+    profilesMock.isOnline.mockImplementation(() => of(false));
+    await renderComponent();
+    expect(screen.queryByLabelText(/online/i)).toBeNull();
+  });
+
+  it('should not display online status if not given a profile', async () => {
+    profilesMock.isCurrentProfile.mockImplementation(() => false);
+    profilesMock.isOnline.mockImplementation(() => of(true));
+    await renderComponent({ inputs: { profile: undefined } });
+    expect(screen.queryByLabelText(/online/i)).toBeNull();
+  });
+
+  it('should not display online status if given `null` as the profile', async () => {
+    profilesMock.isCurrentProfile.mockImplementation(() => false);
+    profilesMock.isOnline.mockImplementation(() => of(true));
+    await renderComponent({ inputs: { profile: null } });
+    expect(screen.queryByLabelText(/online/i)).toBeNull();
+  });
+
+  it('should not display online status if the profile is invisible', async () => {
+    profilesMock.isCurrentProfile.mockImplementation(() => false);
+    profilesMock.isOnline.mockImplementation(() => of(true));
+    await renderComponent({ inputs: { profile: { ...profile, visible: false } } });
+    expect(screen.queryByLabelText(/online/i)).toBeNull();
+  });
+
+  it('should display online status', async () => {
+    profilesMock.isCurrentProfile.mockImplementation(() => false);
+    profilesMock.isOnline.mockImplementation(() => of(true));
+    await renderComponent({ inputs: { profile } });
+    expect(screen.getByLabelText(/online/i)).toBeVisible();
+  });
+
+  it('should display online status after `online` event emitted from the socket', async () => {
+    let callback!: () => void;
+    authMock.socket.on.mockImplementation((event: string, cb: () => void) => {
+      if (event === `online:${profile.id}`) callback = cb;
+    });
+    profilesMock.isCurrentProfile.mockImplementation(() => false);
+    profilesMock.isOnline.mockImplementation(() => of(false));
+    const { detectChanges } = await renderComponent({ inputs: { profile } });
+    callback();
+    detectChanges();
+    expect(screen.getByLabelText(/online/i)).toBeVisible();
+  });
+
+  it('should not display online status after `offline` event emitted from the socket', async () => {
+    let callback!: () => void;
+    authMock.socket.on.mockImplementation((event: string, cb: () => void) => {
+      if (event === `offline:${profile.id}`) callback = cb;
+    });
+    profilesMock.isCurrentProfile.mockImplementation(() => false);
+    profilesMock.isOnline.mockImplementation(() => of(true));
+    const { detectChanges } = await renderComponent({ inputs: { profile } });
+    expect(authMock.socket.removeListener).toHaveBeenCalledTimes(2);
+    expect(authMock.socket.on).toHaveBeenCalledTimes(2);
+    authMock.socket.removeListener.mockClear();
+    authMock.socket.on.mockClear();
+    callback();
+    detectChanges();
+    expect(screen.queryByLabelText(/online/i)).toBeNull();
+    expect(authMock.socket.on).toHaveBeenCalledTimes(0);
+    expect(authMock.socket.removeListener).toHaveBeenCalledTimes(0);
+  });
+
+  it('should remove online-status listeners on profile-change', async () => {
+    profilesMock.isOnline.mockImplementation(() => of(true));
+    profilesMock.isCurrentProfile.mockImplementation(() => false);
+    const { rerender } = await renderComponent({ inputs: { profile } });
+    expect(authMock.socket.removeListener).toHaveBeenCalledTimes(2);
+    expect(screen.getByLabelText(/online/i)).toBeVisible();
+    expect(authMock.socket.on).toHaveBeenCalledTimes(2);
+    authMock.socket.on.mockClear();
+    authMock.socket.removeListener.mockClear();
+    profilesMock.isOnline.mockImplementation(() => of(false));
+    await rerender({
+      inputs: { profile: { ...profile, id: crypto.randomUUID() } },
+      partialUpdate: true,
+    });
+    expect(authMock.socket.on).toHaveBeenCalledTimes(2);
+    expect(screen.queryByLabelText(/online/i)).toBeNull();
+    expect(authMock.socket.removeListener).toHaveBeenCalledTimes(2);
   });
 });

@@ -2,11 +2,15 @@
 <ng-template #li let-_chat>
   @let _title = chats.generateTitle(_chat, _user);
   @let _otherMembers = chats.getOtherProfiles(_chat, _user);
-  @let _member = _otherMembers[0]?.profile?.user || { username: _otherMembers[0]?.profileName };
+  @let _member = _otherMembers[0] ? {
+  user: _otherMembers[0].profile?.user || { username: _otherMembers[0].profileName },
+  profile: _otherMembers[0].profile,
+  } : { user: {}, profile: null };
   <a pRipple [title]="_title" ariaCurrentWhenActive="page" routerLinkActive="bg-highlight"
      [routerLink]="['/chats', _chat.id]" [routerLinkActiveOptions]="{ exact: true }"
      class="block leading-tight w-full p-2 py-3 border-surface border-b **:align-middle">
-    <app-avatar [user]="_member" size="sm" class="text-center size-12 me-2" />
+    <app-avatar [user]="_member.user" [profile]="_member.profile" size="sm"
+                class="text-center size-12 me-2" />
     <!-- ** NOTE: The following calculated widths are dependent ** -->
     <span class="inline-block w-[calc(100%-4rem)]">
       @let _newMessagesCount = countNewMessages(_chat);

@@ -1,20 +1,27 @@
 @let _user = user(); @let _username = _user.username; @let _img = _user.avatar?.image;
 @let _size = size(); @let _xs = _size === 'xs'; @let _sm = _size === 'sm';
 @let _md = _size === 'md'; @let _lg = _size === 'lg'; @let _xl = _size === 'xl';
-<span class="bg-zinc-200 dark:bg-zinc-700 text-muted-color-emphasis inline-block rounded-full overflow-hidden"
+<span aria-atomic="true" class="relative inline-block"
       [class]="{ 'size-6': _xs, 'size-10': _sm, 'size-16': _md, 'size-26': _lg, 'size-36': _xl, }">
-  @if (_img) {
-  <app-image [preview]="preview()" [src]="getUpdatedImgSrc()" [alt]="_username"
-             imageClass="size-full" />
-  } @else {
-  <span role="img" aria-label="{{ _username || 'Anonymous user' }}"
-        class="inline-block size-full relative *:absolute *:top-1/2 *:left-1/2 *:transform-[translate(-50%,-50%)]"
-        [class]="{ 'text-sm': _xs, 'text-2xl': _sm, 'text-4xl': _md, 'text-6xl': _lg, 'text-8xl': _xl, }">
-    @if (_username) {
-    <span>{{ _username[0].toUpperCase() }}</span>
+  <span
+        class="size-full bg-zinc-200 dark:bg-zinc-700 text-muted-color-emphasis inline-block rounded-full overflow-hidden">
+    @if (_img) {
+    <app-image [preview]="preview()" [src]="getUpdatedImgSrc()" [alt]="_username"
+               imageClass="size-full" />
     } @else {
-    <span class="pi pi-user text-[0.7em]"></span>
+    <span role="img" aria-label="{{ _username || 'Anonymous user' }}"
+          class="inline-block size-full relative *:absolute *:top-1/2 *:left-1/2 *:transform-[translate(-50%,-50%)]"
+          [class]="{ 'text-sm': _xs, 'text-2xl': _sm, 'text-4xl': _md, 'text-6xl': _lg, 'text-8xl': _xl, }">
+      @if (_username) {
+      <span>{{ _username[0].toUpperCase() }}</span>
+      } @else {
+      <span class="pi pi-user text-[0.7em]"></span>
+      }
+    </span>
     }
   </span>
+  @if (online()) {
+  <span aria-label="online"
+        class="absolute bottom-1/12 right-1/12 size-1/6 rounded-full bg-green-500"></span>
   }
 </span>

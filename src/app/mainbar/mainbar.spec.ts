@@ -5,8 +5,10 @@ import { environment } from '../../environments';
 import { SingularView } from './singular-view';
 import { MessageService } from 'primeng/api';
 import { Router } from '@angular/router';
+import { Profiles } from '../profiles';
 import { Mainbar } from './mainbar';
 import { Auth } from '../auth';
+import { of } from 'rxjs';
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigateByUrl');
 
@@ -26,13 +28,15 @@ const singularViewMock = {
   toggle: vi.fn(),
 };
 
-const authMock = { user: vi.fn(() => user as unknown), signOut: vi.fn() };
+const authMock = { user: vi.fn(() => user as unknown), signOut: vi.fn(), socket: { on: vi.fn() } };
 
 const colorSchemeMock = {
   selectedScheme: vi.fn(() => SCHEMES[1] as unknown),
   switch: vi.fn(),
   select: vi.fn(),
 };
+
+const profilesMock = { isCurrentProfile: vi.fn(() => false), isOnline: vi.fn(() => of(false)) };
 
 const renderComponent = ({
   providers,
@@ -43,6 +47,7 @@ const renderComponent = ({
     providers: [
       MessageService,
       { provide: Auth, useValue: authMock },
+      { provide: Profiles, useValue: profilesMock },
       { provide: ColorScheme, useValue: colorSchemeMock },
       { provide: SingularView, useValue: singularViewMock },
       ...(providers || []),

@@ -13,6 +13,7 @@ const profilesMock = {
   loadError: vi.fn(() => ''),
   loading: vi.fn(() => false),
   hasMore: vi.fn(() => false),
+  isCurrentProfile: vi.fn(() => false),
   list: vi.fn<() => unknown[]>(() => []),
   searchValue: { set: vi.fn() },
   path: { set: vi.fn() },

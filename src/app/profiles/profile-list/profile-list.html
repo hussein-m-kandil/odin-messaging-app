@@ -3,7 +3,7 @@
      [title]="_profile.user.username" [routerLink]="['/profiles', _profile.user.username]"
      [routerLinkActiveOptions]="{ exact: true }"
      class="block leading-tight w-full px-2 py-3 border-surface border-b **:align-middle">
-    <app-avatar [user]="_profile.user" size="sm" class="me-2 text-center" />
+    <app-avatar [user]="_profile.user" [profile]="_profile" size="sm" class="me-2 text-center" />
     <span class="inline-block font-semibold tracking-wider truncate">
       {{ _profile.user.username || 'Anonymous' }}
     </span>
