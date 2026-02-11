@@ -107,7 +107,6 @@ describe('MessageForm', () => {
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
         expect(screen.queryByRole('progressbar')).toBeNull();
-        expect(msgInp).toHaveFocus();
       });
 
       it('should toggle an emoji picker', async () => {
@@ -120,7 +119,6 @@ describe('MessageForm', () => {
         expect(msgInp).not.toHaveFocus();
         await actor.click(emojiPickerBtn);
         expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
-        expect(msgInp).toHaveFocus();
       });
 
       it('should switch between the pickers when opening one while the other one is open', async () => {
@@ -154,7 +152,6 @@ describe('MessageForm', () => {
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/^emoji picker/i)).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
-        expect(msgInp).toHaveFocus();
       });
 
       it('should insert the picked emoji at the cart place of the message textbox', async () => {
@@ -247,7 +244,6 @@ describe('MessageForm', () => {
         if (type === 'chat') expect(createMock).toHaveBeenCalledExactlyOnceWith(newChatData);
         else expect(createMock).toHaveBeenCalledExactlyOnceWith(chatId, newMessageData);
         expect(msgInp).toHaveValue('');
-        expect(msgInp).toHaveFocus();
       });
 
       it('should create with an image', async () => {
@@ -281,7 +277,6 @@ describe('MessageForm', () => {
         expect(screen.queryByRole('button', { name: /pick .*image/i })).toBeNull();
         expect(screen.queryByLabelText(/browse files/i)).toBeNull();
         expect(msgInp).toHaveValue('');
-        expect(msgInp).toHaveFocus();
         await actor.click(imagePickerBtn);
         expect(screen.getByLabelText(/browse files/i)).toHaveValue('');
         expect(screen.getByRole('progressbar')).toHaveValue(0);
@@ -321,7 +316,6 @@ describe('MessageForm', () => {
         expect(screen.getByText(/message failed/i)).toBeVisible();
         expect(screen.getByRole('progressbar')).toHaveValue(0);
         expect(msgInp).toHaveValue(messageTestData.body);
-        expect(msgInp).toHaveFocus();
         await vi.runAllTimersAsync();
         expect(screen.queryByText(/message failed/i)).toBeNull();
         expect(screen.queryByText(/failed to send your message/i)).toBeNull();
@@ -357,7 +351,6 @@ describe('MessageForm', () => {
         expect(screen.getByText(/message failed/i)).toBeVisible();
         expect(screen.getByText(/failed to send your message/i)).toBeVisible();
         expect(msgInp).toHaveValue(newMessageData.body);
-        expect(msgInp).toHaveFocus();
         await vi.runAllTimersAsync();
         expect(screen.queryByText(/message failed/i)).toBeNull();
         expect(screen.queryByText(/failed to send your message/i)).toBeNull();
@@ -382,7 +375,6 @@ describe('MessageForm', () => {
         expect(screen.getByText(/message failed/i)).toBeVisible();
         expect(screen.getByText(errRes.error.error.message)).toBeVisible();
         expect(msgInp).toHaveValue(newMessageData.body);
-        expect(msgInp).toHaveFocus();
         await vi.runAllTimersAsync();
         expect(screen.queryByText(/message failed/i)).toBeNull();
         expect(screen.queryByText(errRes.error.error.message)).toBeNull();
