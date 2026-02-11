@@ -1,9 +1,11 @@
 import { render, RenderComponentOptions, screen } from '@testing-library/angular';
 import { Profile, User } from '../../app.types';
+import { DatePipe } from '@angular/common';
 import { ChatList } from './chat-list';
 import { Chat } from '../chats.types';
+import { Auth } from '../../auth';
+import { Observable } from 'rxjs';
 import { Chats } from '../chats';
-import { DatePipe } from '@angular/common';
 
 const chatsMock = {
   load: vi.fn(),
@@ -70,14 +72,15 @@ const chats = [
   { ...chat, id: crypto.randomUUID(), messages: [{ body: 'Bye!' }] },
 ];
 
-const renderComponent = ({
-  providers,
-  inputs,
-  ...options
-}: RenderComponentOptions<ChatList> = {}) => {
+const authMock = { user: vi.fn(() => user), userUpdated: new Observable() };
+
+const renderComponent = ({ providers, ...options }: RenderComponentOptions<ChatList> = {}) => {
   return render(ChatList, {
-    providers: [{ provide: Chats, useValue: chatsMock }, ...(providers || [])],
-    inputs: { user, ...inputs },
+    providers: [
+      { provide: Chats, useValue: chatsMock },
+      { provide: Auth, useValue: authMock },
+      ...(providers || []),
+    ],
     autoDetectChanges: false,
     ...options,
   });
@@ -88,10 +91,8 @@ describe('ChatList', () => {
 
   it('should load the chats, and not update it', async () => {
     chatsMock.list.mockImplementation(() => []);
-    const { rerender } = await renderComponent();
-    await rerender({ partialUpdate: true });
-    await rerender({ partialUpdate: true });
-    expect(chatsMock.load).toHaveBeenCalledTimes(3);
+    await renderComponent();
+    expect(chatsMock.load).toHaveBeenCalledTimes(1);
     expect(chatsMock.updateChats).toHaveBeenCalledTimes(0);
   });
 
