@@ -23,6 +23,7 @@ import { Profile } from '../../app.types';
 import { Ripple } from 'primeng/ripple';
 import { Spinner } from '../../spinner';
 import { Messages } from './messages';
+import { Avatar } from '../../avatar';
 import { Chat } from '../chats.types';
 
 @Component({
@@ -38,6 +39,7 @@ import { Chat } from '../chats.types';
     PMessage,
     Spinner,
     Ripple,
+    Avatar,
     Image,
   ],
   providers: [Messages],
@@ -47,7 +49,7 @@ export class ChatRoom implements OnChanges, OnDestroy {
 
   protected readonly messages = inject(Messages);
 
-  protected readonly title = computed<{ url: string | null; label: string }>(() => {
+  protected readonly title = computed(() => {
     const createProfileUrl = (profile?: Profile | null) => {
       return profile ? `/profiles/${profile.user.username}` : null;
     };
@@ -55,12 +57,14 @@ export class ChatRoom implements OnChanges, OnDestroy {
     const chat = this.chat();
     const user = this.user();
     if (chat) {
+      const chatProfile = this.messages.chats.getOtherProfiles(chat, user)[0]?.profile;
       return {
-        url: createProfileUrl(this.messages.chats.getOtherProfiles(chat, user)[0]?.profile),
+        profile: chatProfile,
+        url: createProfileUrl(chatProfile),
         label: this.messages.chats.generateTitle(chat, user),
       };
     }
-    return { url: createProfileUrl(profile), label: profile?.user.username || 'Untitled' };
+    return { profile, url: createProfileUrl(profile), label: profile?.user.username || 'Untitled' };
   });
 
   readonly user = input.required<AuthData['user']>();

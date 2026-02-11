@@ -6,16 +6,19 @@
     <div class="size-full flex justify-between items-center">
       <a pButton pRipple text rounded outlined size="small" routerLink=".." aria-label="Go back"
          icon="pi pi-arrow-left"></a>
-      <span class="grow relative h-full">
-        <span class="absolute top-1/2 left-0 w-full transform-[translateY(-50%)] truncate text-lg text-primary text-center font-bold tracking-wider"
-              [title]="_title">
-          @if (_title.url) {
-          <a [routerLink]="_title.url">
+      <span class="grow relative h-full text-center text-primary font-bold **:align-middle">
+        <span class="absolute top-1/2 left-0 w-full transform-[translateY(-50%)] truncate">
+          <app-avatar size="2xs" [profile]="_title.profile" class="inline-block"
+                      [user]="_title.profile?.user || { username: _title.label }" />
+          <span class="text-lg tracking-wider" [title]="_title.label">
+            @if (_title.url) {
+            <a [routerLink]="_title.url">
+              {{ _title.label }}
+            </a>
+            } @else {
             {{ _title.label }}
-          </a>
-          } @else {
-          {{ _title.label }}
-          }
+            }
+          </span>
         </span>
       </span>
       <button pButton pRipple text rounded outlined size="small" type="button" aria-label="Update"
