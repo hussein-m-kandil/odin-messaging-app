@@ -24,9 +24,9 @@ export class Avatar implements OnChanges, OnDestroy {
   private readonly _profiles = inject(Profiles);
   private readonly _auth = inject(Auth);
 
+  readonly size = input<'2xs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl'>('md');
   readonly user = input.required<Partial<Pick<User, 'username' | 'avatar'>>>();
   readonly preview = input(false, { transform: booleanAttribute });
-  readonly size = input<'xs' | 'sm' | 'md' | 'lg' | 'xl'>('md');
   readonly profile = input<ProfileBase | null>();
 
   protected readonly online = signal(false);
