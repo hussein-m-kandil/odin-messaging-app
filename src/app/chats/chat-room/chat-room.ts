@@ -13,7 +13,6 @@ import {
 import { Message as PMessage } from 'primeng/message';
 import { ListLoader } from '../../list/list-loader';
 import { ErrorMessage } from '../../error-message';
-import { AuthData } from '../../auth/auth.types';
 import { ButtonDirective } from 'primeng/button';
 import { MessageForm } from './message-form';
 import { RouterLink } from '@angular/router';
@@ -25,6 +24,7 @@ import { Spinner } from '../../spinner';
 import { Messages } from './messages';
 import { Avatar } from '../../avatar';
 import { Chat } from '../chats.types';
+import { Auth } from '../../auth';
 
 @Component({
   templateUrl: './chat-room.html',
@@ -48,6 +48,7 @@ export class ChatRoom implements OnChanges, OnDestroy {
   private readonly _messagesContainer = viewChild<ElementRef<HTMLDivElement>>('messagesContainer');
 
   protected readonly messages = inject(Messages);
+  protected readonly auth = inject(Auth);
 
   protected readonly title = computed(() => {
     const createProfileUrl = (profile?: Profile | null) => {
@@ -66,7 +67,6 @@ export class ChatRoom implements OnChanges, OnDestroy {
     return { profile, url: createProfileUrl(profile), label: profile?.user.username || 'Untitled' };
   });
 
-  readonly user = input.required<AuthData['user']>();
   readonly chat = input.required<Chat | null>();
   readonly profile = input<Profile | null>();
   readonly profileId = input<string>();

@@ -1,4 +1,4 @@
-@let _user = user(); @let _title = title();
+@let _title = title();
 @let _chat = chat(); @let _profile = profile();
 @let _chatId = _chat?.id || chatId(); @let _profileId = _profile?.id || profileId();
 <div class="relative size-full overflow-auto flex flex-col" [aria-label]="`${_title} chat room`">
@@ -37,7 +37,7 @@
         }
         @let _messages = messages.list();
         @for (_msg of _messages; track _msg.id) {
-        @let _fromCurrentUser = _msg.profileName === _user.username;
+        @let _fromCurrentUser = _msg.profileName === auth.user()?.username;
         @if (_msg.body || _msg.image) {
         <article aria-label="Message from {{_msg.profileName}}" aria-atomic="true"
                  [class]="_fromCurrentUser ? 'ms-auto ps-12' : 'me-auto pe-12'">

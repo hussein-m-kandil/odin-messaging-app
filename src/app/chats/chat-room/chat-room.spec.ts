@@ -9,6 +9,7 @@ import { Router } from '@angular/router';
 import { ChatRoom } from './chat-room';
 import { Observable, of } from 'rxjs';
 import { Messages } from './messages';
+import { Auth } from '../../auth';
 
 const user = { id: crypto.randomUUID(), username: 'test_user_1' } as User;
 const profile = { id: crypto.randomUUID() } as Profile;
@@ -102,6 +103,8 @@ const messagesMock = {
 
 const profilesMock = { list: vi.fn<() => unknown[]>(() => []) };
 
+const authMock = { user: vi.fn(() => user), userUpdated: new Observable() };
+
 const renderComponent = ({
   componentProviders,
   providers,
@@ -110,6 +113,7 @@ const renderComponent = ({
   return render(ChatRoom, {
     providers: [
       MessageService,
+      { provide: Auth, useValue: authMock },
       { provide: Profiles, useValue: profilesMock },
       ...(providers || []),
     ],
@@ -126,7 +130,7 @@ describe('ChatRoom', () => {
   afterEach(vi.resetAllMocks);
 
   it('should display a chat with messages, navbar, and message form', async () => {
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     expect(screen.getByRole('navigation')).toBeVisible();
     expect(screen.getByRole('button', { name: /update/i })).toBeVisible();
     expect(screen.getByRole('form', { name: /message/i })).toBeVisible();
@@ -149,7 +153,7 @@ describe('ChatRoom', () => {
 
   it('should display untitled chat', async () => {
     const regex = /untitled/i;
-    await renderComponent({ inputs: { user, chat: null } });
+    await renderComponent({ inputs: { chat: null } });
     expect(screen.getByText(regex)).toBeVisible();
     expect(screen.queryByRole('link', { name: regex })).toBeNull();
     expect(screen.queryByText(profile.user.username)).toBeNull();
@@ -160,7 +164,7 @@ describe('ChatRoom', () => {
     messagesMock.chats.list.mockImplementation(() => [{ id: chatId }]);
     messagesMock.chats.generateTitle.mockImplementation(() => title);
     messagesMock.chats.getOtherProfiles.mockImplementation(() => [chat.profiles[0]]);
-    await renderComponent({ inputs: { user, chat } });
+    await renderComponent({ inputs: { chat } });
     expect(screen.getByRole('link', { name: title })).toBeVisible();
     expect(screen.queryByText(profile.user.username)).toBeNull();
     expect(screen.queryByText(/untitled/i)).toBeNull();
@@ -172,7 +176,6 @@ describe('ChatRoom', () => {
     messagesMock.chats.generateTitle.mockImplementation(() => title);
     await renderComponent({
       inputs: {
-        user,
         chat: { ...chat, profiles: chat.profiles.map((cp) => ({ ...cp, profileId: null })) },
       },
     });
@@ -184,14 +187,14 @@ describe('ChatRoom', () => {
 
   it('should display the profile name as the profile-chat title link', async () => {
     profilesMock.list.mockImplementation(() => [profile]);
-    await renderComponent({ inputs: { user, chat: null, profileId: profile.id, profile } });
+    await renderComponent({ inputs: { chat: null, profileId: profile.id, profile } });
     expect(screen.getByRole('link', { name: profile.user.username })).toBeVisible();
     expect(screen.queryByText(/untitled/i)).toBeNull();
   });
 
   it('should display untitled profile-chat', async () => {
     profilesMock.list.mockImplementation(() => [profile]);
-    await renderComponent({ inputs: { user, chat: null, profileId: profile.id, profile: null } });
+    await renderComponent({ inputs: { chat: null, profileId: profile.id, profile: null } });
     expect(screen.getByText(/untitled/i)).toBeVisible();
     expect(screen.queryByText(profile.user.username)).toBeNull();
   });
@@ -201,7 +204,7 @@ describe('ChatRoom', () => {
     messagesMock.chats.list.mockImplementation(() => [{ id: chatId }]);
     messagesMock.chats.generateTitle.mockImplementation(() => title);
     messagesMock.chats.getOtherProfiles.mockImplementation(() => [chat.profiles[0]]);
-    await renderComponent({ inputs: { user, chat, profile } });
+    await renderComponent({ inputs: { chat, profile } });
     expect(screen.getByRole('link', { name: title })).toBeVisible();
     expect(screen.queryByText(profile.user.username)).toBeNull();
     expect(screen.queryByText(/untitled/i)).toBeNull();
@@ -209,7 +212,7 @@ describe('ChatRoom', () => {
 
   it('should display a message-seen indicator', async () => {
     messagesMock.hasBeenSeen.mockImplementation(() => true);
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     expect(screen.getByLabelText(/seen/i)).toBeVisible();
     expect(screen.queryByLabelText(/sent/i)).toBeNull();
     expect(screen.queryByLabelText(/received/i)).toBeNull();
@@ -217,7 +220,7 @@ describe('ChatRoom', () => {
 
   it('should display a message-received indicator', async () => {
     messagesMock.hasBeenReceived.mockImplementation(() => true);
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     expect(screen.getByLabelText(/received/i)).toBeVisible();
     expect(screen.queryByLabelText(/seen/i)).toBeNull();
     expect(screen.queryByLabelText(/sent/i)).toBeNull();
@@ -225,20 +228,20 @@ describe('ChatRoom', () => {
 
   it('should navigate back when clicking the back button', async () => {
     const { click } = userEvent.setup();
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     const backBtn = screen.getByRole('link', { name: /back/i });
     await click(backBtn);
     expect(navigationSpy).toHaveBeenCalledOnce();
   });
 
   it('should auto-scroll once start', async () => {
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     expect(HTMLElement.prototype.scrollBy).toHaveBeenCalledTimes(1);
   });
 
   it('should scroll, and load recent messages when clicking the update button', async () => {
     const { click } = userEvent.setup();
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     const updateBtn = screen.getByRole('button', { name: /update/i });
     await click(updateBtn);
     expect(HTMLElement.prototype.scrollBy).toHaveBeenCalledTimes(2); // +1 auto-scroll on start
@@ -247,27 +250,27 @@ describe('ChatRoom', () => {
 
   it('should display updating indicator on loading recent messages', async () => {
     messagesMock.loadingRecent.mockImplementation(() => true);
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     expect(screen.getByLabelText(/updating/i)).toBeVisible();
   });
 
   it('should display updating error, if any', async () => {
     const errorMessage = 'Test update error';
     messagesMock.loadRecentError.mockImplementation(() => errorMessage);
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     expect(screen.queryByLabelText(/updating/i)).toBeNull();
     expect(screen.getByText(errorMessage)).toBeVisible();
   });
 
   it('should not have a form if it is a dead chat', async () => {
     messagesMock.chats.isDeadChat.mockImplementation(() => true);
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     expect(screen.queryByRole('form', { name: /message/i })).toBeNull();
     expect(screen.getByText(/cannot receive new messages/i)).toBeVisible();
   });
 
   it('should not have a form if a profile and chat IDs/objects', async () => {
-    await renderComponent({ inputs: { user, chat: null } });
+    await renderComponent({ inputs: { chat: null } });
     expect(screen.queryByRole('form', { name: /message/i })).toBeNull();
     expect(screen.queryByText(/cannot receive new messages/i)).toBeNull();
   });
@@ -275,7 +278,7 @@ describe('ChatRoom', () => {
   it('should display more-messages loader indicator', async () => {
     messagesMock.hasMore.mockImplementation(() => true);
     messagesMock.loading.mockImplementation(() => true);
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     expect(screen.getByLabelText(/loading more messages/i)).toBeVisible();
     expect(screen.queryByLabelText(/loading messages/i)).toBeNull();
     for (const msg of messages) {
@@ -287,7 +290,7 @@ describe('ChatRoom', () => {
   it('should display load-more button, that invokes the load-more method', async () => {
     const { click } = userEvent.setup();
     messagesMock.hasMore.mockImplementation(() => true);
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     const loadMoreBtn = screen.getByRole('button', { name: /load more/i });
     await click(loadMoreBtn);
     expect(loadMoreBtn).toBeVisible();
@@ -299,7 +302,7 @@ describe('ChatRoom', () => {
     const errMsg = 'Test messages load error';
     messagesMock.hasMore.mockImplementation(() => true);
     messagesMock.loadError.mockImplementation(() => errMsg);
-    await renderComponent({ inputs: { user, chat, chatId } });
+    await renderComponent({ inputs: { chat, chatId } });
     const retryBtn = screen.getByRole('button', { name: /retry/i });
     await click(retryBtn);
     expect(retryBtn).toBeVisible();
