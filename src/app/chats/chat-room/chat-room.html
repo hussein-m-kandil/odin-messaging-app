@@ -33,8 +33,7 @@
         @if(messages.loadingRecent()) {
         <app-spinner ariaLabel="Updating chat messages..." />
         } @else if (messages.loadRecentError(); as _loadRecentError) {
-        <app-error-message [message]="_loadRecentError"
-                           (retry)="messages.loadRecent(_chat.id, _user.username)" />
+        <app-error-message [message]="_loadRecentError" (retry)="messages.loadRecent(_chat.id)" />
         }
         @let _messages = messages.list();
         @for (_msg of _messages; track _msg.id) {
@@ -57,9 +56,8 @@
             <footer [class]="`text-muted-color leading-none *:leading-none *:align-bottom *:text-xs
                 flex gap-1 justify-between`">
               @if (_fromCurrentUser) {
-              @let _received = messages.hasBeenReceived(_msg, _chat,
-              _user.username);
-              @let _seen = messages.hasBeenSeen(_msg, _chat, _user.username);
+              @let _seen = messages.hasBeenSeen(_msg, _chat);
+              @let _received = messages.hasBeenReceived(_msg, _chat);
               <span [aria-label]="_seen ? 'seen' : _received ? 'received' : 'sent'"
                     class="pi me-1.5" [class]="{
                   'pi-arrow-circle-up': !_seen && !_received,

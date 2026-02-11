@@ -87,7 +87,7 @@ export class ChatRoom implements OnChanges, OnDestroy {
   protected update() {
     this._scrollDown();
     const chat = this.chat();
-    if (chat) this.messages.loadRecent(chat.id, this.user().username);
+    if (chat) this.messages.loadRecent(chat.id);
   }
 
   ngOnChanges(changes: SimpleChanges<ChatRoom>) {

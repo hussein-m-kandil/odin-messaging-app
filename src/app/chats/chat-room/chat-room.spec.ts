@@ -242,7 +242,7 @@ describe('ChatRoom', () => {
     const updateBtn = screen.getByRole('button', { name: /update/i });
     await click(updateBtn);
     expect(HTMLElement.prototype.scrollBy).toHaveBeenCalledTimes(2); // +1 auto-scroll on start
-    expect(messagesMock.loadRecent).toHaveBeenCalledExactlyOnceWith(chatId, user.username);
+    expect(messagesMock.loadRecent).toHaveBeenCalledExactlyOnceWith(chatId);
   });
 
   it('should display updating indicator on loading recent messages', async () => {

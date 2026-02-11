@@ -6,10 +6,15 @@ import { TestBed } from '@angular/core/testing';
 import { Chat, Message } from '../chats.types';
 import { Messages } from './messages';
 import { Chats } from '../chats';
+import { Auth } from '../../auth';
 
 const { apiUrl } = environment;
 
 const chatId = crypto.randomUUID();
+
+const user = { id: crypto.randomUUID(), username: 'test_user' };
+
+const authMock = { user: vi.fn(() => user) };
 
 const chatsMock = {
   baseUrl: `${apiUrl}/chats`,
@@ -28,7 +33,7 @@ const chatsMock = {
 const message = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-  profileName: 'test_sender_1',
+  profileName: user.username,
   id: crypto.randomUUID(),
   body: 'Hi!',
 } as Message;
@@ -54,6 +59,7 @@ const setup = () => {
     providers: [
       provideHttpClient(),
       provideHttpClientTesting(),
+      { provide: Auth, useValue: authMock },
       { provide: Chats, useValue: chatsMock },
       Messages,
     ],
@@ -252,7 +258,7 @@ describe('Messages', () => {
     );
     const { service } = setup();
     setMessageList([message3, message2]);
-    service.loadRecent(chatId, message3.profileName);
+    service.loadRecent(chatId);
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
     const serviceFinalState = getServiceState(service);
@@ -276,7 +282,7 @@ describe('Messages', () => {
     chatsMock.getMessages.mockImplementation(() => of([message]));
     const { service } = setup();
     setMessageList([message3, message2]);
-    service.loadRecent(chatId, message3.profileName);
+    service.loadRecent(chatId);
     await vi.waitFor(() => expect(chatsMock.getMessages).toHaveBeenCalledTimes(2));
   });
 
@@ -285,7 +291,7 @@ describe('Messages', () => {
     chatsMock.getMessages.mockImplementation(() => of([]).pipe(observeOn(asyncScheduler, 0)));
     const { service } = setup();
     setMessageList([message3, message2]);
-    service.loadRecent(chatId, message3.profileName);
+    service.loadRecent(chatId);
     vi.runAllTimers();
     expect(chatsMock.getMessages).toHaveBeenCalledTimes(1);
     vi.useRealTimers();
@@ -296,9 +302,13 @@ describe('Messages', () => {
     chatsMock.getMessages.mockImplementation(() =>
       throwError(() => new Error('Get messages error')).pipe(observeOn(asyncScheduler, 0)),
     );
+    authMock.user.mockImplementation(() => ({
+      id: crypto.randomUUID(),
+      username: message3.profileName,
+    }));
     const { service } = setup();
     setMessageList([message3, message2]);
-    service.loadRecent(chatId, message3.profileName);
+    service.loadRecent(chatId);
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
     const serviceErrorState = getServiceState(service);
@@ -325,7 +335,7 @@ describe('Messages', () => {
     );
     const { service } = setup();
     service.loadRecentError.set('Blah');
-    service.loadRecent(chatId, message3.profileName);
+    service.loadRecent(chatId);
     const serviceLoadingState = getServiceState(service);
     vi.runOnlyPendingTimers();
     const serviceFinalState = getServiceState(service);
@@ -336,9 +346,13 @@ describe('Messages', () => {
 
   it('should use the recent, non-current-user message id for loading recent messages', async () => {
     chatsMock.getMessages.mockImplementation(() => of([message, message2]));
+    authMock.user.mockImplementation(() => ({
+      id: crypto.randomUUID(),
+      username: message3.profileName,
+    }));
     const { service } = setup();
     setMessageList([message3, message2]);
-    service.loadRecent(chatId, message3.profileName);
+    service.loadRecent(chatId);
     expect(chatsMock.getMessages.mock.calls[0][1].get('cursor')).toBe(message2.id);
   });
 
@@ -346,7 +360,7 @@ describe('Messages', () => {
     chatsMock.getMessages.mockImplementation(() => of([message, message3]));
     const { service } = setup();
     setMessageList([message2, message2]);
-    service.loadRecent(chatId, message2.profileName);
+    service.loadRecent(chatId);
     expect(chatsMock.getMessages.mock.calls[0][1].get('cursor')).toBe(message2.id);
   });
 
@@ -362,8 +376,8 @@ describe('Messages', () => {
     } as Chat;
     chatsMock.activatedChat.mockImplementation(() => chat);
     const { service } = setup();
-    const received = service.hasBeenReceived(message, chat, profileName);
-    const seen = service.hasBeenSeen(message, chat, profileName);
+    const received = service.hasBeenReceived(message, chat);
+    const seen = service.hasBeenSeen(message, chat);
     expect(received).toBe(false);
     expect(seen).toBe(false);
   });
@@ -384,8 +398,8 @@ describe('Messages', () => {
     } as Chat;
     chatsMock.activatedChat.mockImplementation(() => chat);
     const { service } = setup();
-    const received = service.hasBeenReceived(message, chat, profileName);
-    const seen = service.hasBeenSeen(message, chat, profileName);
+    const received = service.hasBeenReceived(message, chat);
+    const seen = service.hasBeenSeen(message, chat);
     expect(received).toBe(true);
     expect(seen).toBe(false);
   });
@@ -406,8 +420,8 @@ describe('Messages', () => {
     } as Chat;
     chatsMock.activatedChat.mockImplementation(() => chat);
     const { service } = setup();
-    const received = service.hasBeenReceived(message, chat, profileName);
-    const seen = service.hasBeenSeen(message, chat, profileName);
+    const received = service.hasBeenReceived(message, chat);
+    const seen = service.hasBeenSeen(message, chat);
     expect(received).toBe(true);
     expect(seen).toBe(true);
   });
