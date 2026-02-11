@@ -754,12 +754,12 @@ describe('Chats', () => {
     testChat.id = crypto.randomUUID();
     testChat.profiles[1].profile = null;
     testChat.profiles[1].profileId = null;
-    expect(service.generateTitle(testChat, user)).toBe(testChat.profiles[1].profileName);
+    expect(service.generateTitle(testChat)).toBe(testChat.profiles[1].profileName);
   });
 
   it('should generate a chat title as the other member name if the chat has 2 members', () => {
     const { service } = setup();
-    expect(service.generateTitle(chat, user)).toBe(chat.profiles[1].profileName);
+    expect(service.generateTitle(chat)).toBe(chat.profiles[1].profileName);
   });
 
   it('should generate a chat title as "other-name and another-name" if the chat has 3 members', () => {
@@ -783,7 +783,7 @@ describe('Chats', () => {
       joinedAt: now,
     });
     const expectedTitle = `${testChat.profiles[1].profileName} and ${testChat.profiles[2].profileName}`;
-    expect(service.generateTitle(testChat, user)).toBe(expectedTitle);
+    expect(service.generateTitle(testChat)).toBe(expectedTitle);
   });
 
   it('should generate a chat title as a comma separated list of the other members names for chat group', () => {
@@ -814,7 +814,7 @@ describe('Chats', () => {
     }
     const namesWithoutLast = otherMemberNames.slice(0, -1);
     const expectedTitle = `${namesWithoutLast.join(', ')}, and ${otherMemberNames.at(-1)}`;
-    expect(service.generateTitle(testChat, user)).toBe(expectedTitle);
+    expect(service.generateTitle(testChat)).toBe(expectedTitle);
   });
 
   it('should generate a chat title as the first member profile name in case of solo-chat', () => {
@@ -822,20 +822,20 @@ describe('Chats', () => {
     const testChat = structuredClone(chat);
     testChat.id = crypto.randomUUID();
     testChat.profiles.splice(1);
-    expect(service.generateTitle(testChat, user)).toBe(testChat.profiles[0].profileName);
+    expect(service.generateTitle(testChat)).toBe(testChat.profiles[0].profileName);
   });
 
   it('should return a list of the other chat profiles', () => {
     const { service } = setup();
-    expect(service.getOtherProfiles(chat, user)).toStrictEqual(chat.profiles.slice(1));
+    expect(service.getOtherProfiles(chat)).toStrictEqual(chat.profiles.slice(1));
   });
 
   it('should return the chat profiles list as is, if contains less than 2 profiles', () => {
     const { service } = setup();
     const testChat1 = { ...chat, profiles: [] };
     const testChat2 = { ...chat, profiles: chat.profiles.slice(1) };
-    expect(service.getOtherProfiles(testChat1, user)).toBe(testChat1.profiles);
-    expect(service.getOtherProfiles(testChat2, user)).toBe(testChat2.profiles);
+    expect(service.getOtherProfiles(testChat1)).toBe(testChat1.profiles);
+    expect(service.getOtherProfiles(testChat2)).toBe(testChat2.profiles);
   });
 
   it('should consider a chat dead if it is missing profiles for all the other members', () => {
@@ -845,7 +845,7 @@ describe('Chats', () => {
     testChat.profiles[1].profile = null;
     testChat.profiles[1].profileId = null;
     service.list.set([chat, testChat]);
-    expect(service.isDeadChat(testChat.id, user)).toBe(true);
+    expect(service.isDeadChat(testChat.id)).toBe(true);
   });
 
   it('should consider a chat alive if it is missing profiles for some of the other members', () => {
@@ -855,7 +855,7 @@ describe('Chats', () => {
     testChat.profiles[1].profile = null;
     testChat.profiles[1].profileId = null;
     service.list.set([chat, testChat]);
-    expect(service.isDeadChat(chat.id, user)).toBe(false);
+    expect(service.isDeadChat(chat.id)).toBe(false);
   });
 
   it('should consider a self-chat alive', () => {
@@ -864,7 +864,7 @@ describe('Chats', () => {
     testChat.id = crypto.randomUUID();
     testChat.profiles.splice(1);
     service.list.set([chat, testChat]);
-    expect(service.isDeadChat(testChat.id, user)).toBe(false);
+    expect(service.isDeadChat(testChat.id)).toBe(false);
   });
 
   it('should get a chat from the current list', () => {

@@ -55,13 +55,12 @@ export class ChatRoom implements OnChanges, OnDestroy {
     };
     const profile = this.profile();
     const chat = this.chat();
-    const user = this.user();
     if (chat) {
-      const chatProfile = this.messages.chats.getOtherProfiles(chat, user)[0]?.profile;
+      const chatProfile = this.messages.chats.getOtherProfiles(chat)[0]?.profile;
       return {
         profile: chatProfile,
         url: createProfileUrl(chatProfile),
-        label: this.messages.chats.generateTitle(chat, user),
+        label: this.messages.chats.generateTitle(chat),
       };
     }
     return { profile, url: createProfileUrl(profile), label: profile?.user.username || 'Untitled' };

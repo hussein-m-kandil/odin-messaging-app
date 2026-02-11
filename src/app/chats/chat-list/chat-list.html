@@ -1,7 +1,6 @@
-@let _user = user();
 <ng-template #li let-_chat>
-  @let _title = chats.generateTitle(_chat, _user);
-  @let _otherMembers = chats.getOtherProfiles(_chat, _user);
+  @let _title = chats.generateTitle(_chat);
+  @let _otherMembers = chats.getOtherProfiles(_chat);
   @let _member = _otherMembers[0] ? {
   user: _otherMembers[0].profile?.user || { username: _otherMembers[0].profileName },
   profile: _otherMembers[0].profile,

@@ -8,7 +8,6 @@ import { mergeDistinctBy, sortByDate } from '../utils';
 import { environment } from '../../environments';
 import { ListStore } from '../list/list-store';
 import { Router } from '@angular/router';
-import { User } from '../app.types';
 import { Auth } from '../auth';
 
 const { apiUrl } = environment;
@@ -252,10 +251,13 @@ export class Chats extends ListStore<Chat> {
       );
   }
 
-  generateTitle(chat: Chat, currentUser: User) {
+  generateTitle(chat: Chat) {
+    const currentUser = this._auth.user();
     const memberNames = chat.profiles.map((cp) => cp.profile?.user.username || cp.profileName);
     if (memberNames.length === 1) return memberNames[0];
-    const otherMemberNames = memberNames.filter((name) => name !== currentUser.username);
+    const otherMemberNames = currentUser
+      ? memberNames.filter((name) => name !== currentUser.username)
+      : memberNames;
     if (otherMemberNames.length > 1) {
       const lastName = otherMemberNames[otherMemberNames.length - 1];
       const namesWithoutLast = otherMemberNames.slice(0, -1);
@@ -267,20 +269,25 @@ export class Chats extends ListStore<Chat> {
     return 'Anonymous';
   }
 
-  getOtherProfiles(chat: Chat, currentUser: User): ChatProfile[] {
+  getOtherProfiles(chat: Chat): ChatProfile[] {
+    const currentUser = this._auth.user();
     return chat.profiles.length < 2
       ? chat.profiles
-      : chat.profiles.filter((cp) => cp.profileName !== currentUser.username);
+      : currentUser
+        ? chat.profiles.filter((cp) => cp.profileName !== currentUser.username)
+        : chat.profiles;
   }
 
-  isDeadChat(chatId: Chat['id'], currentUser: User) {
+  isDeadChat(chatId: Chat['id']) {
+    const currentUser = this._auth.user();
     const chat = this.list().find((c) => c.id === chatId);
     if (chat) {
       return (
         chat.profiles.length > 1 &&
-        chat.profiles
-          .filter((cp) => cp.profileId !== currentUser.profile.id)
-          .filter((cp) => !!cp.profile).length < 1
+        (currentUser
+          ? chat.profiles.filter((cp) => cp.profileId !== currentUser.profile.id)
+          : chat.profiles
+        ).filter((cp) => !!cp.profile).length < 1
       );
     }
     return false;
