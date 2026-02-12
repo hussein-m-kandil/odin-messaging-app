@@ -13,13 +13,24 @@ const user = {
   fullname: 'Test User',
   bio: 'Test bio.',
 } as User;
-const profile = { id: crypto.randomUUID(), user } as unknown as ProfileT;
+
+const profile: ProfileT = {
+  id: crypto.randomUUID(),
+  user,
+  visible: true,
+  tangible: true,
+  followedByCurrentUser: false,
+  lastSeen: new Date().toISOString(),
+};
+
 user.profile = profile;
 
 const profilesMock = {
+  isOnline: vi.fn(() => of(true)),
   list: vi.fn(() => [] as ProfileT[]),
   isCurrentProfile: vi.fn(() => false),
   toggleFollowing: vi.fn(() => of('')),
+  updateCurrentProfile: vi.fn(() => of('')),
 };
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
@@ -41,12 +52,29 @@ const renderComponent = ({
   });
 };
 
+const assertNavBtnsEnabled = (...extraNodes: Node[]) => {
+  expect(screen.getByRole('button', { name: /back/i })).toBeEnabled();
+  expect(screen.getByRole('button', { name: /chat/i })).toBeEnabled();
+  for (const node of extraNodes) expect(node).toBeEnabled();
+};
+
+const assertNavigated = () => {
+  expect(navigationSpy).toHaveBeenCalledTimes(1);
+  expect(navigationSpy.mock.calls[0][0]).toStrictEqual(['.']);
+  expect(navigationSpy.mock.calls[0][1]).toHaveProperty('relativeTo');
+  expect(navigationSpy.mock.calls[0][1]).toHaveProperty('replaceUrl', true);
+  expect(navigationSpy.mock.calls[0][1]).toHaveProperty('onSameUrlNavigation', 'reload');
+  expect((navigationSpy.mock.calls[0][1] as Record<string, unknown>)['relativeTo']).toBeInstanceOf(
+    ActivatedRoute,
+  );
+};
+
 describe('Profile', () => {
   afterEach(vi.resetAllMocks);
 
-  it('should render the non-current profile data', async () => {
+  it('should render non-current, followed profile', async () => {
     profilesMock.isCurrentProfile.mockImplementation(() => false);
-    await renderComponent();
+    await renderComponent({ inputs: { profile: { ...profile, followedByCurrentUser: true } } });
     expect(screen.getByRole('heading', { name: new RegExp(profile.user.fullname) })).toBeVisible();
     expect(screen.getByText(profile.user.username[0].toUpperCase())).toBeVisible();
     expect(screen.getByText(new RegExp(profile.user.username))).toBeVisible();
@@ -56,6 +84,28 @@ describe('Profile', () => {
     expect(
       screen.getByRole('button', { name: new RegExp(`chat with ${profile.user.username}`, 'i') }),
     ).toBeVisible();
+    expect(screen.queryByRole('switch', { name: /active status/i })).toBeNull();
+    expect(screen.queryByRole('switch', { name: /read receipt/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^unfollow/i })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^follow/i })).toBeNull();
+  });
+
+  it('should render non-current, non-followed profile', async () => {
+    profilesMock.isCurrentProfile.mockImplementation(() => false);
+    await renderComponent({ inputs: { profile: { ...profile, followedByCurrentUser: false } } });
+    expect(screen.getByRole('heading', { name: new RegExp(profile.user.fullname) })).toBeVisible();
+    expect(screen.getByText(profile.user.username[0].toUpperCase())).toBeVisible();
+    expect(screen.getByText(new RegExp(profile.user.username))).toBeVisible();
+    expect(screen.getByText(new RegExp(profile.user.bio))).toBeVisible();
+    expect(screen.getByRole('button', { name: /back/i })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /toggle profile options/i })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: new RegExp(`chat with ${profile.user.username}`, 'i') }),
+    ).toBeVisible();
+    expect(screen.queryByRole('switch', { name: /active status/i })).toBeNull();
+    expect(screen.queryByRole('switch', { name: /read receipt/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^follow/i })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /^unfollow/i })).toBeNull();
   });
 
   it('should render the current profile data', async () => {
@@ -68,6 +118,10 @@ describe('Profile', () => {
     expect(screen.getByRole('button', { name: /back/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /chat with yourself/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /toggle profile options/i })).toBeVisible();
+    expect(screen.queryByRole('switch', { name: /active status/i })).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: /read receipt/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^unfollow/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^follow/i })).toBeNull();
   });
 
   it('should render a button that toggles the current profile options menu', async () => {
@@ -140,22 +194,6 @@ describe('Profile', () => {
   ];
 
   for (const { action, followedByCurrentUser } of followingTestData) {
-    it(`should not have ${action} button`, async () => {
-      profilesMock.isCurrentProfile.mockImplementation(() => true);
-      await renderComponent({ inputs: { profile: { ...profile, followedByCurrentUser } } });
-      expect(screen.queryByRole('button', { name: /^follow/i })).toBeNull();
-      expect(screen.queryByRole('button', { name: /^unfollow/i })).toBeNull();
-    });
-
-    it(`should have ${action} button`, async () => {
-      profilesMock.isCurrentProfile.mockImplementation(() => false);
-      await renderComponent({ inputs: { profile: { ...profile, followedByCurrentUser } } });
-      expect(screen.getByRole('button', { name: new RegExp(`^${action}`, 'i') })).toBeVisible();
-      expect(
-        screen.queryByRole('button', { name: action === 'follow' ? /^unfollow/i : /^follow/i }),
-      ).toBeNull();
-    });
-
     it(`should ${action}`, async () => {
       let sub!: Subscriber<unknown>;
       const actor = userEvent.setup();
@@ -164,29 +202,15 @@ describe('Profile', () => {
       const testProfile = { ...profile, followedByCurrentUser };
       const { detectChanges } = await renderComponent({ inputs: { profile: testProfile } });
       const followBtn = screen.getByRole('button', { name: new RegExp(`^${action}`, 'i') });
-      const backBtn = screen.getByRole('button', { name: /back/i });
-      const chatBtn = screen.getByRole('button', { name: /chat/i });
-      expect(followBtn).toBeEnabled();
-      expect(backBtn).toBeEnabled();
-      expect(chatBtn).toBeEnabled();
+      assertNavBtnsEnabled();
       await actor.click(followBtn);
-      expect(chatBtn).toBeDisabled();
-      expect(backBtn).toBeDisabled();
+      assertNavBtnsEnabled();
       expect(followBtn).toBeDisabled();
       sub.next('');
       sub.complete();
       detectChanges();
-      expect(chatBtn).toBeEnabled();
-      expect(backBtn).toBeEnabled();
-      expect(followBtn).toBeEnabled();
-      expect(navigationSpy).toHaveBeenCalledTimes(1);
-      expect(navigationSpy.mock.calls[0][0]).toStrictEqual(['.']);
-      expect(navigationSpy.mock.calls[0][1]).toHaveProperty('relativeTo');
-      expect(navigationSpy.mock.calls[0][1]).toHaveProperty('replaceUrl', true);
-      expect(navigationSpy.mock.calls[0][1]).toHaveProperty('onSameUrlNavigation', 'reload');
-      expect(
-        (navigationSpy.mock.calls[0][1] as Record<string, unknown>)['relativeTo'],
-      ).toBeInstanceOf(ActivatedRoute);
+      assertNavigated();
+      assertNavBtnsEnabled(followBtn);
       expect(profilesMock.toggleFollowing).toHaveBeenCalledExactlyOnceWith(testProfile);
     });
 
@@ -198,22 +222,57 @@ describe('Profile', () => {
       const testProfile = { ...profile, followedByCurrentUser };
       const { detectChanges } = await renderComponent({ inputs: { profile: testProfile } });
       const followBtn = screen.getByRole('button', { name: new RegExp(`^${action}`, 'i') });
-      const backBtn = screen.getByRole('button', { name: /back/i });
-      const chatBtn = screen.getByRole('button', { name: /chat/i });
-      expect(followBtn).toBeEnabled();
-      expect(backBtn).toBeEnabled();
-      expect(chatBtn).toBeEnabled();
+      assertNavBtnsEnabled(followBtn);
       await actor.click(followBtn);
-      expect(chatBtn).toBeDisabled();
-      expect(backBtn).toBeDisabled();
+      assertNavBtnsEnabled();
       expect(followBtn).toBeDisabled();
       sub.error(new ProgressEvent('Network error'));
       detectChanges();
-      expect(chatBtn).toBeEnabled();
-      expect(backBtn).toBeEnabled();
-      expect(followBtn).toBeEnabled();
+      assertNavBtnsEnabled(followBtn);
       expect(navigationSpy).toHaveBeenCalledTimes(0);
       expect(profilesMock.toggleFollowing).toHaveBeenCalledExactlyOnceWith(testProfile);
+    });
+  }
+
+  const propertyTogglingTestData = [
+    { property: 'active status' as const, data: { visible: !profile.visible } as const },
+    { property: 'read receipt' as const, data: { tangible: !profile.tangible } as const },
+  ];
+
+  for (const { property, data } of propertyTogglingTestData) {
+    it(`should toggle ${property}`, async () => {
+      let sub!: Subscriber<unknown>;
+      const actor = userEvent.setup();
+      profilesMock.isCurrentProfile.mockImplementation(() => true);
+      profilesMock.updateCurrentProfile.mockImplementation(() => new Observable((s) => (sub = s)));
+      const { detectChanges } = await renderComponent();
+      const propertySwitch = screen.getByRole('switch', { name: new RegExp(property, 'i') });
+      assertNavBtnsEnabled(propertySwitch);
+      await actor.click(propertySwitch);
+      assertNavBtnsEnabled(propertySwitch);
+      sub.next('');
+      sub.complete();
+      detectChanges();
+      assertNavigated();
+      assertNavBtnsEnabled(propertySwitch);
+      expect(profilesMock.updateCurrentProfile).toHaveBeenCalledExactlyOnceWith(data);
+    });
+
+    it(`should fail to ${property}`, async () => {
+      let sub!: Subscriber<unknown>;
+      const actor = userEvent.setup();
+      profilesMock.isCurrentProfile.mockImplementation(() => true);
+      profilesMock.updateCurrentProfile.mockImplementation(() => new Observable((s) => (sub = s)));
+      const { detectChanges } = await renderComponent();
+      const propertySwitch = screen.getByRole('switch', { name: new RegExp(property, 'i') });
+      assertNavBtnsEnabled(propertySwitch);
+      await actor.click(propertySwitch);
+      assertNavBtnsEnabled(propertySwitch);
+      sub.error(new ProgressEvent('Network error'));
+      detectChanges();
+      assertNavBtnsEnabled(propertySwitch);
+      expect(navigationSpy).toHaveBeenCalledTimes(0);
+      expect(profilesMock.updateCurrentProfile).toHaveBeenCalledExactlyOnceWith(data);
     });
   }
 });

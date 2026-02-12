@@ -1,7 +1,20 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import {
+  input,
+  signal,
+  inject,
+  computed,
+  Component,
+  OnChanges,
+  SimpleChanges,
+  DestroyRef,
+} from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MenuItem, MessageService } from 'primeng/api';
 import { Profile as ProfileT } from '../../app.types';
+import { ToggleSwitch } from 'primeng/toggleswitch';
+import { NgTemplateOutlet } from '@angular/common';
 import { Button } from 'primeng/button';
 import { Profiles } from '../profiles';
 import { Avatar } from '../../avatar';
@@ -10,12 +23,13 @@ import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-profile',
-  imports: [Button, Avatar, Menu],
+  imports: [ReactiveFormsModule, NgTemplateOutlet, ToggleSwitch, Button, Avatar, Menu],
   templateUrl: './profile.html',
   styles: ``,
 })
-export class Profile {
+export class Profile implements OnChanges {
   private readonly _activeRoute = inject(ActivatedRoute);
+  private readonly _destroyRef = inject(DestroyRef);
   private readonly _toast = inject(MessageService);
   private readonly _router = inject(Router);
 
@@ -47,19 +61,33 @@ export class Profile {
     return [];
   });
 
-  protected readonly loading = signal(false);
+  protected readonly loading = signal<'' | 'visibility' | 'tangibility' | 'following'>('');
+
+  protected readonly visible = new FormControl(true, { nonNullable: true });
+  protected readonly tangible = new FormControl(true, { nonNullable: true });
 
   readonly profile = input.required<ProfileT>();
 
   readonly profiles = inject(Profiles);
 
-  protected toggleFollowing() {
+  protected toggle(property: ReturnType<typeof this.loading>) {
     const profile = this.profile();
-    if (!this.loading() && !this.profiles.isCurrentProfile(profile.id)) {
-      this.loading.set(true);
-      this.profiles
-        .toggleFollowing(profile)
-        .pipe(finalize(() => this.loading.set(false)))
+    const currentUserProfile = this.profiles.isCurrentProfile(profile.id);
+    const tangibility = property === 'tangibility' && currentUserProfile;
+    const visibility = property === 'visibility' && currentUserProfile;
+    const following = property === 'following' && !currentUserProfile;
+    if (!this.loading() && (tangibility || visibility || following)) {
+      this.loading.set(property);
+      const req$ = following
+        ? this.profiles.toggleFollowing(profile)
+        : visibility
+          ? this.profiles.updateCurrentProfile({ visible: !profile.visible })
+          : this.profiles.updateCurrentProfile({ tangible: !profile.tangible });
+      req$
+        .pipe(
+          takeUntilDestroyed(this._destroyRef),
+          finalize(() => this.loading.set('')),
+        )
         .subscribe({
           next: () => {
             this._router.navigate(['.'], {
@@ -69,22 +97,33 @@ export class Profile {
             });
           },
           error: () => {
-            const action = profile.followedByCurrentUser ? 'Unfollow' : 'Follow';
-            this._toast.add({
-              severity: 'error',
-              summary: `${action} Failed`,
-              detail: `Failed to ${action.toLowerCase()} this profile.`,
-            });
+            let summary: string, detail: string;
+            if (following) {
+              const action = profile.followedByCurrentUser ? 'Unfollow' : 'Follow';
+              detail = `Failed to ${action.toLowerCase()} this profile.`;
+              summary = `${action} Failed`;
+            } else {
+              detail = `Failed to toggle your ${visibility ? 'active status' : 'read receipt'}.`;
+              summary = `Toggle Failed`;
+            }
+            this._toast.add({ detail, summary, severity: 'error' });
           },
         });
     }
   }
 
   protected chat() {
-    if (!this.loading()) this._router.navigate(['chat'], { relativeTo: this._activeRoute });
+    this._router.navigate(['chat'], { relativeTo: this._activeRoute });
   }
 
   protected goBack() {
-    if (!this.loading()) this._router.navigate(['..'], { relativeTo: this._activeRoute });
+    this._router.navigate(['..'], { relativeTo: this._activeRoute });
+  }
+
+  ngOnChanges(changes: SimpleChanges<Profile>): void {
+    if (changes.profile) {
+      this.tangible.setValue(changes.profile.currentValue.tangible);
+      this.visible.setValue(changes.profile.currentValue.visible);
+    }
   }
 }

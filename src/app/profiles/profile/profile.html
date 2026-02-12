@@ -1,24 +1,25 @@
 @let _loading = loading();
-@let _profile = profile(); @let _currentProfile = profiles.isCurrentProfile(_profile.id);
+@let _profile = profile(); @let _currentUserProfile = profiles.isCurrentProfile(_profile.id);
 <section class="size-full overflow-auto flex flex-col">
   <ul class="flex justify-between">
     <li>
       <p-button text rounded outlined type="button" size="small" ariaLabel="Go back"
-                [disabled]="_loading" (click)="goBack()" icon="pi pi-arrow-left"></p-button>
+                (click)="goBack()" icon="pi pi-arrow-left"></p-button>
     </li>
-    @if(_currentProfile) {
+    @if(_currentUserProfile) {
     <li>
-      <p-button text rounded outlined size="small" type="button" [disabled]="_loading"
-                icon="pi pi-ellipsis-v" ariaLabel="Toggle profile options"
-                (click)="optionsMenu.toggle($event)"></p-button>
+      <p-button text rounded outlined size="small" type="button" icon="pi pi-ellipsis-v"
+                ariaLabel="Toggle profile options" (click)="optionsMenu.toggle($event)"></p-button>
       <p-menu #optionsMenu [model]="optionsMenuItems()" ariaLabel="Profile options menu"
               [popup]="true" />
     </li>
     }
   </ul>
-  <div class="max-w-sm m-auto p-4 text-center">
-    <app-avatar preview [user]="_profile.user" [profile]="_profile" size="lg" />
-    <div class="my-4 **:leading-tight">
+  <div class="max-w-sm m-auto p-4 text-center space-y-4">
+    <div>
+      <app-avatar preview [user]="_profile.user" [profile]="_profile" size="lg" />
+    </div>
+    <div class="**:leading-tight">
       <h2 class="text-xl font-bold">
         {{ _profile.user.fullname }}
       </h2>
@@ -28,17 +29,52 @@
       </p>
     </div>
     <div class="*:align-middle *:inline-block space-x-2 flex flex-wrap justify-center">
-      <p-button rounded type="button" severity="secondary" [disabled]="_loading" icon="pi pi-send"
-                ariaLabel="Chat with {{ _currentProfile ? 'yourself' : _profile.user.username }}"
+      <p-button rounded type="button" severity="secondary" icon="pi pi-send"
+                ariaLabel="Chat with {{ _currentUserProfile ? 'yourself' : _profile.user.username }}"
                 (click)="chat()"></p-button>
-      @if (!_currentProfile) {
+      @if (!_currentUserProfile) {
       @let _followingToggleData = _profile.followedByCurrentUser
       ? { label: 'Unfollow', icon: 'pi pi-user-minus' }
       : { label: 'Follow', icon: 'pi pi-user-plus' };
-      <p-button rounded type="button" severity="secondary" [disabled]="_loading"
-                [loading]="_loading" [icon]="_followingToggleData.icon"
-                ariaLabel="{{_followingToggleData.label}}" (click)="toggleFollowing()"></p-button>
+      <p-button rounded type="button" severity="secondary" [loading]="_loading === 'following'"
+                [icon]="_followingToggleData.icon" ariaLabel="{{_followingToggleData.label}}"
+                (click)="toggle('following')"></p-button>
       }
     </div>
+    @if (_currentUserProfile) {
+    <div class="text-sm **:align-middle flex flex-wrap justify-center items-center">
+      <ng-container [ngTemplateOutlet]="propertyToggler" [ngTemplateOutletContext]="{
+                      $implicit: {
+                        control: visible, label: 'Active Status',
+                        loading: _loading === 'visibility', onChange: toggle.bind(this, 'visibility')
+                      },
+                    }" />
+      <ng-container [ngTemplateOutlet]="propertyToggler" [ngTemplateOutletContext]="{
+                      $implicit: {
+                        control: tangible, label: 'Read Receipt',
+                        loading: _loading === 'tangibility', onChange: toggle.bind(this, 'tangibility')
+                      },
+                    }" />
+    </div>
+    }
   </div>
 </section>
+
+<ng-template #propertyToggler let-_data>
+  @let _lowerLabel = _data.label.toLowerCase();
+  @let _inputId = `${_lowerLabel.split(' ').join('-')}-toggler`;
+  <div>
+    <span class="inline-block w-[0.75em]"></span>
+    <label for="{{ _inputId }}">
+      {{ _data.label }}
+    </label>
+    <p-toggle-switch inputId="{{ _inputId }}" [formControl]="_data.control"
+                     (onChange)="_data.onChange()" class="mx-1"
+                     [dt]="{ root: { width: '1.5rem', height: '0.9rem' }, handle: { size: '0.5rem' } }" />
+    <span class="inline-block w-[0.75em] **:text-[0.75em]">
+      @if (_data.loading) {
+      <span aria-label="Toggling {{ _lowerLabel }}..." class="pi pi-spinner pi-spin"></span>
+      }
+    </span>
+  </div>
+</ng-template>
