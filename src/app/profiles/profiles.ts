@@ -67,6 +67,15 @@ export class Profiles extends ListStore<Profile> {
     });
   }
 
+  updateCurrentProfile(updates: { visible?: boolean; tangible?: boolean }) {
+    return this._http.patch<Profile>(this.baseUrl, updates).pipe(
+      map((profile) => {
+        this.list.update((profiles) => profiles.map((p) => (p.id === profile.id ? profile : p)));
+        return '' as const;
+      }),
+    );
+  }
+
   toggleFollowing(profile: Profile) {
     const profileId = profile.id;
     const following = profile.followedByCurrentUser;

@@ -422,17 +422,142 @@ describe('Profiles', () => {
     httpTesting.verify();
   });
 
+  it('should update the current profile that exist in the profile list', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const updates = { visible: !profile.visible, tangible: !profile.tangible };
+    service.list.set([profile]);
+    service
+      .updateCurrentProfile(updates)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'PATCH', url: profilesUrl },
+      'Request to follow a profile',
+    );
+    const updatedProfile = { ...profile, ...updates };
+    req.flush(updatedProfile, { status: 200, statusText: 'OK' });
+    expect(service.list()).toStrictEqual([updatedProfile]);
+    expect(req.request.body).toStrictEqual(updates);
+    expect(err).toBeUndefined();
+    expect(res).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should update the current profile that is not exist in the profile list', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const updates = { visible: !profile.visible, tangible: !profile.tangible };
+    service.list.set([profile2]);
+    service
+      .updateCurrentProfile(updates)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'PATCH', url: profilesUrl },
+      'Request to follow a profile',
+    );
+    const updatedProfile = { ...profile, ...updates };
+    req.flush(updatedProfile, { status: 200, statusText: 'OK' });
+    expect(service.list()).toStrictEqual([profile2]);
+    expect(req.request.body).toStrictEqual(updates);
+    expect(err).toBeUndefined();
+    expect(res).toBe('');
+    httpTesting.verify();
+  });
+
+  it('should fail to update the current profile due to a server error', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const updates = { visible: !profile.visible, tangible: !profile.tangible };
+    service.list.set([profile, profile2]);
+    service
+      .updateCurrentProfile(updates)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'PATCH', url: profilesUrl },
+      'Request to follow a profile',
+    );
+    const error = 'Failed';
+    req.flush(error, { status: 500, statusText: 'Internal server error' });
+    expect(req.request.body).toStrictEqual(updates);
+    expect(service.list()).toStrictEqual([profile, profile2]);
+    expect(err).toBeInstanceOf(HttpErrorResponse);
+    expect(err).toHaveProperty('error', error);
+    expect(err).toHaveProperty('status', 500);
+    expect(res).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should fail to update the current profile due to a network error', () => {
+    const { service, httpTesting } = setup();
+    let res, err;
+    const updates = { visible: !profile.visible, tangible: !profile.tangible };
+    service.list.set([profile, profile2]);
+    service
+      .updateCurrentProfile(updates)
+      .subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    const req = httpTesting.expectOne(
+      { method: 'PATCH', url: profilesUrl },
+      'Request to follow a profile',
+    );
+    const error = new ProgressEvent('Network error');
+    req.error(error);
+    expect(req.request.body).toStrictEqual(updates);
+    expect(service.list()).toStrictEqual([profile, profile2]);
+    expect(err).toBeInstanceOf(HttpErrorResponse);
+    expect(err).toHaveProperty('error', error);
+    expect(err).toHaveProperty('status', 0);
+    expect(res).toBeUndefined();
+    httpTesting.verify();
+  });
+
   it('should get the profile online-status', () => {
     const { service, httpTesting } = setup();
-    let result!: boolean;
-    service.isOnline(profile.id).subscribe((res) => (result = res));
+    let res, err;
+    service.isOnline(profile.id).subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
     httpTesting
       .expectOne(
         { method: 'GET', url: `${profilesUrl}/${profile.id}/online` },
         'Request to get online status',
       )
       .flush(true);
-    expect(result).toBe(true);
+    expect(err).toBeUndefined();
+    expect(res).toBe(true);
+    httpTesting.verify();
+  });
+
+  it('should fail to get the profile online-status due to a network error', () => {
+    const { service, httpTesting } = setup();
+    const error = new ProgressEvent('Network error');
+    let res, err;
+    service.isOnline(profile.id).subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    httpTesting
+      .expectOne(
+        { method: 'GET', url: `${profilesUrl}/${profile.id}/online` },
+        'Request to get online status',
+      )
+      .error(error);
+    expect(err).toBeInstanceOf(HttpErrorResponse);
+    expect(err).toHaveProperty('error', error);
+    expect(err).toHaveProperty('status', 0);
+    expect(res).toBeUndefined();
+    httpTesting.verify();
+  });
+
+  it('should fail to get the profile online-status due to a backend error', () => {
+    const { service, httpTesting } = setup();
+    const error = 'Failed';
+    let res, err;
+    service.isOnline(profile.id).subscribe({ next: (r) => (res = r), error: (e) => (err = e) });
+    httpTesting
+      .expectOne(
+        { method: 'GET', url: `${profilesUrl}/${profile.id}/online` },
+        'Request to get online status',
+      )
+      .flush(error, { status: 500, statusText: 'Internal server error' });
+    expect(err).toBeInstanceOf(HttpErrorResponse);
+    expect(err).toHaveProperty('error', error);
+    expect(err).toHaveProperty('status', 500);
+    expect(res).toBeUndefined();
     httpTesting.verify();
   });
 });
