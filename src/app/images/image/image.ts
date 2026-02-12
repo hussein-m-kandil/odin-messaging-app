@@ -1,4 +1,12 @@
-import { input, computed, Component, booleanAttribute } from '@angular/core';
+import {
+  input,
+  computed,
+  Component,
+  booleanAttribute,
+  OnChanges,
+  SimpleChanges,
+  signal,
+} from '@angular/core';
 import { Image as PrimeImage, ImagePassThrough } from 'primeng/image';
 import { mergeTailwindCNs } from '../../utils';
 
@@ -8,7 +16,9 @@ import { mergeTailwindCNs } from '../../utils';
   templateUrl: './image.html',
   host: { class: 'leading-0' },
 })
-export class Image {
+export class Image implements OnChanges {
+  protected readonly replaced = signal(false);
+
   protected readonly pt = computed<ImagePassThrough>(() => ({
     image: {
       width: this.width(),
@@ -26,4 +36,12 @@ export class Image {
   readonly imagePreviewClass = input<string | string[]>();
   readonly imageStyle = input<PrimeImage['imageStyle']>();
   readonly preview = input(false, { transform: booleanAttribute });
+
+  ngOnChanges(changes: SimpleChanges<Image>): void {
+    if (changes.src && !changes.src.isFirstChange()) {
+      // Force angular to replace the image element
+      this.replaced.set(true);
+      setTimeout(() => this.replaced.set(false), 0);
+    }
+  }
 }

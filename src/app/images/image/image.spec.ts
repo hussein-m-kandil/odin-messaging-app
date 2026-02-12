@@ -17,6 +17,15 @@ describe('Image', () => {
     expect(img).toHaveProperty('height', inputs.height);
   });
 
+  it('should force replacing the image element', async () => {
+    const inputs = { alt: 'foo bar', src: 'http://localhost:3000/img.png', width: 7, height: 9 };
+    const { rerender } = await renderComponent({ inputs });
+    expect(screen.queryByRole('img')).toBeInstanceOf(HTMLImageElement);
+    await rerender({ partialUpdate: true, inputs: { ...inputs, src: inputs.src + '?foo=bar' } });
+    expect(screen.queryByRole('img')).toBeNull();
+    await vi.waitFor(() => expect(screen.queryByRole('img')).toBeInstanceOf(HTMLImageElement));
+  });
+
   it('should render an image with the given class', async () => {
     const imageClass = 'foo bar-tar';
     await renderComponent({ inputs: { imageClass } });
