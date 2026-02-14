@@ -125,5 +125,11 @@ export class Profile {
         this.visible.setValue(activeProfile.visible);
       });
     });
+
+    this.profiles.profileUpdated.subscribe((updatedProfile) =>
+      this.activeProfile.update((activeProfile) =>
+        activeProfile.id === updatedProfile.id ? updatedProfile : activeProfile,
+      ),
+    );
   }
 }

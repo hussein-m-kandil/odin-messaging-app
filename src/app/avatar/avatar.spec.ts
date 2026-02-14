@@ -22,7 +22,11 @@ const profile: ProfileBase = {
 const mockUser = vi.fn(() => user);
 
 const authMock = { socket: { on: vi.fn(), removeListener: vi.fn() } };
-const profilesMock = { isCurrentProfile: vi.fn(() => false), isOnline: vi.fn(() => of(true)) };
+const profilesMock = {
+  isOnline: vi.fn(() => of(true)),
+  isCurrentProfile: vi.fn(() => false),
+  profileUpdated: { subscribe: vi.fn() },
+};
 
 const renderComponent = ({
   providers,
@@ -208,7 +212,7 @@ describe('Avatar', () => {
   it('should remove online-status listeners on profile-change', async () => {
     profilesMock.isOnline.mockImplementation(() => of(true));
     profilesMock.isCurrentProfile.mockImplementation(() => false);
-    const { rerender } = await renderComponent({ inputs: { profile } });
+    const { rerender, detectChanges } = await renderComponent({ inputs: { profile } });
     expect(authMock.socket.removeListener).toHaveBeenCalledTimes(2);
     expect(screen.getByLabelText(/online/i)).toBeVisible();
     expect(authMock.socket.on).toHaveBeenCalledTimes(2);
@@ -219,6 +223,7 @@ describe('Avatar', () => {
       inputs: { profile: { ...profile, id: crypto.randomUUID() } },
       partialUpdate: true,
     });
+    detectChanges();
     expect(authMock.socket.on).toHaveBeenCalledTimes(2);
     expect(screen.queryByLabelText(/online/i)).toBeNull();
     expect(authMock.socket.removeListener).toHaveBeenCalledTimes(2);

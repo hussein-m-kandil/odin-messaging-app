@@ -29,6 +29,7 @@ const profilesMock = {
   isOnline: vi.fn(() => of(true)),
   list: vi.fn(() => [] as ProfileT[]),
   isCurrentProfile: vi.fn(() => false),
+  profileUpdated: { subscribe: vi.fn() },
   toggleFollowing: vi.fn(() => of(profile)),
   updateCurrentProfile: vi.fn(() => of(profile)),
 };

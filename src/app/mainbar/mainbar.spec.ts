@@ -36,7 +36,11 @@ const colorSchemeMock = {
   select: vi.fn(),
 };
 
-const profilesMock = { isCurrentProfile: vi.fn(() => false), isOnline: vi.fn(() => of(false)) };
+const profilesMock = {
+  isOnline: vi.fn(() => of(false)),
+  isCurrentProfile: vi.fn(() => false),
+  profileUpdated: { subscribe: vi.fn() },
+};
 
 const renderComponent = ({
   providers,

@@ -101,7 +101,10 @@ const messagesMock = {
   },
 };
 
-const profilesMock = { list: vi.fn<() => unknown[]>(() => []) };
+const profilesMock = {
+  list: vi.fn<() => unknown[]>(() => []),
+  profileUpdated: { subscribe: vi.fn() },
+};
 
 const authMock = { user: vi.fn(() => user), userUpdated: new Observable() };
 

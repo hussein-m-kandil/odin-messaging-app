@@ -51,7 +51,10 @@ describe('Profiles', () => {
     let userUpdatedHandler!: (user: unknown) => void;
     authMock.userUpdated.subscribe.mockImplementationOnce((fn) => (userUpdatedHandler = fn));
     const { service } = setup();
-    const updatedProfile = { ...profile, user: { ...profile.user, username: 'updated_username' } };
+    const updatedProfile = {
+      ...profile,
+      user: { ...profile.user, username: 'updated_username', socket: { on: vi.fn() } },
+    };
     service.list.set([profile2, profile]);
     userUpdatedHandler(updatedProfile.user);
     expect(authMock.userUpdated.subscribe).toHaveBeenCalledTimes(1);

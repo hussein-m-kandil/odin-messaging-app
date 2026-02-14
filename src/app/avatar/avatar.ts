@@ -2,10 +2,11 @@ import {
   input,
   signal,
   inject,
-  Component,
+  effect,
+  untracked,
   OnDestroy,
-  OnChanges,
-  SimpleChanges,
+  Component,
+  linkedSignal,
   booleanAttribute,
 } from '@angular/core';
 import { User, ProfileBase } from '../app.types';
@@ -20,7 +21,7 @@ import { Auth } from '../auth';
   templateUrl: './avatar.html',
   host: { class: 'leading-0' },
 })
-export class Avatar implements OnChanges, OnDestroy {
+export class Avatar implements OnDestroy {
   private readonly _profiles = inject(Profiles);
   private readonly _auth = inject(Auth);
 
@@ -31,9 +32,11 @@ export class Avatar implements OnChanges, OnDestroy {
 
   protected readonly online = signal(false);
 
+  protected readonly activeProfile = linkedSignal(() => this.profile());
+
   private _removeOnlineStatusListeners = () => undefined;
 
-  private _addOnlineStatusListeners(profile: NonNullable<ReturnType<typeof this.profile>>) {
+  private _addOnlineStatusListeners(profile: NonNullable<ReturnType<typeof this.activeProfile>>) {
     const socket = this._auth.socket;
     if (socket) {
       const setOffline = () => this.online.set(false);
@@ -49,6 +52,19 @@ export class Avatar implements OnChanges, OnDestroy {
     }
   }
 
+  private _refresh() {
+    this._removeOnlineStatusListeners();
+    this.online.set(false);
+    const profile = this.activeProfile();
+    if (profile && profile.visible && !this._profiles.isCurrentProfile(profile.id)) {
+      this._addOnlineStatusListeners(profile);
+      this._profiles
+        .isOnline(profile.id)
+        .pipe(catchError(() => of(false)))
+        .subscribe((online) => online === true && this.online.set(online));
+    }
+  }
+
   protected getUpdatedImgSrc() {
     const image = this.user().avatar?.image;
     if (image) {
@@ -60,19 +76,18 @@ export class Avatar implements OnChanges, OnDestroy {
     return '';
   }
 
-  ngOnChanges(changes: SimpleChanges<Avatar>) {
-    if (changes.profile) {
-      this._removeOnlineStatusListeners();
-      this.online.set(false);
-      const profile = changes.profile.currentValue;
-      if (profile && profile.visible && !this._profiles.isCurrentProfile(profile.id)) {
-        this._addOnlineStatusListeners(profile);
-        this._profiles
-          .isOnline(profile.id)
-          .pipe(catchError(() => of(false)))
-          .subscribe((online) => online === true && this.online.set(online));
-      }
-    }
+  constructor() {
+    effect(() => {
+      this.activeProfile();
+      untracked(() => this._refresh());
+    });
+
+    this._profiles.profileUpdated.subscribe((updatedProfile) => {
+      this.activeProfile.update((activeProfile) =>
+        activeProfile && activeProfile.id === updatedProfile.id ? updatedProfile : activeProfile,
+      );
+      this._refresh();
+    });
   }
 
   ngOnDestroy() {

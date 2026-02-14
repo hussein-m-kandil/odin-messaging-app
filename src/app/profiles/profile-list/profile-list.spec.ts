@@ -15,6 +15,7 @@ const profilesMock = {
   hasMore: vi.fn(() => false),
   isCurrentProfile: vi.fn(() => false),
   list: vi.fn<() => unknown[]>(() => []),
+  profileUpdated: { subscribe: vi.fn() },
   searchValue: { set: vi.fn() },
   path: { set: vi.fn() },
 };

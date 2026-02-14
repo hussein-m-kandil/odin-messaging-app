@@ -29,8 +29,8 @@ const singularViewMock = {
 const navigationMock = { isInitial: vi.fn(), navigating: vi.fn(), error: vi.fn() };
 
 const authMock = { user: vi.fn(() => user), userSignedOut: { subscribe: vi.fn() } };
+const profilesMock = { reset: vi.fn(), profileUpdated: { subscribe: vi.fn() } };
 const chatsMock = { reset: vi.fn(), refresh: vi.fn() };
-const profilesMock = { reset: vi.fn() };
 
 const resolve = { testData: vi.fn(() => of(null)) };
 
