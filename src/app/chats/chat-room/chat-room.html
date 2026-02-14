@@ -1,5 +1,5 @@
 @let _title = title();
-@let _chat = chat(); @let _profile = profile();
+@let _chat = messages.chats.activatedChat() || chat(); @let _profile = profile();
 @let _chatId = _chat?.id || chatId(); @let _profileId = _profile?.id || profileId();
 <div class="relative size-full overflow-auto flex flex-col" [aria-label]="`${_title} chat room`">
   <nav class="bg-(--p-content-background) border-surface border-b">

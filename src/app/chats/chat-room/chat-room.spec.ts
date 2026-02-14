@@ -92,6 +92,7 @@ const messagesMock = {
   list: vi.fn(() => messages),
   chats: {
     isDeadChat: vi.fn<() => void>(),
+    activatedChat: vi.fn(() => null),
     generateTitle: vi.fn<() => string>(),
     list: vi.fn<() => unknown[]>(() => []),
     getOtherProfiles: vi.fn<() => unknown[]>(() => []),
@@ -273,6 +274,7 @@ describe('ChatRoom', () => {
   });
 
   it('should not have a form if a profile and chat IDs/objects', async () => {
+    messagesMock.chats.activatedChat.mockImplementation(() => null);
     await renderComponent({ inputs: { chat: null } });
     expect(screen.queryByRole('form', { name: /message/i })).toBeNull();
     expect(screen.queryByText(/cannot receive new messages/i)).toBeNull();
