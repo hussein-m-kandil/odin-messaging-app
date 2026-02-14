@@ -71,22 +71,29 @@ export class Profiles extends ListStore<Profile> {
     return this._http.patch<Profile>(this.baseUrl, updates).pipe(
       map((profile) => {
         this.list.update((profiles) => profiles.map((p) => (p.id === profile.id ? profile : p)));
-        return '' as const;
+        return profile;
       }),
     );
   }
 
-  toggleFollowing(profile: Profile) {
-    const profileId = profile.id;
-    const following = profile.followedByCurrentUser;
+  toggleFollowing(profileData: Profile) {
+    const profileId = profileData.id;
+    const followed = profileData.followedByCurrentUser;
     const url = `${this.baseUrl}/following/${profileId}`;
-    return (following ? this._http.delete<''>(url) : this._http.post<''>(url, null)).pipe(
-      map((res) => {
-        this.list.update((profiles) => {
-          const followedByCurrentUser = !following;
-          return profiles.map((p) => (p.id === profileId ? { ...p, followedByCurrentUser } : p));
-        });
-        return res;
+    return (followed ? this._http.delete<''>(url) : this._http.post<''>(url, null)).pipe(
+      map(() => {
+        const followedByCurrentUser = !followed;
+        let updatedProfile = { ...profileData, followedByCurrentUser };
+        this.list.update((profiles) =>
+          profiles.map((profile) => {
+            if (profile.id === profileId) {
+              updatedProfile = { ...profile, followedByCurrentUser };
+              return updatedProfile;
+            }
+            return profile;
+          }),
+        );
+        return updatedProfile;
       }),
     );
   }

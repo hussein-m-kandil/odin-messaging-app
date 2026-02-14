@@ -268,9 +268,9 @@ describe('Profiles', () => {
     );
     req.flush('', { status: 201, statusText: 'Created' });
     expect(service.list()[0]).toHaveProperty('followedByCurrentUser', true);
+    expect(res).toStrictEqual({ ...profile, followedByCurrentUser: true });
     expect(req.request.body).toBeNull();
     expect(err).toBeUndefined();
-    expect(res).toBe('');
     httpTesting.verify();
   });
 
@@ -287,10 +287,10 @@ describe('Profiles', () => {
       'Request to follow a profile',
     );
     req.flush('', { status: 201, statusText: 'Created' });
+    expect(res).toStrictEqual({ ...profile, followedByCurrentUser: true });
     expect(service.list()).toStrictEqual([profile2]);
     expect(req.request.body).toBeNull();
     expect(err).toBeUndefined();
-    expect(res).toBe('');
     httpTesting.verify();
   });
 
@@ -352,9 +352,9 @@ describe('Profiles', () => {
     );
     req.flush('', { status: 204, statusText: 'No content' });
     expect(service.list()[0]).toHaveProperty('followedByCurrentUser', false);
+    expect(res).toStrictEqual({ ...profile, followedByCurrentUser: false });
     expect(req.request.body).toBeNull();
     expect(err).toBeUndefined();
-    expect(res).toBe('');
     httpTesting.verify();
   });
 
@@ -371,10 +371,10 @@ describe('Profiles', () => {
       'Request to unfollow a profile',
     );
     req.flush('', { status: 204, statusText: 'No content' });
+    expect(res).toStrictEqual({ ...profile, followedByCurrentUser: false });
     expect(service.list()).toStrictEqual([profile2]);
     expect(req.request.body).toBeNull();
     expect(err).toBeUndefined();
-    expect(res).toBe('');
     httpTesting.verify();
   });
 
@@ -438,8 +438,8 @@ describe('Profiles', () => {
     req.flush(updatedProfile, { status: 200, statusText: 'OK' });
     expect(service.list()).toStrictEqual([updatedProfile]);
     expect(req.request.body).toStrictEqual(updates);
+    expect(res).toStrictEqual(updatedProfile);
     expect(err).toBeUndefined();
-    expect(res).toBe('');
     httpTesting.verify();
   });
 
@@ -459,8 +459,8 @@ describe('Profiles', () => {
     req.flush(updatedProfile, { status: 200, statusText: 'OK' });
     expect(service.list()).toStrictEqual([profile2]);
     expect(req.request.body).toStrictEqual(updates);
+    expect(res).toStrictEqual(updatedProfile);
     expect(err).toBeUndefined();
-    expect(res).toBe('');
     httpTesting.verify();
   });
 
