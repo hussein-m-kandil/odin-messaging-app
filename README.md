@@ -24,6 +24,7 @@ This app allows authenticated users to:
 - Browse, search, filter profiles, and follow/unfollow other users
 - Send text messages that could contain an image, and/or emojis 😎
 - Track the message's seen/received states
+- Read-time updates via Socket.IO
 
 The project emphasizes predictable state management, clean separation of concerns.
 
@@ -45,6 +46,7 @@ Beside the Angular's `HttpClint` usage, this app utilizes the **RxJS** for many 
 - TypeScript
 - RxJS
 - Vitest
+- Socket.IO
 - tailwindcss
 - Angular Testing Library
 - PrimeNG with Tailwind-based theming
@@ -59,6 +61,7 @@ This repository contains the **front-end application**, which communicates with 
 - PostgreSQL
 - Prisma
 - Passport
+- Socket.IO
 - JWT-based authentication
 
 ---
@@ -75,14 +78,14 @@ The [`MessageForm`](./src/app/chats/chat-room/message-form/message-form.spec.ts)
 
 ### Requirements
 
+**Note**: Make sure to meat the requirements of every requirement.
+
 - [Angular CLI v21](https://angular.dev/installation#install-angular-cli) installed globally.
 - A local clone of the [Generic Express Service](https://github.com/hussein-m-kandil/generic-express-service).
 
 ### Setup
 
 #### 1. Clone and set up the backend
-
-_Refer to the [Generic Express Service repository](https://github.com/hussein-m-kandil/generic-express-service) for more information_.
 
 ```bash
 git clone git@github.com:hussein-m-kandil/generic-express-service.git
