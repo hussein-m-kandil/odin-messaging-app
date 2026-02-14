@@ -37,12 +37,9 @@ export class Auth {
     if (!isAuthData(authData)) {
       throw new HttpErrorResponse({ status: 500, statusText: 'malformed server response' });
     }
+    this._closeSocket();
     const user = authData.user;
     this._setAuthData(authData);
-    if (this._socket) {
-      this._socket.removeAllListeners();
-      this._socket.disconnect();
-    }
     this._socket = io(environment.backendUrl, { auth: authData });
     this._socket.on('connect_error', () => {
       if (this._socket && !this._socket.active && this.user()) this._socket.connect();
@@ -94,6 +91,14 @@ export class Auth {
     return this._socket;
   }
 
+  private _closeSocket() {
+    if (this._socket) {
+      this._socket.removeAllListeners();
+      this._socket.disconnect();
+      this._socket = null;
+    }
+  }
+
   constructor() {
     let initialized = false;
     effect(() => {
@@ -134,11 +139,8 @@ export class Auth {
 
   signOut() {
     this._setAuthData(null);
-    if (this._socket) {
-      this._socket.disconnect();
-      this._socket = null;
-    }
     this.userSignedOut.next(null);
+    this._closeSocket();
   }
 
   signUp(data: SignupData) {
