@@ -1,5 +1,5 @@
 @let _loading = loading();
-@let _profile = profile(); @let _currentUserProfile = profiles.isCurrentProfile(_profile.id);
+@let _profile = activeProfile(); @let _currentUserProfile = profiles.isCurrentProfile(_profile.id);
 <section class="size-full overflow-auto flex flex-col">
   <ul class="flex justify-between">
     <li>

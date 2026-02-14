@@ -1,11 +1,11 @@
 import { render, RenderComponentOptions, screen } from '@testing-library/angular';
 import { Profile as ProfileT, User } from '../../app.types';
 import { userEvent } from '@testing-library/user-event';
+import { of, Subscriber, Observable } from 'rxjs';
 import { MessageService } from 'primeng/api';
+import { Router } from '@angular/router';
 import { Profiles } from '../profiles';
 import { Profile } from './profile';
-import { Observable, of, Subscriber } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
 
 const user = {
   id: crypto.randomUUID(),
@@ -29,8 +29,8 @@ const profilesMock = {
   isOnline: vi.fn(() => of(true)),
   list: vi.fn(() => [] as ProfileT[]),
   isCurrentProfile: vi.fn(() => false),
-  toggleFollowing: vi.fn(() => of('')),
-  updateCurrentProfile: vi.fn(() => of('')),
+  toggleFollowing: vi.fn(() => of(profile)),
+  updateCurrentProfile: vi.fn(() => of(profile)),
 };
 
 const navigationSpy = vi.spyOn(Router.prototype, 'navigate');
@@ -56,17 +56,6 @@ const assertNavBtnsEnabled = (...extraNodes: Node[]) => {
   expect(screen.getByRole('button', { name: /back/i })).toBeEnabled();
   expect(screen.getByRole('button', { name: /chat/i })).toBeEnabled();
   for (const node of extraNodes) expect(node).toBeEnabled();
-};
-
-const assertNavigated = () => {
-  expect(navigationSpy).toHaveBeenCalledTimes(1);
-  expect(navigationSpy.mock.calls[0][0]).toStrictEqual(['.']);
-  expect(navigationSpy.mock.calls[0][1]).toHaveProperty('relativeTo');
-  expect(navigationSpy.mock.calls[0][1]).toHaveProperty('replaceUrl', true);
-  expect(navigationSpy.mock.calls[0][1]).toHaveProperty('onSameUrlNavigation', 'reload');
-  expect((navigationSpy.mock.calls[0][1] as Record<string, unknown>)['relativeTo']).toBeInstanceOf(
-    ActivatedRoute,
-  );
 };
 
 describe('Profile', () => {
@@ -206,11 +195,11 @@ describe('Profile', () => {
       await actor.click(followBtn);
       assertNavBtnsEnabled();
       expect(followBtn).toBeDisabled();
-      sub.next('');
+      sub.next(profile);
       sub.complete();
       detectChanges();
-      assertNavigated();
       assertNavBtnsEnabled(followBtn);
+      expect(navigationSpy).toHaveBeenCalledTimes(0);
       expect(profilesMock.toggleFollowing).toHaveBeenCalledExactlyOnceWith(testProfile);
     });
 
@@ -250,11 +239,11 @@ describe('Profile', () => {
       assertNavBtnsEnabled(propertySwitch);
       await actor.click(propertySwitch);
       assertNavBtnsEnabled(propertySwitch);
-      sub.next('');
+      sub.next(profile);
       sub.complete();
       detectChanges();
-      assertNavigated();
       assertNavBtnsEnabled(propertySwitch);
+      expect(navigationSpy).toHaveBeenCalledTimes(0);
       expect(profilesMock.updateCurrentProfile).toHaveBeenCalledExactlyOnceWith(data);
     });
 

@@ -2,11 +2,12 @@ import {
   input,
   signal,
   inject,
+  effect,
   computed,
+  untracked,
   Component,
-  OnChanges,
-  SimpleChanges,
   DestroyRef,
+  linkedSignal,
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -27,14 +28,14 @@ import { finalize } from 'rxjs';
   templateUrl: './profile.html',
   styles: ``,
 })
-export class Profile implements OnChanges {
+export class Profile {
   private readonly _activeRoute = inject(ActivatedRoute);
   private readonly _destroyRef = inject(DestroyRef);
   private readonly _toast = inject(MessageService);
   private readonly _router = inject(Router);
 
   protected readonly optionsMenuItems = computed<MenuItem[]>(() => {
-    const profile = this.profile();
+    const profile = this.activeProfile();
     const imageId = profile.user.avatar?.image.id;
     if (!this.loading() && this.profiles.isCurrentProfile(profile.id)) {
       return [
@@ -66,12 +67,14 @@ export class Profile implements OnChanges {
   protected readonly visible = new FormControl(true, { nonNullable: true });
   protected readonly tangible = new FormControl(true, { nonNullable: true });
 
+  protected readonly profiles = inject(Profiles);
+
   readonly profile = input.required<ProfileT>();
 
-  readonly profiles = inject(Profiles);
+  protected readonly activeProfile = linkedSignal(() => this.profile());
 
   protected toggle(property: ReturnType<typeof this.loading>) {
-    const profile = this.profile();
+    const profile = this.activeProfile();
     const currentUserProfile = this.profiles.isCurrentProfile(profile.id);
     const tangibility = property === 'tangibility' && currentUserProfile;
     const visibility = property === 'visibility' && currentUserProfile;
@@ -89,13 +92,7 @@ export class Profile implements OnChanges {
           finalize(() => this.loading.set('')),
         )
         .subscribe({
-          next: () => {
-            this._router.navigate(['.'], {
-              relativeTo: this._activeRoute,
-              onSameUrlNavigation: 'reload',
-              replaceUrl: true,
-            });
-          },
+          next: (updatedProfile) => this.activeProfile.set(updatedProfile),
           error: () => {
             let summary: string, detail: string;
             if (following) {
@@ -120,10 +117,13 @@ export class Profile implements OnChanges {
     this._router.navigate(['..'], { relativeTo: this._activeRoute });
   }
 
-  ngOnChanges(changes: SimpleChanges<Profile>): void {
-    if (changes.profile) {
-      this.tangible.setValue(changes.profile.currentValue.tangible);
-      this.visible.setValue(changes.profile.currentValue.visible);
-    }
+  constructor() {
+    effect(() => {
+      const activeProfile = this.activeProfile();
+      untracked(() => {
+        this.tangible.setValue(activeProfile.tangible);
+        this.visible.setValue(activeProfile.visible);
+      });
+    });
   }
 }
